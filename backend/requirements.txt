@@ -7,7 +7,7 @@ pydantic>=2.7
 # Microsoft Agent Framework (core + Azure OpenAI chat client) and MCP SDK
 agent-framework-core>=1.22
 agent-framework-openai>=1.17
-mcp>=1.30
+mcp>=1.30,<2
 openai>=1.50
 
 # Dev / test
