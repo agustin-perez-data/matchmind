@@ -33,6 +33,22 @@ class FakePipeline:
         }
 
 
+class FakeCoach:
+    """Stands in for CoachPipeline: records contexts, returns a canned proposal + no branch."""
+
+    def __init__(self):
+        self.calls: list[dict] = []
+
+    async def run(self, context):
+        self.calls.append(context)
+        return {"trigger": context["trigger"], "clock": context["clock"], "minute": context["minute"],
+                "score": context["score"], "player": context["player"],
+                "proposal": {"action": "hold", "team_id": context["team"]["team_id"], "player_off_id": None,
+                             "player_on_id": None, "press_intensity": None, "style": None, "minute": context["minute"],
+                             "rationale": "fake", "urgency": 2, "expected_effect": "none"},
+                "branch": None, "errors": [], "latency_ms": 1}
+
+
 @pytest.fixture(scope="module")
 def data_dir(match, tmp_path_factory):
     d = tmp_path_factory.mktemp("data")
@@ -52,8 +68,13 @@ def fake_pipeline():
 
 
 @pytest.fixture()
-def agent_client(data_dir, fake_pipeline):
-    with TestClient(create_app(data_dir=data_dir, pipeline=fake_pipeline)) as c:
+def fake_coach():
+    return FakeCoach()
+
+
+@pytest.fixture()
+def agent_client(data_dir, fake_pipeline, fake_coach):
+    with TestClient(create_app(data_dir=data_dir, pipeline=fake_pipeline, coach=fake_coach)) as c:
         yield c
 
 
@@ -105,6 +126,34 @@ def test_unknown_match_is_404(client):
     assert client.get("/matches/NOPE/meta").status_code == 404
 
 
+# ---------------------------------------------------------------- counterfactual branches
+
+def _starting_gk(meta, team_id):
+    return next(p["player_id"] for p in meta["teams"][team_id]["players"] if p["position"] == "GK" and p["starter"])
+
+
+def test_post_branch_simulates_and_get_branch_returns_its_events(client, meta):
+    body = {"minute": 60, "action": "substitution", "team_id": "THU", "player_off_id": _starting_gk(meta, "THU")}
+    r = client.post(f"/matches/{meta['match_id']}/branches", json=body)
+    assert r.status_code == 200, r.text
+    summary = r.json()
+    assert summary["status"] == "applied" and summary["divergence_minute"] == 60
+    r2 = client.get(f"/matches/{meta['match_id']}/branches/{summary['branch_id']}")
+    assert r2.status_code == 200
+    assert r2.json()["summary"] == summary
+    assert r2.json()["events"][0]["match_id"] == summary["branch_id"]
+    assert "fatigue" not in r2.text
+    listed = client.get(f"/matches/{meta['match_id']}/branches").json()
+    assert summary["branch_id"] in [b["branch_id"] for b in listed]
+
+
+def test_post_branch_validates_input(client, meta):
+    assert client.post(f"/matches/{meta['match_id']}/branches", json={"minute": 60, "action": "teleport", "team_id": "THU"}).status_code == 400
+    assert client.post(f"/matches/{meta['match_id']}/branches", json={"minute": 60, "action": "substitution", "team_id": "THU"}).status_code == 400
+    assert client.post("/matches/NOPE/branches", json={"minute": 60, "action": "tactic", "team_id": "THU", "style": "direct"}).status_code == 404
+    assert client.get(f"/matches/{meta['match_id']}/branches/nope").status_code == 404
+
+
 # ---------------------------------------------------------------- WebSocket
 
 def test_websocket_streams_every_event_in_order_with_snapshots(client, meta, events):
@@ -116,7 +165,7 @@ def test_websocket_streams_every_event_in_order_with_snapshots(client, meta, eve
         msgs = _drain(ws)
     evs = [m for m in msgs if m["kind"] == "event"]
     assert [m["event"]["event_id"] for m in evs] == [e["event_id"] for e in events]
-    assert [m["kind"] for m in msgs if m["kind"] not in ("event",)] == ["end"]
+    assert [m["kind"] for m in msgs if m["kind"] not in ("event", "risk", "risk_alert")] == ["end"]
     with_state = [m for m in evs if "state" in m]
     assert with_state and with_state[-1]["state"]["score"] == meta["score"]
 
@@ -151,7 +200,38 @@ def test_client_can_change_speed_and_profile_mid_stream(client, meta):
     assert any(a.get("profile", {}).get("mode") == "casual" for a in acks)
 
 
+def test_websocket_streams_risk_summaries_and_alerts(client, meta):
+    with client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0") as ws:
+        ws.receive_json()
+        msgs = _drain(ws)
+    risk = [m for m in msgs if m["kind"] == "risk"]
+    assert len(risk) >= 10  # one per 5-minute physical sample batch
+    assert risk[-1]["scorecard"]["model"]["concerns"] == risk[-1]["scorecard"]["baseline"]["concerns"] >= 1
+    assert all({"minute", "clock", "active_windows", "hazards_top", "scorecard"} <= set(m) for m in risk)
+    alerts = [m for m in msgs if m["kind"] == "risk_alert"]
+    assert alerts and all({"player_id", "name", "level", "hazard", "open_minute"} <= set(a) for a in alerts)
+    assert "fatigue" not in str(msgs)
+
+
 # ---------------------------------------------------------------- agents over WebSocket
+
+def test_coach_is_consulted_on_high_risk_alerts_and_concerns(agent_client, fake_coach, meta):
+    with agent_client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&agents=0") as ws:
+        ws.receive_json()
+        msgs = _drain(ws)
+    coach = [m for m in msgs if m["kind"] == "coach"]
+    assert coach, "no coach messages"
+    assert all(m["proposal"]["action"] == "hold" for m in coach)
+    assert {c["trigger"] for c in fake_coach.calls} <= {"risk_alert", "injury_concern"}
+    assert any(c["trigger"] == "injury_concern" for c in fake_coach.calls)
+    assert all(c["player"]["player_id"] for c in fake_coach.calls)
+
+
+def test_coach_can_be_switched_off(agent_client, fake_coach, meta):
+    with agent_client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&agents=0&coach=0") as ws:
+        ws.receive_json()
+        msgs = _drain(ws)
+    assert not [m for m in msgs if m["kind"] == "coach"] and fake_coach.calls == []
 
 def test_insights_arrive_for_key_moments_without_breaking_the_event_stream(agent_client, fake_pipeline, meta, events):
     url = f"/ws/matches/{meta['match_id']}?speed=0&mode=player_focus&player=THU-15"

@@ -18,6 +18,14 @@ def test_clock_never_runs_backwards_within_a_period(events):
         assert b["minute"] >= a["minute"], (a["event_id"], b["event_id"])
 
 
+def test_starters_are_the_eleven_who_kicked_off_not_everyone_who_played(meta, events):
+    for tid, team in meta["teams"].items():
+        starters = [p["player_id"] for p in team["players"] if p["starter"]]
+        assert len(starters) == 11
+        came_on = {e["player_on_id"] for e in events if e["type"] == "substitution" and e["team_id"] == tid}
+        assert not (set(starters) & came_on)
+
+
 def test_nobody_assists_their_own_shot(events):
     shots = [e for e in events if e["type"] in ("shot", "goal")]
     assert shots

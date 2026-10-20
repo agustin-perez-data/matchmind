@@ -45,6 +45,18 @@ def chat_client(tier: str = "fast"):
     )
 
 
+def build_coach(match_tools) -> "CoachPipeline":
+    """Coach agent (smart tier) + deterministic branch simulation through MatchTools."""
+    from matchmind.agents.coach import COACH_INSTRUCTIONS, CoachAgent, CoachPipeline
+
+    agent = chat_client("smart").as_agent(
+        name="Coach", instructions=COACH_INSTRUCTIONS,
+        tools=[match_tools.get_player_workload, match_tools.get_risk_windows],
+        default_options={"temperature": 0.3},
+    )
+    return CoachPipeline(CoachAgent(agent), match_tools)
+
+
 def build_pipeline(tools: list | None = None) -> MomentPipeline:
     """The three LLM agents on Foundry. `tools` are given to the Analyst only."""
     smart, fast = chat_client("smart"), chat_client("fast")

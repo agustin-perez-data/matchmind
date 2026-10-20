@@ -107,7 +107,13 @@ Foundry, Best Azure Cloud Native Integration.
   streamer, Interpreter (momentum, xG race, ACWR).
 - **D3 (Oct 20) DONE**: Analyst / Narrator / Director on Agent Framework,
   key-moment gate, MCP server, insights over WebSocket, `/live` dev viewer.
-- **D4 (Oct 21)** — *innovation core, backend*:
+- **D4 (Oct 20-21) MOSTLY DONE** — *innovation core, backend*. Done on Oct 20:
+  engine interventions, Risk Monitor + evaluator, `simulate_intervention` +
+  `get_risk_windows` tools, Coach agent, WS `risk`/`risk_alert`/`coach`
+  messages, branch REST endpoints (100 tests, live E2E OK). Left for Oct 21:
+  finish weight calibration with `python -m matchmind.risk.evaluate --grid`,
+  update `/live` viewer with risk + coach cards, README section, LLM
+  explanation of alerts (optional). Original scope:
   1. Engine interventions: `MatchSimulator(..., interventions=[...])`
      (forced substitution at minute M; tactical change of press/style);
      deterministic branch = same seed, same events until M.
@@ -132,6 +138,25 @@ evaluation is shown honestly even if the numbers are modest — a baseline next
 to it makes the point.
 
 ## 6. Current status / handoff notes
+
+- **D4 backend (Oct 20)**: `sim/engine.py` takes `interventions=[...]`
+  (substitution / tactic at minute M; status applied|skipped; same seed =
+  identical events until M). `generate(..., interventions, match_id)`; meta now
+  has `seed`, `league_seed`, `interventions`, and `starter` means the real
+  starting XI. `risk/monitor.py`: `RiskModel` (logistic over ACWR, minutes,
+  sprint density, previous knocks, metres-per-minute drop vs position norm),
+  `NaiveMinutesBaseline`, `Track` (windows + scoring: precision/recall/lead and
+  top-3 ranking vs random), `RiskMonitor`. `risk/evaluate.py` CLI (40 matches:
+  model recall 0.60 vs baseline 0.51, rank% 41 vs 48, top-3 0.17 vs random
+  0.14 — modest, honest; weights still to be tuned with `--grid`). Interpreter
+  player view gained `effort_ratio` / `effort_ratio_recent`. `tools/registry.py`:
+  `simulate_intervention` (deterministic branch, cached by intervention hash,
+  summary actual vs branch + diff + player_off), `get_risk_windows`, branch
+  storage. `agents/coach.py`: `CoachProposal`, `build_coach_context`,
+  `CoachAgent`, `CoachPipeline` (propose → simulate). API: `GET/POST
+  /matches/{id}/branches`, `GET .../branches/{branch_id}`; WS lanes `_Lane`
+  (moments → insight, risk → coach), params `coach=0/1`. Measured live: Coach
+  ~2 s per proposal, branch simulation < 100 ms.
 
 - **Streamer + Interpreter done (D2)**: `backend/matchmind/api/app.py`
   (REST catalogue + `WS /ws/matches/{id}?speed=N`, hot speed change via

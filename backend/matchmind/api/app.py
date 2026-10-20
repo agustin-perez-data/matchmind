@@ -1,27 +1,33 @@
-"""FastAPI service: live replay streamer + Interpreter + LLM agents + MCP server.
+"""FastAPI service: live replay + Interpreter + Risk Monitor + LLM agents + MCP server.
 
 REST
     GET  /health
-    GET  /matches                      -> catalogue of matches in the data dir
-    GET  /matches/{match_id}/meta      -> teams, squads, load history (no latent state)
-    POST /mcp                          -> MCP server (streamable HTTP) with match-state tools
+    GET  /matches                                   -> catalogue of matches in the data dir
+    GET  /matches/{match_id}/meta                   -> teams, squads, load history (no latent state)
+    GET  /matches/{match_id}/branches               -> counterfactual branches simulated so far
+    POST /matches/{match_id}/branches               -> simulate an intervention (body: InterventionRequest)
+    GET  /matches/{match_id}/branches/{branch_id}   -> branch summary + meta + full event stream
+    POST /mcp                                       -> MCP server (streamable HTTP) with match-state tools
+    GET  /live                                      -> no-build dev viewer
 
 WebSocket
-    WS   /ws/matches/{match_id}?speed=10&mode=analyst&lang=en&player=THU-19&agents=1&min_importance=3
+    WS   /ws/matches/{match_id}?speed=10&mode=analyst&lang=en&player=THU-15&agents=1&coach=1&min_importance=3
         server -> client
-            {"kind": "meta",    "meta": {...}, "speed": 10, "agents": true, "profile": {...}}
-            {"kind": "event",   "event": {...}, "state": {...}?}  # state on key events / every N
-            {"kind": "insight", "event_id": 812, "clock": "34:41", "moment": {...},
-                                "analyst": {...}, "viewers": {"<profile key>": {...}}, "latency_ms": 4100}
-            {"kind": "ack",     "speed": 50} | {"kind": "ack", "profile": {...}}
-            {"kind": "end",     "state": {...}}
+            {"kind": "meta",       "meta": {...}, "speed": 10, "agents": true, "coach": true, "profile": {...}}
+            {"kind": "event",      "event": {...}, "state": {...}?}   # state on key events / every N
+            {"kind": "risk",       "minute", "clock", "active_windows", "hazards_top", "scorecard", ...}  # every 5'
+            {"kind": "risk_alert", ...window}                          # a risk window just opened
+            {"kind": "insight",    "event_id", "clock", "moment", "analyst", "viewers", "latency_ms"}
+            {"kind": "coach",      "trigger", "player", "proposal", "branch", "latency_ms"}
+            {"kind": "ack",        "speed": 50} | {"kind": "ack", "profile": {...}}
+            {"kind": "end",        "state": {...}, "risk": {...}}
         client -> server
-            {"speed": 50}                                   # change replay speed live
+            {"speed": 50}                                      # change replay speed live
             {"profile": {"mode": "casual", "language": "es"}}  # switch viewer profile live
 
 speed: 1 = real time, 10 = ten times faster, 0 = as fast as possible.
-Agents run in the background, one key moment at a time per connection; if a
-new moment arrives while one is being explained, the more important one wins.
+LLM agents run in the background on two lanes (moments -> Analyst/Narrator/Director,
+risk alerts -> Coach), one item in flight per lane; a more important item replaces a waiting one.
 """
 
 from __future__ import annotations
@@ -35,12 +41,14 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse
-from pydantic import ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
+from matchmind.agents.coach import build_coach_context
 from matchmind.agents.moments import build_moment_context, detect_key_moment
 from matchmind.agents.schemas import ViewerProfile
 from matchmind.generate_match import generate, write_match
 from matchmind.interpreter.state import MatchState
+from matchmind.risk.monitor import RiskMonitor
 from matchmind.stream.replay import delay_between, load_events
 from matchmind.tools.mcp_server import build_mcp_server
 from matchmind.tools.registry import LiveStateRegistry, MatchTools
@@ -49,7 +57,8 @@ log = logging.getLogger("matchmind.api")
 
 SNAPSHOT_EVERY = 25  # also attach a state snapshot every N events
 DEFAULT_MATCH = ("THU", "NBF", 42)
-AGENT_DRAIN_TIMEOUT_S = 45.0  # how long the end of a stream waits for the last insight
+AGENT_DRAIN_TIMEOUT_S = 45.0  # how long the end of a stream waits for the last agent outputs
+HAZARD_TOP_N = 5
 
 
 def default_data_dir() -> Path:
@@ -57,6 +66,16 @@ def default_data_dir() -> Path:
     if env:
         return Path(env)
     return Path(__file__).resolve().parents[3] / "data"
+
+
+class InterventionRequest(BaseModel):
+    minute: int = Field(ge=0, le=100)
+    action: str
+    team_id: str
+    player_off_id: str | None = None
+    player_on_id: str | None = None
+    press_intensity: float | None = Field(default=None, ge=0, le=1)
+    style: str | None = None
 
 
 class MatchCatalog:
@@ -94,18 +113,20 @@ class MatchCatalog:
 def create_app(
     data_dir: Path | str | None = None,
     pipeline=None,
+    coach=None,
     enable_agents: bool | None = None,
 ) -> FastAPI:
     """Build the service.
 
-    pipeline: object with `async run(context, profiles) -> dict` (tests inject a fake).
-    enable_agents: None = build the Foundry pipeline on startup if configured;
-                   False = never call an LLM.
+    pipeline: object with `async run(context, profiles) -> dict` (moments lane; tests inject a fake).
+    coach:    object with `async run(context) -> dict` (risk lane; tests inject a fake).
+    enable_agents: None = build the Foundry agents on startup if configured; False = never call an LLM.
     """
     catalog = MatchCatalog(Path(data_dir) if data_dir else default_data_dir())
     registry = LiveStateRegistry()
+    tools = MatchTools(registry)
     mcp = build_mcp_server(registry)
-    agents = {"pipeline": pipeline}
+    agents = {"pipeline": pipeline, "coach": coach}
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -115,12 +136,15 @@ def create_app(
                 registry.update(mid, catalog.meta(mid), catalog.final_state(mid))
             except Exception as exc:  # noqa: BLE001
                 log.warning("could not preload %s: %r", mid, exc)
-        if agents["pipeline"] is None and enable_agents is not False:
-            from matchmind.agents.clients import build_pipeline, foundry_configured
+        if enable_agents is not False and (agents["pipeline"] is None or agents["coach"] is None):
+            from matchmind.agents.clients import build_coach, build_pipeline, foundry_configured
 
             if foundry_configured():
                 try:
-                    agents["pipeline"] = build_pipeline(tools=MatchTools(registry).as_functions())
+                    if agents["pipeline"] is None:
+                        agents["pipeline"] = build_pipeline(tools=tools.as_functions())
+                    if agents["coach"] is None:
+                        agents["coach"] = build_coach(tools)
                     log.info("LLM agents enabled (Azure AI Foundry)")
                 except Exception as exc:  # noqa: BLE001
                     log.warning("LLM agents disabled: %r", exc)
@@ -129,7 +153,7 @@ def create_app(
         async with mcp.session_manager.run():
             yield
 
-    app = FastAPI(title="MatchMind", version="0.2.0", lifespan=lifespan)
+    app = FastAPI(title="MatchMind", version="0.3.0", lifespan=lifespan)
     app.state.catalog, app.state.registry, app.state.agents = catalog, registry, agents
 
     @app.get("/", include_in_schema=False)
@@ -143,7 +167,8 @@ def create_app(
 
     @app.get("/health")
     def health() -> dict:
-        return {"status": "ok", "matches": len(catalog.ids()), "agents": agents["pipeline"] is not None}
+        return {"status": "ok", "matches": len(catalog.ids()), "agents": agents["pipeline"] is not None,
+                "coach": agents["coach"] is not None}
 
     @app.get("/matches")
     def list_matches() -> list[dict]:
@@ -161,12 +186,42 @@ def create_app(
             })
         return out
 
-    @app.get("/matches/{match_id}/meta")
-    def match_meta(match_id: str) -> dict:
+    def _meta_or_404(match_id: str) -> dict:
         meta = catalog.meta(match_id)
         if meta is None:
             raise HTTPException(status_code=404, detail=f"unknown match {match_id!r}")
         return meta
+
+    @app.get("/matches/{match_id}/meta")
+    def match_meta(match_id: str) -> dict:
+        return _meta_or_404(match_id)
+
+    @app.get("/matches/{match_id}/branches")
+    def list_branches(match_id: str) -> list[dict]:
+        _meta_or_404(match_id)
+        return registry.branches(match_id)
+
+    @app.post("/matches/{match_id}/branches")
+    def simulate_branch(match_id: str, body: InterventionRequest) -> dict:
+        meta = _meta_or_404(match_id)
+        if registry.get(match_id) is None:
+            registry.update(match_id, meta, catalog.final_state(match_id))
+        try:
+            return tools.simulate_intervention(match_id, body.minute, body.action, body.team_id,
+                                               player_off_id=body.player_off_id, player_on_id=body.player_on_id,
+                                               press_intensity=body.press_intensity, style=body.style)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    @app.get("/matches/{match_id}/branches/{branch_id}")
+    def get_branch(match_id: str, branch_id: str) -> dict:
+        _meta_or_404(match_id)
+        branch = registry.branch(match_id, branch_id)
+        if branch is None:
+            raise HTTPException(status_code=404, detail=f"unknown branch {branch_id!r}")
+        return branch
 
     @app.websocket("/ws/matches/{match_id}")
     async def stream_match(
@@ -177,6 +232,7 @@ def create_app(
         lang: str = Query("en"),
         player: str | None = Query(None),
         agents_on: bool = Query(True, alias="agents"),
+        coach_on: bool = Query(True, alias="coach"),
         min_importance: int = Query(3, ge=1, le=5),
     ) -> None:
         await websocket.accept()
@@ -189,8 +245,12 @@ def create_app(
         except ValidationError as exc:
             await websocket.close(code=4400, reason=f"bad viewer profile: {exc.errors()[0]['msg']}")
             return
-        pipeline = agents["pipeline"] if agents_on else None
-        session = StreamSession(websocket, meta, catalog.events(match_id), registry, pipeline, profile, speed, min_importance)
+        session = StreamSession(
+            websocket, meta, catalog.events(match_id), registry,
+            pipeline=agents["pipeline"] if agents_on else None,
+            coach=agents["coach"] if coach_on else None,
+            profile=profile, speed=speed, min_importance=min_importance,
+        )
         await session.run()
 
     # MCP server (streamable HTTP) lives at /mcp; mounted last so API routes win.
@@ -198,16 +258,56 @@ def create_app(
     return app
 
 
-class StreamSession:
-    """One WebSocket connection: replay loop + control reader + agent worker + single sender."""
+class _Lane:
+    """One background agent lane: a 1-slot queue where the more important item survives."""
 
-    def __init__(self, websocket, meta, events, registry, pipeline, profile, speed, min_importance):
+    def __init__(self, runner, kind: str, out: asyncio.Queue, importance):
+        self.runner, self.kind, self.out, self.importance = runner, kind, out, importance
+        self.queue: asyncio.Queue = asyncio.Queue(maxsize=1)
+        self.task = asyncio.create_task(self._worker())
+
+    async def _worker(self) -> None:
+        while True:
+            item = await self.queue.get()
+            try:
+                if item is None:
+                    return
+                try:
+                    result = await self.runner(item)
+                    await self.out.put({"kind": self.kind, **result})
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("%s lane failed: %r", self.kind, exc)
+                    await self.out.put({"kind": f"{self.kind}_error", "detail": repr(exc)})
+            finally:
+                self.queue.task_done()
+
+    def offer(self, item: dict) -> None:
+        if self.queue.full():
+            waiting = self.queue.get_nowait()
+            self.queue.task_done()
+            if waiting is not None and self.importance(waiting) > self.importance(item):
+                item = waiting
+        self.queue.put_nowait(item)
+
+    async def close(self, timeout: float) -> None:
+        await self.queue.put(None)
+        try:
+            await asyncio.wait_for(self.task, timeout)
+        except asyncio.TimeoutError:
+            log.warning("%s lane did not finish within %ss", self.kind, timeout)
+            self.task.cancel()
+
+
+class StreamSession:
+    """One WebSocket connection: replay loop + control reader + agent lanes + single sender."""
+
+    def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance):
         self.ws, self.meta, self.events, self.registry = websocket, meta, events, registry
-        self.pipeline, self.profile, self.speed, self.min_importance = pipeline, profile, speed, min_importance
+        self.pipeline, self.coach, self.profile, self.speed = pipeline, coach, profile, speed
+        self.min_importance = min_importance
         self.match_id = meta["match_id"]
         self.closed = False
         self.out: asyncio.Queue = asyncio.Queue()
-        self.moments: asyncio.Queue = asyncio.Queue(maxsize=1)
 
     # ------------------------------------------------------------ tasks
 
@@ -243,77 +343,93 @@ class StreamSession:
                     continue
                 await self.out.put({"kind": "ack", "profile": self.profile.model_dump()})
 
-    async def _agent_worker(self) -> None:
-        while True:
-            ctx = await self.moments.get()
-            try:
-                if ctx is None:
-                    return
-                try:
-                    result = await self.pipeline.run(ctx, [self.profile])
-                    await self.out.put({"kind": "insight", **result})
-                except Exception as exc:  # noqa: BLE001
-                    log.warning("agent pipeline failed at %s: %r", ctx.get("clock"), exc)
-                    await self.out.put({"kind": "insight_error", "event_id": ctx["moment"]["event_id"], "detail": repr(exc)})
-            finally:
-                self.moments.task_done()
+    # ------------------------------------------------------------ helpers
 
-    def _offer_moment(self, ctx: dict) -> None:
-        """Keep at most one pending moment; the more important one survives."""
-        if self.moments.full():
-            waiting = self.moments.get_nowait()
-            self.moments.task_done()
-            if waiting is not None and waiting["moment"]["importance"] > ctx["moment"]["importance"]:
-                ctx = waiting
-        self.moments.put_nowait(ctx)
+    def _risk_message(self, monitor: RiskMonitor, snapshot: dict) -> dict:
+        summary = monitor.summary()
+        players = snapshot.get("players", {})
+        top = sorted(summary["hazards"].items(), key=lambda kv: -kv[1])[:HAZARD_TOP_N]
+        self.registry.update_risk(self.match_id, summary)
+        return {
+            "kind": "risk",
+            "minute": summary["minute"],
+            "clock": snapshot["clock"],
+            "active_windows": summary["active_windows"],
+            "hazards_top": [{"player_id": pid, "name": players.get(pid, {}).get("name", pid),
+                             "team_id": players.get(pid, {}).get("team_id"), "hazard": h} for pid, h in top],
+            "recent_alerts": summary["recent_alerts"],
+            "concerns": summary["concerns"],
+            "scorecard": summary["scorecard"],
+            "note": summary["note"],
+        }
 
     # ------------------------------------------------------------ main
 
     async def run(self) -> None:
         sender = asyncio.create_task(self._sender())
         reader = asyncio.create_task(self._read_controls())
-        worker = asyncio.create_task(self._agent_worker()) if self.pipeline is not None else None
-        state = MatchState(self.meta)
+        moments = _Lane(lambda ctx: self.pipeline.run(ctx, [self.profile]), "insight", self.out,
+                        lambda c: c["moment"]["importance"]) if self.pipeline is not None else None
+        coach = _Lane(self.coach.run, "coach", self.out,
+                      lambda c: 5 if c["trigger"] == "injury_concern" else 3) if self.coach is not None else None
+        state, monitor = MatchState(self.meta), RiskMonitor(self.meta)
         try:
             await self.out.put({
                 "kind": "meta", "meta": self.meta, "speed": self.speed,
-                "agents": self.pipeline is not None, "profile": self.profile.model_dump(),
+                "agents": self.pipeline is not None, "coach": self.coach is not None,
+                "profile": self.profile.model_dump(),
             })
             prev: dict | None = None
             n = len(self.events)
+            pending_risk = False
             for i, event in enumerate(self.events, start=1):
                 if self.closed:
                     return
                 await asyncio.sleep(delay_between(prev, event, self.speed))
                 state.apply(event)
+                snapshot = state.snapshot()
                 message: dict = {"kind": "event", "event": event}
                 key_event = event["type"] in MatchState.SNAPSHOT_TYPES
                 if key_event or i % SNAPSHOT_EVERY == 0 or i == n:
-                    snapshot = state.snapshot()
                     message["state"] = snapshot
                     self.registry.update(self.match_id, self.meta, snapshot)
-                    if worker is not None and key_event:
+                    if moments is not None and key_event:
                         moment = detect_key_moment(event, snapshot)
                         if moment is not None and moment.importance >= self.min_importance:
                             watched = [self.profile.favorite_player_id] if self.profile.favorite_player_id else None
-                            self._offer_moment(build_moment_context(moment, snapshot, self.meta, watched_players=watched))
+                            moments.offer(build_moment_context(moment, snapshot, self.meta, watched_players=watched))
+
+                # Risk Monitor: alerts immediately, a summary after every 5-minute sample batch
+                for alert in monitor.observe(event, snapshot):
+                    await self.out.put({"kind": "risk_alert", **alert})
+                    if coach is not None and alert["level"] == "high":
+                        coach.offer(build_coach_context({**alert, "other_windows": monitor.active_windows()},
+                                                        snapshot, self.meta, trigger="risk_alert"))
+                if event["type"] == "physical_sample":
+                    pending_risk = True
+                elif pending_risk:
+                    pending_risk = False
+                    await self.out.put(self._risk_message(monitor, snapshot))
+                if event["type"] == "injury_concern" and coach is not None:
+                    coach.offer(build_coach_context(
+                        {"player_id": event["player_id"], "name": event.get("player_name"), "clock": event.get("clock"),
+                         "detail": event.get("detail"), "other_windows": monitor.active_windows()},
+                        snapshot, self.meta, trigger="injury_concern"))
+
                 await self.out.put(message)
                 prev = event
-            if worker is not None:
-                await self.moments.put(None)
-                try:
-                    await asyncio.wait_for(worker, AGENT_DRAIN_TIMEOUT_S)
-                except asyncio.TimeoutError:
-                    log.warning("agent worker did not finish within %ss", AGENT_DRAIN_TIMEOUT_S)
-            await self.out.put({"kind": "end", "state": state.snapshot()})
+
+            for lane in (moments, coach):
+                if lane is not None:
+                    await lane.close(AGENT_DRAIN_TIMEOUT_S)
+            await self.out.put({"kind": "end", "state": state.snapshot(), "risk": monitor.summary()})
             await self.out.put(None)
             await sender
         except (WebSocketDisconnect, RuntimeError):
             log.info("client disconnected from %s", self.match_id)
         finally:
-            for task in (sender, reader, worker):
-                if task is not None:
-                    task.cancel()
+            for task in (sender, reader, *(lane.task for lane in (moments, coach) if lane is not None)):
+                task.cancel()
             try:
                 await self.ws.close()
             except RuntimeError:

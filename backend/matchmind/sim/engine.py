@@ -25,8 +25,24 @@ POSITION_METRES_PER_MIN = {"GK": 45.0, "DF": 102.0, "MF": 118.0, "FW": 108.0}
 FORMATION = {"GK": 1, "DF": 4, "MF": 4, "FW": 2}
 
 
+INTERVENTION_TYPES = ("substitution", "tactic")
+
+
 class MatchSimulator:
-    def __init__(self, home: Team, away: Team, seed: int = 42, match_id: str = "M0001"):
+    """Simulates one match. `interventions` is an optional plan of coach actions
+    applied at the start of a given minute (before that minute's possessions):
+
+        {"minute": 62, "type": "substitution", "team_id": "THU", "player_off_id": "THU-04",
+         "player_on_id": "THU-07" (optional), "reason": "coach" (optional)}
+        {"minute": 60, "type": "tactic", "team_id": "NBF", "press_intensity": 0.9, "style": "direct"}
+
+    Interventions never touch the RNG before their minute, so a run with the
+    same seed is identical to the base match up to the first intervention and
+    only diverges afterwards: a deterministic counterfactual branch.
+    """
+
+    def __init__(self, home: Team, away: Team, seed: int = 42, match_id: str = "M0001",
+                 interventions: list[dict] | None = None):
         self.home = home
         self.away = away
         self.rng = random.Random(seed)
@@ -38,6 +54,64 @@ class MatchSimulator:
         self.period = 1
         self.minute = 0
         self._subs_used = {home.team_id: 0, away.team_id: 0}
+        self.interventions = [dict(iv) for iv in (interventions or [])]
+        for iv in self.interventions:
+            if iv.get("type") not in INTERVENTION_TYPES:
+                raise ValueError(f"unknown intervention type {iv.get('type')!r}; expected one of {INTERVENTION_TYPES}")
+            if iv.get("team_id") not in (home.team_id, away.team_id):
+                raise ValueError(f"unknown team {iv.get('team_id')!r} in intervention")
+            iv.setdefault("status", "pending")
+
+    # ---------------------------------------------------------- interventions
+
+    def _team(self, team_id: str) -> Team:
+        return self.home if team_id == self.home.team_id else self.away
+
+    def _apply_interventions(self) -> None:
+        for iv in self.interventions:
+            if iv["status"] != "pending" or iv["minute"] != self.minute:
+                continue
+            if self.period == 1 and iv["minute"] >= 45:
+                continue  # minutes >= 45 belong to the second half; first-half stoppage is skipped
+            iv["status"] = self._force_substitution(iv) if iv["type"] == "substitution" else self._apply_tactic(iv)
+
+    def _force_substitution(self, iv: dict) -> str:
+        team = self._team(iv["team_id"])
+        off = next((p for p in team.on_pitch() if p.player_id == iv.get("player_off_id")), None)
+        if off is None:
+            return "skipped"
+        bench = team.bench()
+        on = next((p for p in bench if p.player_id == iv.get("player_on_id")), None)
+        if on is None:
+            on = next((p for p in bench if p.position == off.position), None)
+        if on is None:
+            return "skipped"
+        off.on_pitch, on.on_pitch = False, True
+        self._subs_used[team.team_id] += 1
+        self._emit(
+            "substitution",
+            team,
+            on,
+            player_off_id=off.player_id,
+            player_off_name=off.name,
+            player_on_id=on.player_id,
+            player_on_name=on.name,
+            forced=True,
+            reason=iv.get("reason", "coach"),
+        )
+        return "applied"
+
+    def _apply_tactic(self, iv: dict) -> str:
+        team = self._team(iv["team_id"])
+        if "press_intensity" in iv:
+            team.press_intensity = max(0.0, min(1.0, float(iv["press_intensity"])))
+        if "style" in iv:
+            if iv["style"] not in ("possession", "balanced", "direct"):
+                return "skipped"
+            team.style = iv["style"]
+        self._emit("tactical_change", team, press_intensity=round(team.press_intensity, 2), style=team.style,
+                   reason=iv.get("reason", "coach"))
+        return "applied"
 
     # ------------------------------------------------------------------ setup
 
@@ -330,6 +404,7 @@ class MatchSimulator:
 
     def run(self) -> dict:
         self._pick_lineups()
+        starters = [p.player_id for team in (self.home, self.away) for p in team.on_pitch()]
         halves = [
             (1, 0, 45 + self.rng.randint(1, 3)),
             (2, 45, 90 + self.rng.randint(2, 6)),
@@ -343,6 +418,7 @@ class MatchSimulator:
             for minute in range(start, end):
                 self.minute = minute
                 self._second = self.rng.randint(0, 15)
+                self._apply_interventions()
                 # ~2 possessions per minute (~190 per match, realistic tempo)
                 self._possession_chain()
                 self._possession_chain()
@@ -359,4 +435,8 @@ class MatchSimulator:
                        self.away.team_id: self.score[self.away.team_id]},
             )
         self._emit_physical_samples()
-        return {"events": self.events, "score": dict(self.score)}
+        for iv in self.interventions:
+            if iv["status"] == "pending":
+                iv["status"] = "skipped"
+        return {"events": self.events, "score": dict(self.score), "interventions": self.interventions,
+                "starters": starters}

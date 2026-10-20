@@ -51,9 +51,26 @@ The simulator outputs an event stream (`*_events.jsonl`) and match metadata
   per-player workload with live ACWR and risk alerts) and, a few seconds later,
   an `insight` message with the Analyst explanation, the Narrator line and the
   Director decision for that viewer.
+- `POST /matches/{id}/branches` — **what-if**: re-simulate the match from a
+  minute with a substitution or a tactical change. Same seed, so the branch is
+  identical to the real match until that minute and diverges after; the
+  response compares both timelines (score, xG, shots, injury concerns).
 - `POST /mcp` — MCP server (streamable HTTP) exposing `list_matches`,
-  `get_match_state`, `get_player_workload`, `get_risk_alerts`, `get_xg_race` to
-  any MCP client. The same functions are the Analyst agent's tools.
+  `get_match_state`, `get_player_workload`, `get_risk_alerts`, `get_xg_race`,
+  `get_risk_windows`, `simulate_intervention` to any MCP client. The same
+  functions are the agents' tools.
+
+## AI that gets graded, not just heard
+
+The **Load & Risk Monitor** predicts injury-risk windows per player from
+observable workload only (live ACWR, minutes, sprint density, previous knocks,
+metres-per-minute drop against the position norm). Because the simulator's
+hidden fatigue produces observable `injury_concern` events, every prediction is
+scored live: precision, recall, lead time, and where the player ranked among
+everybody on the pitch when the knock happened. A naive baseline (risk = minutes
+played) runs alongside, so the scorecard shows whether the model adds anything.
+The **Coach agent** turns high-risk alerts into proposals, and the engine shows
+the counterfactual branch of each proposal.
 
 ## Agents
 
@@ -63,7 +80,8 @@ The simulator outputs an event stream (`*_events.jsonl`) and match metadata
 | Analyst | gpt-4o | Explains why a key moment matters (structured output) |
 | Narrator | gpt-4.1-mini | One commentary line per viewer profile and language |
 | Director | gpt-4.1-mini | Picks the cards and priority each viewer gets |
-| Load & Risk Monitor | 🔜 | Flags risky workload patterns from observables only |
+| Load & Risk Monitor | none (pure Python) | Predicts risk windows from observables; self-evaluates against ground truth |
+| Coach | gpt-4o | Proposes substitutions / tactical changes on risk alerts; the engine simulates the branch |
 
 All agents run on **Azure AI Foundry** through the **Microsoft Agent Framework**
 (Python). A deterministic key-moment gate decides when they wake up, so cost and

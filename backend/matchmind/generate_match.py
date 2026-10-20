@@ -18,14 +18,14 @@ from matchmind.sim.engine import MatchSimulator
 from matchmind.sim.league import CLUBS, build_league
 
 
-def _public_player(p) -> dict:
+def _public_player(p, starters: set[str]) -> dict:
     """Serialize a player WITHOUT latent state (fatigue, susceptibility)."""
     return {
         "player_id": p.player_id,
         "name": p.name,
         "position": p.position,
         "shirt_number": p.shirt_number,
-        "starter": p.on_pitch or p.minutes_played > 0,
+        "starter": p.player_id in starters,
         "load_history": p.load_history,
     }
 
@@ -58,19 +58,34 @@ def _summary(events: list[dict], home_id: str, away_id: str) -> dict:
     return stats
 
 
-def generate(home: str = "THU", away: str = "NBF", seed: int = 42, league_seed: int = 7) -> tuple[list[dict], dict]:
-    """Simulate one match. Returns (events, meta); meta carries no latent state."""
+def generate(
+    home: str = "THU",
+    away: str = "NBF",
+    seed: int = 42,
+    league_seed: int = 7,
+    interventions: list[dict] | None = None,
+    match_id: str | None = None,
+) -> tuple[list[dict], dict]:
+    """Simulate one match. Returns (events, meta); meta carries no latent state.
+
+    With `interventions` the same seed yields a counterfactual branch: identical
+    to the base match until the first intervention minute, diverging after.
+    """
     league = build_league(league_seed)
     home_team, away_team = league[home], league[away]
-    match_id = f"{home}-{away}-{seed}"
-    result = MatchSimulator(home_team, away_team, seed=seed, match_id=match_id).run()
+    match_id = match_id or f"{home}-{away}-{seed}"
+    result = MatchSimulator(home_team, away_team, seed=seed, match_id=match_id, interventions=interventions).run()
     events = result["events"]
+    starters = set(result["starters"])
     meta = {
         "match_id": match_id,
         "competition": "MatchMind Synthetic League",
         "disclaimer": "All clubs, players and events are fictional and synthetically generated.",
         "home_id": home_team.team_id,
         "away_id": away_team.team_id,
+        "seed": seed,
+        "league_seed": league_seed,
+        "interventions": result["interventions"],
         "score": result["score"],
         "teams": {
             team.team_id: {
@@ -79,7 +94,7 @@ def generate(home: str = "THU", away: str = "NBF", seed: int = 42, league_seed: 
                 "short_name": team.short_name,
                 "primary_color": team.primary_color,
                 "style": team.style,
-                "players": [_public_player(p) for p in team.players],
+                "players": [_public_player(p, starters) for p in team.players],
             }
             for team in (home_team, away_team)
         },

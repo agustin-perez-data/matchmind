@@ -57,6 +57,8 @@ cp .env.example .env   # then fill in the Foundry endpoint/key (never commit)
 .venv/Scripts/python -m matchmind.agents.demo --limit 3 --mode analyst --mode commentator:es
 # opt-in live test (real Foundry call)
 MATCHMIND_LIVE=1 .venv/Scripts/python -m pytest tests/test_live.py
+# Risk Monitor offline evaluation (no LLM): model vs naive baseline over N simulated matches
+.venv/Scripts/python -m matchmind.risk.evaluate --matches 40
 ```
 
 Tests never call Foundry: `create_app(..., enable_agents=False)` or inject a

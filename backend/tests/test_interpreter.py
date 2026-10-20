@@ -141,6 +141,18 @@ def test_player_workload_follows_physical_samples(final_state, events):
         assert p["risk_band"] in {"undertrained", "optimal", "elevated", "high"}
 
 
+def test_effort_ratio_tracks_metres_per_minute_against_the_position_norm(final_state, events):
+    players = final_state.snapshot()["players"]
+    samples = [e for e in events if e["type"] == "physical_sample" and e["player_id"] == "THU-01"]
+    last = samples[-1]
+    p = players["THU-01"]
+    assert p["effort_ratio"] == pytest.approx((last["distance_m"] / last["minutes_played"]) / 45.0, abs=0.01)
+    prev = samples[-2]
+    recent = (last["distance_m"] - prev["distance_m"]) / (last["minutes_played"] - prev["minutes_played"])
+    assert p["effort_ratio_recent"] == pytest.approx(recent / 45.0, abs=0.01)
+    assert all(0.3 < q["effort_ratio"] < 1.5 for q in players.values() if q["minutes_played"] > 0)
+
+
 def test_injury_concerns_are_counted_per_player(final_state, events):
     players = final_state.snapshot()["players"]
     concerns = {}

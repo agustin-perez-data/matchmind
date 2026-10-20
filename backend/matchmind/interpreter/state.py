@@ -36,6 +36,10 @@ MOMENTUM_SCALE = 10.0  # raw accumulator value that maps to tanh(1)
 
 FINAL_THIRD_X = 66.0  # team-frame x (0 = own goal, 100 = opponent goal)
 
+# League norm: metres covered per minute by position (top-flight averages).
+# A player running well below it is showing observable fatigue.
+POSITION_NORM_MPM = {"GK": 45.0, "DF": 102.0, "MF": 118.0, "FW": 108.0}
+
 
 def acwr(load_history: list[dict], today_distance_m: float) -> float:
     """Acute (7-day) over chronic (28-day) mean daily distance, today included.
@@ -105,6 +109,7 @@ class MatchState:
                     "on_pitch": bool(p.get("starter", False)),
                     "minutes_played": 0, "distance_m": 0.0, "sprints": 0,
                     "top_speed_kmh": 0.0, "injury_concerns": 0,
+                    "mpm_recent": None,  # metres per minute over the last sampling window
                 }
 
         self.xg_race: list[dict] = []
@@ -219,8 +224,11 @@ class MatchState:
         p = self._players.get(e["player_id"])
         if p is None:
             return
+        prev_min, prev_dist = p["minutes_played"], p["distance_m"]
         p["minutes_played"] = int(e.get("minutes_played", p["minutes_played"]))
         p["distance_m"] = float(e.get("distance_m", p["distance_m"]))
+        if p["minutes_played"] > prev_min:
+            p["mpm_recent"] = (p["distance_m"] - prev_dist) / (p["minutes_played"] - prev_min)
         p["sprints"] = int(e.get("sprints", p["sprints"]))
         p["top_speed_kmh"] = float(e.get("top_speed_kmh", p["top_speed_kmh"]))
         p["on_pitch"] = True
@@ -250,12 +258,17 @@ class MatchState:
     def _player_view(self, p: dict) -> dict:
         history = self._history.get(p["player_id"], [])
         live = acwr(history, p["distance_m"])
-        view = dict(p)
+        norm = POSITION_NORM_MPM.get(p["position"], 100.0)
+        view = {k: v for k, v in p.items() if k != "mpm_recent"}
+        minutes = p["minutes_played"]
         view.update({
             "acwr_pre_match": acwr(history, 0.0),
             "acwr_live": live,
             "risk_band": risk_band(live),
-            "sprints_per_min": round(p["sprints"] / p["minutes_played"], 3) if p["minutes_played"] else 0.0,
+            "sprints_per_min": round(p["sprints"] / minutes, 3) if minutes else 0.0,
+            # observable fatigue proxies: metres per minute vs the position norm (1.0 = on the norm)
+            "effort_ratio": round((p["distance_m"] / minutes) / norm, 3) if minutes else 1.0,
+            "effort_ratio_recent": round(p["mpm_recent"] / norm, 3) if p["mpm_recent"] is not None else 1.0,
         })
         return view
 
