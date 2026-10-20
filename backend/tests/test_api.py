@@ -75,6 +75,12 @@ def test_root_redirects_to_interactive_docs(client):
     assert r.headers["location"] == "/docs"
 
 
+def test_live_page_is_served(client):
+    r = client.get("/live")
+    assert r.status_code == 200 and "text/html" in r.headers["content-type"]
+    assert "WebSocket" in r.text and "/ws/matches/" in r.text
+
+
 def test_health_reports_agent_availability(client):
     r = client.get("/health")
     assert r.status_code == 200 and r.json()["agents"] is False

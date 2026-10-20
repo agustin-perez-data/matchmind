@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MatchMind live</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #0b1020; color: #e8ecf5; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 14px 18px; background: #121a33; border-bottom: 1px solid #27315a; }
+  header label { font-size: 13px; color: #aab3d0; }
+  select, input, button { background: #1b2447; color: #fff; border: 1px solid #3a4780; border-radius: 6px; padding: 6px 8px; font-size: 14px; }
+  button { cursor: pointer; background: #2d6cdf; border-color: #2d6cdf; }
+  #score { font-size: 28px; font-weight: 700; margin-left: auto; letter-spacing: 1px; }
+  #clock { font-size: 14px; color: #aab3d0; margin-left: 8px; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 18px; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  section { background: #121a33; border: 1px solid #27315a; border-radius: 10px; padding: 12px 14px; min-height: 60vh; overflow: auto; max-height: 80vh; }
+  h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8fa0d8; }
+  .ev { font-size: 13px; padding: 3px 0; border-bottom: 1px solid #1c2548; color: #c3cae0; }
+  .ev.goal { color: #ffd166; font-weight: 700; font-size: 15px; }
+  .card { border-left: 4px solid #2d6cdf; background: #0f1630; padding: 10px 12px; margin-bottom: 12px; border-radius: 6px; }
+  .card.p5 { border-color: #ffd166; }
+  .card .when { font-size: 12px; color: #8fa0d8; }
+  .card .narr { font-size: 17px; margin: 6px 0; }
+  .card .why { font-size: 13px; color: #c3cae0; }
+  .card .dir { font-size: 12px; color: #8fa0d8; margin-top: 6px; }
+  #stats { font-size: 13px; color: #aab3d0; padding: 0 18px 12px; }
+</style>
+</head>
+<body>
+<header>
+  <label>Match <select id="match"></select></label>
+  <label>Speed <input id="speed" type="number" value="60" min="0" style="width:70px"></label>
+  <label>Mode
+    <select id="mode">
+      <option value="commentator">commentator</option>
+      <option value="analyst">analyst</option>
+      <option value="casual">casual</option>
+      <option value="player_focus">player_focus</option>
+    </select>
+  </label>
+  <label>Language <select id="lang"><option value="es">es</option><option value="en">en</option></select></label>
+  <label>Player <input id="player" placeholder="THU-15" style="width:80px"></label>
+  <button id="start">Start</button>
+  <span id="score">0 - 0</span><span id="clock">00:00</span>
+</header>
+<div id="stats"></div>
+<main>
+  <section><h2>Agents (Narrator · Analyst · Director)</h2><div id="insights"></div></section>
+  <section><h2>Event feed</h2><div id="events"></div></section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let ws = null, names = {};
+
+fetch("/matches").then(r => r.json()).then(ms => {
+  for (const m of ms) { const o = document.createElement("option"); o.value = m.match_id; o.textContent = `${m.home} vs ${m.away}`; $("match").appendChild(o); }
+});
+
+function teamName(id) { return names[id] || id; }
+
+function renderStats(s) {
+  const h = s.home_id, a = s.away_id, th = s.teams[h], ta = s.teams[a];
+  $("score").textContent = `${teamName(h)} ${s.score[h]} - ${s.score[a]} ${teamName(a)}`;
+  $("clock").textContent = s.clock;
+  $("stats").textContent = `xG ${th.xg} - ${ta.xg} · possession ${th.possession_pct}% - ${ta.possession_pct}% · shots ${th.shots} - ${ta.shots} · momentum ${s.momentum > 0 ? "+" : ""}${s.momentum} (+ = home) · risk alerts ${s.risk_alerts.length}`;
+}
+
+function addEvent(e) {
+  if (!["goal", "shot", "card", "injury_concern", "substitution", "half_time", "full_time", "kickoff", "second_half_kickoff"].includes(e.type)) return;
+  const d = document.createElement("div");
+  d.className = "ev " + e.type;
+  d.textContent = `${e.clock}  ${e.type.toUpperCase()}  ${e.team_id || ""}  ${e.player_name || ""} ${e.outcome ? "(" + e.outcome + (e.xg ? ", xG " + e.xg : "") + ")" : ""} ${e.detail || ""}`;
+  $("events").prepend(d);
+}
+
+function addInsight(x) {
+  const v = Object.values(x.viewers)[0];
+  const d = document.createElement("div");
+  const pr = v.decision ? v.decision.priority : 3;
+  d.className = "card p" + pr;
+  d.innerHTML = `<div class="when">${x.clock} · ${x.moment.summary} · ${x.latency_ms} ms</div>`
+    + (v.decision ? `<div class="narr"><b>${v.decision.headline}</b></div>` : "")
+    + (v.narration ? `<div class="narr">🎙️ ${v.narration.text}</div>` : "")
+    + (x.analyst ? `<div class="why">🧠 <b>${x.analyst.headline}</b> — ${x.analyst.why_it_matters} <i>(${x.analyst.key_stat})</i></div>` : "")
+    + (v.decision ? `<div class="dir">🎬 show: ${v.decision.show.join(", ")} · priority ${pr}${v.decision.personalized_note ? " · " + v.decision.personalized_note : ""}</div>` : "")
+    + (x.errors && x.errors.length ? `<div class="dir">⚠️ ${x.errors.join("; ")}</div>` : "");
+  $("insights").prepend(d);
+}
+
+$("start").onclick = () => {
+  if (ws) ws.close();
+  $("events").innerHTML = ""; $("insights").innerHTML = "";
+  const q = new URLSearchParams({ speed: $("speed").value, mode: $("mode").value, lang: $("lang").value });
+  if ($("player").value) q.set("player", $("player").value);
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/ws/matches/${$("match").value}?${q}`);
+  ws.onmessage = (m) => {
+    const x = JSON.parse(m.data);
+    if (x.kind === "meta") { names = Object.fromEntries(Object.entries(x.meta.teams).map(([k, t]) => [k, t.short_name])); if (!x.agents) addInsight({clock: "--", moment: {summary: "LLM agents are OFF (no Foundry credentials)"}, latency_ms: 0, viewers: {x: {}}, errors: []}); }
+    if (x.kind === "event") { addEvent(x.event); if (x.state) renderStats(x.state); }
+    if (x.kind === "insight") addInsight(x);
+    if (x.kind === "end") { renderStats(x.state); const d = document.createElement("div"); d.className = "ev goal"; d.textContent = "— stream finished —"; $("events").prepend(d); }
+  };
+  ws.onerror = () => alert("WebSocket error: is the server running?");
+};
+</script>
+</body>
+</html>

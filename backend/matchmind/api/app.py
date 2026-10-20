@@ -34,7 +34,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 
 from matchmind.agents.moments import build_moment_context, detect_key_moment
@@ -135,6 +135,11 @@ def create_app(
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
         return RedirectResponse(url="/docs", status_code=307)
+
+    @app.get("/live", include_in_schema=False)
+    def live_page() -> HTMLResponse:
+        """Minimal dev viewer: events + agent insights, no build step (the React UI comes later)."""
+        return HTMLResponse((Path(__file__).with_name("live.html")).read_text(encoding="utf-8"))
 
     @app.get("/health")
     def health() -> dict:
