@@ -48,10 +48,19 @@ cp .env.example .env   # then fill in the Foundry endpoint/key (never commit)
 # run the test suite (simulator, replay, interpreter, API)
 .venv/Scripts/python -m pytest
 
-# run the streamer (generates the default match on first start if ../data is empty)
+# run the service (generates the default match on first start if ../data is empty;
+# LLM agents switch on automatically when backend/.env has the Foundry credentials)
 .venv/Scripts/python -m uvicorn matchmind.api.app:app --reload --port 8000
-# REST: GET /matches, GET /matches/{id}/meta  |  WS: /ws/matches/{id}?speed=10
+# REST: GET /matches, GET /matches/{id}/meta | WS: /ws/matches/{id}?speed=10&mode=casual&lang=es | MCP: POST /mcp
+
+# LLM agents on a recorded match (real Foundry calls, costs tokens)
+.venv/Scripts/python -m matchmind.agents.demo --limit 3 --mode analyst --mode commentator:es
+# opt-in live test (real Foundry call)
+MATCHMIND_LIVE=1 .venv/Scripts/python -m pytest tests/test_live.py
 ```
+
+Tests never call Foundry: `create_app(..., enable_agents=False)` or inject a
+fake pipeline. Keep it that way — `backend/.env` exists on dev machines.
 
 On Windows the `.venv/Scripts/python` prefix matters: the global `python` has
 none of the project dependencies installed.

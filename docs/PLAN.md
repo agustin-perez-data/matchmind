@@ -82,8 +82,9 @@ Foundry, Best Azure Cloud Native Integration.
 - **D2 (Oct 21) DONE**: machine migration, Azure Foundry setup + model
   deployments, FastAPI WebSocket streamer (replay JSONL at real/accelerated
   speed), Interpreter agent (pure Python stats + ACWR). 29 tests green.
-- **D3 (Oct 22)**: Agent Framework + Foundry: Analyst, Narrator, Director
-  agents; MCP server with match-state tools.
+- **D3 (Oct 22) DONE**: Agent Framework + Foundry: Analyst, Narrator, Director
+  agents with structured outputs; key-moment gate; MCP server with match-state
+  tools mounted at /mcp; insights streamed over the WebSocket. 66 tests + live.
 - **D4 (Oct 23)**: Risk Monitor agent + end-to-end pipeline wiring.
 - **D5 (Oct 24)**: React frontend (pitch, overlays, modes, risk panel).
 - **D6 (Oct 25)**: Azure deploy (Container Apps + Static Web Apps), README
@@ -100,6 +101,22 @@ Foundry, Best Azure Cloud Native Integration.
   `backend/matchmind/interpreter/state.py` (team stats, xG race, momentum,
   per-player ACWR + risk bands, `risk_alerts`). Message protocol documented in
   the app module docstring. Tests: `cd backend && .venv/Scripts/python -m pytest`.
+- **Agents + MCP done (D3)**: `backend/matchmind/agents/` — `moments.py`
+  (deterministic key-moment gate + compact LLM context), `analyst.py` /
+  `narrator.py` / `director.py` (prompts + Pydantic structured outputs in
+  `schemas.py`), `pipeline.py` (Analyst ∥ Narrators → Directors, failure-isolated),
+  `clients.py` (Agent Framework `OpenAIChatCompletionClient` on Foundry; Analyst
+  gets the match-state tools as function tools), `demo.py` CLI. `backend/matchmind/tools/`
+  — `registry.py` (`LiveStateRegistry` + `MatchTools`, observables only) and
+  `mcp_server.py` (FastMCP, streamable HTTP at `/mcp`, DNS-rebinding check off
+  because it is a public hosted endpoint). WS params: `mode`, `lang`, `player`,
+  `agents`, `min_importance`; messages `insight` / `insight_error`; one moment in
+  flight per connection, more important moment wins. Measured: ~3-6 s per moment
+  (Analyst gpt-4o + 2 fast calls per viewer). Live check: `MATCHMIND_LIVE=1 pytest
+  tests/test_live.py` and `python -m matchmind.agents.demo --mode commentator:es`.
+- Known limitation: the registry keeps ONE live snapshot per match (last writer
+  wins across concurrent viewers); fine for the demo, note it in the README.
+- Simulator fix (D3): a shooter can no longer be credited with their own assist.
 - Simulator fix (D2): `second_half_kickoff` now stamped 45:00 (was carrying the
   first-half stoppage clock). Minutes restart at 45 for period 2, so consumers
   must order by `(period, minute)`.

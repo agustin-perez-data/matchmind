@@ -17,9 +17,9 @@ Monitor** grounded in sports science (ACWR).
 |---|---|---|
 | 1. Ingest | Synthetic match engine + FastAPI/WebSocket live replay (configurable speed) | ✅ |
 | 2. Interpret | Interpreter agent: team stats, xG race, momentum, per-player ACWR workload | ✅ |
-| 3. Explain | Analyst agent: *why* a moment matters | 🔜 |
-| 4. Render | Live 2D pitch + broadcast-style overlays (React) | 🔜 |
-| 5. Personalize | Director agent: Analyst / Casual / Commentator / Player-Focus modes, multi-language | 🔜 |
+| 3. Explain | Analyst agent (gpt-4o, Agent Framework): *why* a moment matters, grounded in the Interpreter's numbers | ✅ |
+| 4. Render | Narrator agent (English analytical, casual, play-by-play, *relator rioplatense* 🇦🇷) + live 2D pitch & overlays (React) | ✅ agent / 🔜 UI |
+| 5. Personalize | Director agent: decides per viewer (Analyst / Casual / Commentator / Player-Focus, language) which cards to show and how loudly | ✅ |
 
 ## Architecture (target)
 
@@ -44,10 +44,34 @@ The simulator outputs an event stream (`*_events.jsonl`) and match metadata
 (`*_meta.json`). The streamer replays any match in `data/` as a live feed:
 
 - `GET /matches` — catalogue, `GET /matches/{id}/meta` — teams, squads, 28-day load history
-- `WS /ws/matches/{id}?speed=10` — every event in match-clock order (1 = real
-  time, 0 = instant); send `{"speed": 50}` to change speed live. Key events
-  carry an Interpreter snapshot: score, team stats, xG race, momentum,
-  per-player workload with live ACWR and risk alerts.
+- `WS /ws/matches/{id}?speed=10&mode=commentator&lang=es&player=THU-15` — every
+  event in match-clock order (speed 1 = real time, 0 = instant); send
+  `{"speed": 50}` or `{"profile": {...}}` to change speed / viewer profile live.
+  Key events carry an Interpreter snapshot (score, team stats, xG race, momentum,
+  per-player workload with live ACWR and risk alerts) and, a few seconds later,
+  an `insight` message with the Analyst explanation, the Narrator line and the
+  Director decision for that viewer.
+- `POST /mcp` — MCP server (streamable HTTP) exposing `list_matches`,
+  `get_match_state`, `get_player_workload`, `get_risk_alerts`, `get_xg_race` to
+  any MCP client. The same functions are the Analyst agent's tools.
+
+## Agents
+
+| Agent | Model | Job |
+|---|---|---|
+| Interpreter | none (pure Python) | Stats, xG race, momentum, ACWR workload per player |
+| Analyst | gpt-4o | Explains why a key moment matters (structured output) |
+| Narrator | gpt-4.1-mini | One commentary line per viewer profile and language |
+| Director | gpt-4.1-mini | Picks the cards and priority each viewer gets |
+| Load & Risk Monitor | 🔜 | Flags risky workload patterns from observables only |
+
+All agents run on **Azure AI Foundry** through the **Microsoft Agent Framework**
+(Python). A deterministic key-moment gate decides when they wake up, so cost and
+latency stay predictable (~3-6 s per moment). Try them from the CLI:
+
+```bash
+.venv/Scripts/python -m matchmind.agents.demo --limit 3 --mode analyst --mode commentator:es --mode player_focus:en:THU-15
+```
 
 ## Responsible AI note
 

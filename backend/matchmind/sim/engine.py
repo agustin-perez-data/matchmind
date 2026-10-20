@@ -268,7 +268,8 @@ class MatchSimulator:
             # In the final third: decide between shooting and recycling
             if x > 68 and self.rng.random() < 0.30 + 0.15 * (x - 68) / 32:
                 shooter = self._weighted_player(attacking, x)
-                self._shot(attacking, defending, shooter, x, self.rng.uniform(30, 70), assist=passer)
+                assist = passer if passer is not shooter else None
+                self._shot(attacking, defending, shooter, x, self.rng.uniform(30, 70), assist=assist)
                 self._tick()
                 self._emit("possession_change", defending, won_by="restart")
                 return

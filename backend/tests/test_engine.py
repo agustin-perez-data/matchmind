@@ -18,6 +18,12 @@ def test_clock_never_runs_backwards_within_a_period(events):
         assert b["minute"] >= a["minute"], (a["event_id"], b["event_id"])
 
 
+def test_nobody_assists_their_own_shot(events):
+    shots = [e for e in events if e["type"] in ("shot", "goal")]
+    assert shots
+    assert all(e["assist_player_id"] != e["player_id"] for e in shots)
+
+
 def test_events_never_leak_latent_player_state(events, meta):
     blob = json.dumps(events) + json.dumps(meta)
     assert "fatigue" not in blob
