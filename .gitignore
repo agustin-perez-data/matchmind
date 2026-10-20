@@ -24,3 +24,6 @@ data/
 Thumbs.db
 .vscode/
 .idea/
+
+# Keep the template, never the real file
+!.env.example

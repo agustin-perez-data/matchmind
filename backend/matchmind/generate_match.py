@@ -1,7 +1,11 @@
-"""CLI: generate a synthetic match and write its event stream to disk.
+"""Generate a synthetic match: library API + CLI.
 
-Usage:
+Usage (CLI):
     python -m matchmind.generate_match --home THU --away NBF --seed 42 --out ../data
+
+Usage (library):
+    events, meta = generate("THU", "NBF", seed=42)
+    write_match(events, meta, out_dir)
 """
 
 from __future__ import annotations
@@ -54,32 +58,19 @@ def _summary(events: list[dict], home_id: str, away_id: str) -> dict:
     return stats
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate a synthetic MatchMind match")
-    parser.add_argument("--home", default="THU", choices=[c[0] for c in CLUBS])
-    parser.add_argument("--away", default="NBF", choices=[c[0] for c in CLUBS])
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--league-seed", type=int, default=7)
-    parser.add_argument("--out", default="../data")
-    args = parser.parse_args()
-
-    league = build_league(args.league_seed)
-    home, away = league[args.home], league[args.away]
-    match_id = f"{args.home}-{args.away}-{args.seed}"
-    sim = MatchSimulator(home, away, seed=args.seed, match_id=match_id)
-    result = sim.run()
-
-    out_dir = Path(args.out)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    events_path = out_dir / f"{match_id}_events.jsonl"
-    with events_path.open("w", encoding="utf-8") as f:
-        for event in result["events"]:
-            f.write(json.dumps(event, ensure_ascii=False) + "\n")
-
+def generate(home: str = "THU", away: str = "NBF", seed: int = 42, league_seed: int = 7) -> tuple[list[dict], dict]:
+    """Simulate one match. Returns (events, meta); meta carries no latent state."""
+    league = build_league(league_seed)
+    home_team, away_team = league[home], league[away]
+    match_id = f"{home}-{away}-{seed}"
+    result = MatchSimulator(home_team, away_team, seed=seed, match_id=match_id).run()
+    events = result["events"]
     meta = {
         "match_id": match_id,
         "competition": "MatchMind Synthetic League",
         "disclaimer": "All clubs, players and events are fictional and synthetically generated.",
+        "home_id": home_team.team_id,
+        "away_id": away_team.team_id,
         "score": result["score"],
         "teams": {
             team.team_id: {
@@ -90,21 +81,46 @@ def main() -> None:
                 "style": team.style,
                 "players": [_public_player(p) for p in team.players],
             }
-            for team in (home, away)
+            for team in (home_team, away_team)
         },
-        "summary": _summary(result["events"], home.team_id, away.team_id),
-        "n_events": len(result["events"]),
+        "summary": _summary(events, home_team.team_id, away_team.team_id),
+        "n_events": len(events),
     }
-    meta_path = out_dir / f"{match_id}_meta.json"
-    meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+    return events, meta
 
-    s = meta["summary"]
-    print(f"{home.name} {result['score'][home.team_id]} - {result['score'][away.team_id]} {away.name}")
-    print(f"events: {len(result['events'])} -> {events_path}")
-    for tid, name in ((home.team_id, home.short_name), (away.team_id, away.short_name)):
-        st = s[tid]
+
+def write_match(events: list[dict], meta: dict, out_dir: Path | str) -> tuple[Path, Path]:
+    """Write `<match_id>_events.jsonl` and `<match_id>_meta.json` into out_dir."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    events_path = out_dir / f"{meta['match_id']}_events.jsonl"
+    with events_path.open("w", encoding="utf-8") as f:
+        for event in events:
+            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+    meta_path = out_dir / f"{meta['match_id']}_meta.json"
+    meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+    return events_path, meta_path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Generate a synthetic MatchMind match")
+    parser.add_argument("--home", default="THU", choices=[c[0] for c in CLUBS])
+    parser.add_argument("--away", default="NBF", choices=[c[0] for c in CLUBS])
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--league-seed", type=int, default=7)
+    parser.add_argument("--out", default="../data")
+    args = parser.parse_args()
+
+    events, meta = generate(args.home, args.away, args.seed, args.league_seed)
+    events_path, _ = write_match(events, meta, args.out)
+
+    home, away = meta["teams"][meta["home_id"]], meta["teams"][meta["away_id"]]
+    print(f"{home['name']} {meta['score'][home['team_id']]} - {meta['score'][away['team_id']]} {away['name']}")
+    print(f"events: {len(events)} -> {events_path}")
+    for team in (home, away):
+        st = meta["summary"][team["team_id"]]
         print(
-            f"  {name:<12} shots {st['shots']:>2}  xG {st['xg']:>5.2f}  "
+            f"  {team['short_name']:<12} shots {st['shots']:>2}  xG {st['xg']:>5.2f}  "
             f"passes {st['passes']:>3} ({st['pass_accuracy']:.0%})  "
             f"possession {st['possession_pct']:.0f}%  pressures {st['pressures']}"
         )

@@ -37,8 +37,9 @@ events). This keeps the prediction honest, not circular.
 
 ## 2. Architecture (target)
 
-- **Azure AI Foundry**: model hosting — `gpt-4o-mini` (high-volume agents),
-  `gpt-4o` (Analyst). Use Foundry evals/tracing if time allows.
+- **Azure AI Foundry**: model hosting — `gpt-4.1-mini` (high-volume agents;
+  `gpt-4o-mini` is blocked for new deployments since Oct 2026) and `gpt-4o`
+  (Analyst). Use Foundry evals/tracing if time allows.
 - **Microsoft Agent Framework** (Python) for multi-agent orchestration.
 - **Custom MCP server** exposing match-state tools to agents (match stats,
   player workload, score state) — scores points in Agentic Design.
@@ -78,9 +79,9 @@ Foundry, Best Azure Cloud Native Integration.
 
 - **D1 (Oct 20) DONE**: decisions, scaffold, simulator v1 calibrated
   (~900 passes @82-88%, 24-33 shots, 1-4 goals, possession 39-61%).
-- **D2 (Oct 21)**: machine migration, Azure Foundry setup + model deployments,
-  FastAPI WebSocket streamer (replay JSONL at real/accelerated speed),
-  Interpreter agent (pure Python stats + ACWR).
+- **D2 (Oct 21) DONE**: machine migration, Azure Foundry setup + model
+  deployments, FastAPI WebSocket streamer (replay JSONL at real/accelerated
+  speed), Interpreter agent (pure Python stats + ACWR). 29 tests green.
 - **D3 (Oct 22)**: Agent Framework + Foundry: Analyst, Narrator, Director
   agents; MCP server with match-state tools.
 - **D4 (Oct 23)**: Risk Monitor agent + end-to-end pipeline wiring.
@@ -93,11 +94,27 @@ Foundry, Best Azure Cloud Native Integration.
 
 - Simulator v1 done and verified on this repo (`backend/matchmind/sim/`).
   CLI: `python -m matchmind.generate_match --home THU --away NBF --seed 42 --out ../data`
-- Azure: personal free-trial account created (personal MSA, gmail). Nothing
-  provisioned yet. NOTE: keep hackathon Azure fully separate from any work
-  credentials; on shared machines use `AZURE_CONFIG_DIR` isolation.
+- **Streamer + Interpreter done (D2)**: `backend/matchmind/api/app.py`
+  (REST catalogue + `WS /ws/matches/{id}?speed=N`, hot speed change via
+  `{"speed": N}`), `backend/matchmind/stream/replay.py` (clock-gap scheduling),
+  `backend/matchmind/interpreter/state.py` (team stats, xG race, momentum,
+  per-player ACWR + risk bands, `risk_alerts`). Message protocol documented in
+  the app module docstring. Tests: `cd backend && .venv/Scripts/python -m pytest`.
+- Simulator fix (D2): `second_half_kickoff` now stamped 45:00 (was carrying the
+  first-half stoppage clock). Minutes restart at 45 for period 2, so consumers
+  must order by `(period, minute)`.
+- **Azure provisioned (D2, personal subscription "Azure subscription 1")**:
+  resource group `rg-matchmind` (eastus2), Azure AI Foundry resource
+  `matchmind-foundry` (kind AIServices, SKU S0), deployments `gpt-4o`
+  (2024-11-20, Standard, 30K TPM) and `gpt-4.1-mini` (2025-04-14,
+  GlobalStandard, 100K TPM). Both smoke-tested. Endpoint/key live in
+  `backend/.env` (gitignored; template in `backend/.env.example`).
+  Quota lesson: the free trial has 0 GlobalStandard quota for gpt-4o and
+  gpt-4o-mini (2024-07-18) is "Deprecating" and cannot be deployed at all.
+  NOTE: keep hackathon Azure fully separate from any work credentials; on
+  shared machines use `AZURE_CONFIG_DIR` isolation.
 - Known tuning note: goal conversion runs slightly below cumulative xG;
-  revisit when the Interpreter is built.
+  revisit if time allows (Interpreter already reports both).
 - Innovation Studio page: registration + project "Premier league project"
   already created (tag: Injury Risk Prediction).
 - Known issue: Innovation Studio login from a fresh machine throws

@@ -39,5 +39,19 @@ current status. Read it at the start of every session and keep its
 
 ```bash
 cd backend
-python -m matchmind.generate_match --home THU --away NBF --seed 42 --out ../data
+python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt
+cp .env.example .env   # then fill in the Foundry endpoint/key (never commit)
+
+# generate a synthetic match (writes ../data/<id>_events.jsonl + _meta.json)
+.venv/Scripts/python -m matchmind.generate_match --home THU --away NBF --seed 42 --out ../data
+
+# run the test suite (simulator, replay, interpreter, API)
+.venv/Scripts/python -m pytest
+
+# run the streamer (generates the default match on first start if ../data is empty)
+.venv/Scripts/python -m uvicorn matchmind.api.app:app --reload --port 8000
+# REST: GET /matches, GET /matches/{id}/meta  |  WS: /ws/matches/{id}?speed=10
 ```
+
+On Windows the `.venv/Scripts/python` prefix matters: the global `python` has
+none of the project dependencies installed.

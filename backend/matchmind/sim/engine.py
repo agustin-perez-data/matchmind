@@ -337,6 +337,7 @@ class MatchSimulator:
         for period, start, end in halves:
             self.period = period
             if period == 2:
+                self.minute, self._second = start, 0
                 self._emit("second_half_kickoff", self.away, home_attacking_right=False)
             for minute in range(start, end):
                 self.minute = minute

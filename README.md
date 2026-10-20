@@ -15,29 +15,39 @@ Monitor** grounded in sports science (ACWR).
 
 | Stage | Component | Status |
 |---|---|---|
-| 1. Ingest | Synthetic match engine streaming timestamped events | ✅ v1 |
-| 2. Interpret | Stats/state aggregation (momentum, xG, pass difficulty, workload) | 🔜 |
+| 1. Ingest | Synthetic match engine + FastAPI/WebSocket live replay (configurable speed) | ✅ |
+| 2. Interpret | Interpreter agent: team stats, xG race, momentum, per-player ACWR workload | ✅ |
 | 3. Explain | Analyst agent: *why* a moment matters | 🔜 |
 | 4. Render | Live 2D pitch + broadcast-style overlays (React) | 🔜 |
 | 5. Personalize | Director agent: Analyst / Casual / Commentator / Player-Focus modes, multi-language | 🔜 |
 
 ## Architecture (target)
 
-- **Azure AI Foundry** — model hosting (gpt-4o / gpt-4o-mini) + evals
+- **Azure AI Foundry** — model hosting (gpt-4o / gpt-4.1-mini) + evals
 - **Microsoft Agent Framework** — multi-agent orchestration (Interpreter,
   Analyst, Narrator, Director, Load & Risk Monitor)
 - **MCP server** — match-state tools exposed to agents
 - **Azure Container Apps** (backend) + **Azure Static Web Apps** (frontend)
 - Built with **GitHub Copilot** assistance
 
-## Quickstart (simulator)
+## Quickstart
 
 ```bash
 cd backend
-python -m matchmind.generate_match --home THU --away NBF --seed 42 --out ../data
+python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt
+.venv/Scripts/python -m matchmind.generate_match --home THU --away NBF --seed 42 --out ../data
+.venv/Scripts/python -m pytest
+.venv/Scripts/python -m uvicorn matchmind.api.app:app --port 8000
 ```
 
-Outputs an event stream (`*_events.jsonl`) and match metadata (`*_meta.json`).
+The simulator outputs an event stream (`*_events.jsonl`) and match metadata
+(`*_meta.json`). The streamer replays any match in `data/` as a live feed:
+
+- `GET /matches` — catalogue, `GET /matches/{id}/meta` — teams, squads, 28-day load history
+- `WS /ws/matches/{id}?speed=10` — every event in match-clock order (1 = real
+  time, 0 = instant); send `{"speed": 50}` to change speed live. Key events
+  carry an Interpreter snapshot: score, team stats, xG race, momentum,
+  per-player workload with live ACWR and risk alerts.
 
 ## Responsible AI note
 
