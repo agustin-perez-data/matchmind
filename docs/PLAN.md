@@ -4,60 +4,85 @@
 > **SUBMISSION DEADLINE: Oct 27, 2026, 11:59 PM PT** (Oct 28 ~4 AM Argentina time).
 > Solo entry: Agustín Pérez. This file is the single source of context — any new
 > dev session (human or AI) should read it first.
+>
+> **Revised Oct 20 (after D3)**: the product story pivoted from "AI commentary"
+> to "agents that make falsifiable predictions, get graded live, and let you
+> rewrite the match". Sections 1-3 and 5 reflect the pivot; nothing built in
+> D1-D3 is thrown away.
 
 ## 1. The product
 
-**MatchMind — Agentic Match Intelligence Studio.** A multi-agent AI engine that
-turns a live stream of synthetic football events into explainable match
-intelligence, real-time narration and personalized viewing experiences, plus a
-sports-science-grounded **Player Load & Risk Monitor**.
+**MatchMind — Agentic Match Intelligence Studio.**
+*AI that gets graded, not just heard.*
+
+A multi-agent engine that turns a live stream of synthetic football events into
+explainable match intelligence, live narration and personalized viewing, AND:
+
+- makes **falsifiable predictions** (injury-risk windows per player, short-term
+  match forecasts) that are **scored live against ground truth**;
+- lets viewers and coaches **rewrite the match**: an agent proposes an
+  intervention (substitution, tactical change) and the engine re-simulates the
+  match from that minute as a **counterfactual branch**, shown side by side.
+
+Why this is defensible: our simulator has a *latent* player state (fatigue,
+injury susceptibility) that no agent can see, and it is deterministic by seed.
+That enables two things nobody with real or flat synthetic data can do:
+measure whether the risk agent is right, and branch the match.
 
 ### Agent lineup (pipeline order)
 
-1. **Simulator** (no LLM) — synthetic match engine. DONE (v1, calibrated).
-2. **Interpreter agent** — aggregates events into stats: momentum, xG race,
-   pass networks, pressure maps, live ACWR per player.
-3. **Analyst agent** — detects key moments and explains WHY they matter
-   (control vs chaos, tactical shifts, rhythm changes).
-4. **Narrator agent** — multi-language live commentary + auto match recaps.
-   Modes include English analytical and "Relator Rioplatense" 🇦🇷.
-5. **Director agent** — personalization: decides what reaches each viewer
-   (Analyst / Casual / Commentator / Player-Focus modes, favorite player,
-   language).
-6. **Load & Risk Monitor** — flags injury-risk workload patterns via ACWR
-   (acute:chronic workload ratio) using ONLY observable metrics.
-   Framing: decision support, NOT medical advice (Responsible AI note).
+1. **Simulator** (no LLM) — synthetic match engine with latent state and an
+   intervention plan (forced substitutions / tactical changes from minute M). DONE v1; interventions D4.
+2. **Interpreter agent** (no LLM) — stats: momentum, xG race, per-player live
+   ACWR, risk bands. DONE.
+3. **Load & Risk Monitor** (no LLM for the model, LLM for the explanation) —
+   per-player **risk windows** ("high risk in the next 15 min") from observables
+   only; **self-evaluating**: scored against the injury_concern events the
+   latent state produces (precision, recall, lead time) vs a naive baseline. D4.
+4. **Analyst agent** (gpt-4o) — why a key moment matters, grounded in numbers. DONE.
+   Stretch (D6): adds a structured 10-minute forecast graded by a **Judge agent**
+   → live credibility score.
+5. **Coach agent** (gpt-4o) — proposes interventions when risk/momentum calls for
+   it, via the MCP tool `simulate_intervention`; returns the counterfactual
+   branch comparison (score, xG, alerts, concerns). D4.
+6. **Narrator agent** (gpt-4.1-mini) — commentary per viewer profile, incl.
+   "Relator Rioplatense" 🇦🇷. DONE.
+7. **Director agent** (gpt-4.1-mini) — personalization: which cards reach each
+   viewer and how loudly. DONE.
 
 ### Key design invariant
 
 The simulator's player fatigue and injury susceptibility are **latent** —
-never serialized. The Risk Monitor must infer risk from observables
-(28-day load history, live distance/sprints/speed samples, injury_concern
-events). This keeps the prediction honest, not circular.
+never serialized, never visible to agents or the API. Ground truth for the
+risk evaluation is the *observable* `injury_concern` event stream (which the
+latent state generates). This keeps the prediction honest, not circular.
 
 ## 2. Architecture (target)
 
-- **Azure AI Foundry**: model hosting — `gpt-4.1-mini` (high-volume agents;
-  `gpt-4o-mini` is blocked for new deployments since Oct 2026) and `gpt-4o`
-  (Analyst). Use Foundry evals/tracing if time allows.
-- **Microsoft Agent Framework** (Python) for multi-agent orchestration.
-- **Custom MCP server** exposing match-state tools to agents (match stats,
-  player workload, score state) — scores points in Agentic Design.
-- **Backend**: Python + FastAPI + WebSocket streamer replaying event JSONL in
-  real time. Deploy: **Azure Container Apps**.
-- **Frontend**: React + Vite + Tailwind. Animated 2D SVG pitch, broadcast-style
-  overlay cards, mode/language selector, player-focus view, risk panel.
-  Deploy: **Azure Static Web Apps**.
+- **Azure AI Foundry**: `gpt-4o` (Analyst, Coach), `gpt-4.1-mini` (Narrator,
+  Director, Judge). `gpt-4o-mini` cannot be deployed any more (deprecating).
+- **Microsoft Agent Framework** (Python): `OpenAIChatCompletionClient` on
+  Foundry, `as_agent`, structured outputs (Pydantic `response_format`),
+  function tools for Analyst/Coach.
+- **MCP server** (FastMCP, streamable HTTP at `/mcp`): match-state tools
+  (`list_matches`, `get_match_state`, `get_player_workload`, `get_risk_alerts`,
+  `get_xg_race`) + D4 `get_risk_windows`, `simulate_intervention`. Same
+  functions are the agents' in-process tools (one registry, two surfaces).
+- **Backend**: FastAPI + WebSocket replay (speed, hot profile switch, insights
+  streamed as `insight` messages). Deploy: **Azure Container Apps**.
+- **Frontend**: React + Vite + Tailwind. Agent feed, risk panel with live
+  calibration, **what-if view with two timelines**, simple 2D SVG pitch, mode /
+  language selector. Deploy: **Azure Static Web Apps**.
 - Mention **GitHub Copilot** usage in the pitch (judges look for it).
 
 ## 3. Judging rubric strategy (5 × 20%)
 
 | Criterion | How we win it |
 |---|---|
-| Tech implementation | Real Foundry + Agent Framework usage, clean documented code, deployed to Azure |
-| Agentic design | 5 genuine agents + MCP tools + orchestration, not a single prompt |
-| Real-world impact | Studio/broadcast framing + player welfare (injury risk) angle |
-| UX & presentation | Broadcast-quality UI; same match shown as 2 different experiences; crisp <2min video |
+| Tech implementation | Foundry + Agent Framework + MCP, 60+ tests, deterministic replay/branching, deployed on Azure |
+| Agentic design | 7 agents with distinct roles; agents that *act* through MCP tools (simulate_intervention) and are *evaluated* (Risk Monitor scorecard, Judge) |
+| Real-world impact | Player welfare (risk windows, honest evaluation) + coaching decisions (counterfactuals) + broadcast personalization |
+| UX & presentation | Side-by-side counterfactual timelines; risk calibration panel; same match as two different experiences; crisp < 2 min video |
 | Category adherence | All 5 brief stages visible: Ingest → Interpret → Explain → Render → Personalize |
 
 Category prizes to aim for: Best Multi-Agent System, Best Use of Microsoft
@@ -75,26 +100,39 @@ Foundry, Best Azure Cloud Native Integration.
 - [ ] Working demo URL for judges (free access through Nov 10)
 - [ ] Submit on Innovation Studio BEFORE Oct 27 11:59 PM PT (buffer: Oct 26)
 
-## 5. Day plan
+## 5. Day plan (revised Oct 20)
 
-- **D1 (Oct 20) DONE**: decisions, scaffold, simulator v1 calibrated
-  (~900 passes @82-88%, 24-33 shots, 1-4 goals, possession 39-61%).
-- **D2 (Oct 21) DONE**: machine migration, Azure Foundry setup + model
-  deployments, FastAPI WebSocket streamer (replay JSONL at real/accelerated
-  speed), Interpreter agent (pure Python stats + ACWR). 29 tests green.
-- **D3 (Oct 22) DONE**: Agent Framework + Foundry: Analyst, Narrator, Director
-  agents with structured outputs; key-moment gate; MCP server with match-state
-  tools mounted at /mcp; insights streamed over the WebSocket. 66 tests + live.
-- **D4 (Oct 23)**: Risk Monitor agent + end-to-end pipeline wiring.
-- **D5 (Oct 24)**: React frontend (pitch, overlays, modes, risk panel).
-- **D6 (Oct 25)**: Azure deploy (Container Apps + Static Web Apps), README
-  polish, architecture diagram.
+- **D1 (Oct 20) DONE**: decisions, scaffold, simulator v1 calibrated.
+- **D2 (Oct 20) DONE**: Azure Foundry + deployments, FastAPI WebSocket
+  streamer, Interpreter (momentum, xG race, ACWR).
+- **D3 (Oct 20) DONE**: Analyst / Narrator / Director on Agent Framework,
+  key-moment gate, MCP server, insights over WebSocket, `/live` dev viewer.
+- **D4 (Oct 21)** — *innovation core, backend*:
+  1. Engine interventions: `MatchSimulator(..., interventions=[...])`
+     (forced substitution at minute M; tactical change of press/style);
+     deterministic branch = same seed, same events until M.
+  2. Risk Monitor: hazard model from observables → risk windows per player;
+     evaluator against `injury_concern` events (precision / recall / lead time)
+     vs naive baseline; end-of-match scorecard; LLM explanation of each alert.
+  3. MCP tools `get_risk_windows`, `simulate_intervention` (branch summary +
+     diff vs actual); Coach agent proposing interventions on high-risk alerts.
+  4. WebSocket messages: `risk` (windows + running scorecard), `coach`
+     (proposal + counterfactual summary). Tests for all of it.
+- **D5-D6 (Oct 22-23)** — *frontend (biggest effort, 20% UX)*: React + Vite +
+  Tailwind. Agent feed (narration / insight / director), risk panel with live
+  calibration, what-if view with two timelines (actual vs branch), simple SVG
+  pitch with event dots, mode/language/player selector, speed control.
+- **D6 bis (Oct 24-25)**: deploy (Container Apps + Static Web Apps), README
+  with architecture diagram, Analyst forecast + Judge credibility if time.
 - **D7 (Oct 26)**: demo video (scripted), pitch text, SUBMIT with buffer.
+
+Scope rules: protect pillars 1-2 (evaluable Risk Monitor, counterfactuals)
+over eye candy. The pitch is simple SVG, not an animation showcase. The
+evaluation is shown honestly even if the numbers are modest — a baseline next
+to it makes the point.
 
 ## 6. Current status / handoff notes
 
-- Simulator v1 done and verified on this repo (`backend/matchmind/sim/`).
-  CLI: `python -m matchmind.generate_match --home THU --away NBF --seed 42 --out ../data`
 - **Streamer + Interpreter done (D2)**: `backend/matchmind/api/app.py`
   (REST catalogue + `WS /ws/matches/{id}?speed=N`, hot speed change via
   `{"speed": N}`), `backend/matchmind/stream/replay.py` (clock-gap scheduling),
@@ -114,12 +152,12 @@ Foundry, Best Azure Cloud Native Integration.
   flight per connection, more important moment wins. Measured: ~3-6 s per moment
   (Analyst gpt-4o + 2 fast calls per viewer). Live check: `MATCHMIND_LIVE=1 pytest
   tests/test_live.py` and `python -m matchmind.agents.demo --mode commentator:es`.
+  `/live` serves a no-build dev viewer (events + insights).
 - Known limitation: the registry keeps ONE live snapshot per match (last writer
   wins across concurrent viewers); fine for the demo, note it in the README.
-- Simulator fix (D3): a shooter can no longer be credited with their own assist.
-- Simulator fix (D2): `second_half_kickoff` now stamped 45:00 (was carrying the
-  first-half stoppage clock). Minutes restart at 45 for period 2, so consumers
-  must order by `(period, minute)`.
+- Simulator fixes: `second_half_kickoff` stamped 45:00 (D2); a shooter is never
+  credited with their own assist (D3). Minutes restart at 45 for period 2, so
+  consumers must order by `(period, minute)`.
 - **Azure provisioned (D2, personal subscription "Azure subscription 1")**:
   resource group `rg-matchmind` (eastus2), Azure AI Foundry resource
   `matchmind-foundry` (kind AIServices, SKU S0), deployments `gpt-4o`
@@ -133,7 +171,7 @@ Foundry, Best Azure Cloud Native Integration.
 - Known tuning note: goal conversion runs slightly below cumulative xG;
   revisit if time allows (Interpreter already reports both).
 - Innovation Studio page: registration + project "Premier league project"
-  already created (tag: Injury Risk Prediction).
+  already created (tag: Injury Risk Prediction — now the core of the pitch).
 - Known issue: Innovation Studio login from a fresh machine throws
   AADSTS500200 (personal MSA via /organizations endpoint). Fix: redeem the
   original invitation email or pick "Work or school account" identity at the
