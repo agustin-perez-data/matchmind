@@ -28,6 +28,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi.responses import RedirectResponse
 
 from matchmind.generate_match import generate, write_match
 from matchmind.interpreter.state import MatchState
@@ -82,6 +83,10 @@ def create_app(data_dir: Path | str | None = None) -> FastAPI:
 
     app = FastAPI(title="MatchMind streamer", version="0.1.0", lifespan=lifespan)
     app.state.catalog = catalog
+
+    @app.get("/", include_in_schema=False)
+    def root() -> RedirectResponse:
+        return RedirectResponse(url="/docs", status_code=307)
 
     @app.get("/health")
     def health() -> dict:

@@ -20,6 +20,12 @@ def client(match, tmp_path_factory):
         yield c
 
 
+def test_root_redirects_to_interactive_docs(client):
+    r = client.get("/", follow_redirects=False)
+    assert r.status_code in (302, 307)
+    assert r.headers["location"] == "/docs"
+
+
 def test_lists_available_matches(client, meta):
     r = client.get("/matches")
     assert r.status_code == 200
