@@ -14,7 +14,7 @@ type Props = {
   ended: boolean
 }
 
-const W = 1000, PL = 112, PR = 230, MAX = 96, Y1 = 30, Y2 = 78
+const W = 1100, PL = 112, PR = 340, MAX = 96, Y1 = 30, Y2 = 78
 
 export function WhatIfBand({ meta, snapshot, actualEvents, branches, selected, onSelect, ended }: Props) {
   const [branchEvents, setBranchEvents] = useState<MatchEvent[] | null>(null)
