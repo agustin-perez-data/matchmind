@@ -36,6 +36,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -44,6 +45,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field, ValidationError
 
+from matchmind.agents.cache import AgentCache, cache_from_env, coach_key, insight_key, verdict_key
 from matchmind.agents.coach import build_coach_context
 from matchmind.agents.judge import ForecastLedger, build_judge_context, grade_forecast
 from matchmind.agents.moments import build_moment_context, detect_key_moment
@@ -53,7 +55,7 @@ from matchmind.interpreter.state import MatchState
 from matchmind.risk.monitor import RiskMonitor
 from matchmind.stream.replay import delay_between, load_events
 from matchmind.tools.mcp_server import build_mcp_server
-from matchmind.tools.registry import LiveStateRegistry, MatchTools
+from matchmind.tools.registry import LiveStateRegistry, MatchTools, current_session
 
 log = logging.getLogger("matchmind.api")
 
@@ -118,6 +120,7 @@ def create_app(
     coach=None,
     judge=None,
     enable_agents: bool | None = None,
+    cache: AgentCache | None | bool = True,
 ) -> FastAPI:
     """Build the service.
 
@@ -125,12 +128,15 @@ def create_app(
     coach:    object with `async run(context) -> dict` (risk lane; tests inject a fake).
     judge:    object with `async run(context) -> dict` (verdict lane; graded forecasts get their words here).
     enable_agents: None = build the Foundry agents on startup if configured; False = never call an LLM.
+    cache: an AgentCache, True = from the environment (default <data>/cache), False/None = no cache.
     """
-    catalog = MatchCatalog(Path(data_dir) if data_dir else default_data_dir())
+    data_path = Path(data_dir) if data_dir else default_data_dir()
+    catalog = MatchCatalog(data_path)
     registry = LiveStateRegistry()
     tools = MatchTools(registry)
     mcp = build_mcp_server(registry)
-    agents = {"pipeline": pipeline, "coach": coach, "judge": judge}
+    agent_cache = cache_from_env(data_path) if cache is True else (cache or None)
+    agents = {"pipeline": pipeline, "coach": coach, "judge": judge, "cache": agent_cache}
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -176,7 +182,9 @@ def create_app(
     @app.get("/health")
     def health() -> dict:
         return {"status": "ok", "matches": len(catalog.ids()), "agents": agents["pipeline"] is not None,
-                "coach": agents["coach"] is not None}
+                "coach": agents["coach"] is not None, "judge": agents["judge"] is not None,
+                "cache": agents["cache"].stats() if agents["cache"] is not None else None,
+                "live_sessions": registry.sessions()}
 
     @app.get("/matches")
     def list_matches() -> list[dict]:
@@ -262,7 +270,7 @@ def create_app(
             pipeline=agents["pipeline"] if agents_on else None,
             coach=agents["coach"] if coach_on else None,
             judge=agents["judge"] if agents_on else None,
-            profile=profile, speed=speed, min_importance=min_importance,
+            profile=profile, speed=speed, min_importance=min_importance, cache=agents["cache"],
         )
         await session.run()
 
@@ -314,24 +322,53 @@ class _Lane:
 class StreamSession:
     """One WebSocket connection: replay loop + control reader + agent lanes + single sender."""
 
-    def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance, judge=None):
+    def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance, judge=None, cache=None):
         self.ws, self.meta, self.events, self.registry = websocket, meta, events, registry
         self.pipeline, self.coach, self.judge, self.profile, self.speed = pipeline, coach, judge, profile, speed
         self.min_importance = min_importance
         self.match_id = meta["match_id"]
+        self.session_id = f"{self.match_id}:{id(websocket):x}:{int(time.time() * 1000) % 1_000_000}"
+        self.cache: AgentCache | None = cache
         self.closed = False
         self.out: asyncio.Queue = asyncio.Queue()
         self.ledger = ForecastLedger()  # the Analyst's forecasts, graded 10 match minutes later
 
+    def _cached(self, kind: str, key: str) -> dict | None:
+        return self.cache.get(self.match_id, kind, key) if self.cache is not None else None
+
+    def _remember(self, kind: str, key: str, result: dict) -> None:
+        if self.cache is not None:
+            self.cache.put(self.match_id, kind, key, result)
+
     async def _run_moment(self, context: dict) -> dict:
-        """Moments lane runner: the insight goes to the viewer, its forecast into the ledger."""
-        result = await self.pipeline.run(context, [self.profile])
+        """Moments lane runner: the insight goes to the viewer, its forecast into the ledger.
+        The same moment for the same profile is explained once: later viewers get it from the cache."""
+        key = insight_key(context["moment"]["event_id"], self.profile.key)
+        result = self._cached("insight", key)
+        if result is None:
+            result = await self.pipeline.run(context, [self.profile])
+            self._remember("insight", key, result)
         self.ledger.add(result, context)
+        return result
+
+    async def _run_coach(self, context: dict) -> dict:
+        key = coach_key(context.get("trigger", ""), (context.get("player") or {}).get("player_id"), context.get("minute"))
+        result = self._cached("coach", key)
+        if result is None:
+            result = await self.coach.run(context)
+            self._remember("coach", key, result)
         return result
 
     async def _run_verdict(self, context: dict) -> dict:
         """Verdict lane runner: the Judge's words also go back into the ledger, for the Analyst's next call."""
-        result = await self.judge.run(context)
+        key = verdict_key(context["event_id"], self.profile.language)
+        result = self._cached("verdict", key)
+        if result is None:
+            result = await self.judge.run(context)
+            self._remember("verdict", key, result)
+        else:  # the scores and the credibility are this session's, only the words are shared
+            result = {**result, "scores": context["scores"], "naive_scores": context["naive_scores"],
+                      "facts": context["facts"], "credibility": context.get("credibility")}
         self.ledger.remember(result)
         return result
 
@@ -408,11 +445,12 @@ class StreamSession:
     # ------------------------------------------------------------ main
 
     async def run(self) -> None:
+        current_session.set(self.session_id)  # the lanes below inherit it: agent tools read this stream's state
         sender = asyncio.create_task(self._sender())
         reader = asyncio.create_task(self._read_controls())
         moments = _Lane(self._run_moment, "insight", self.out,
                         lambda c: c["moment"]["importance"]) if self.pipeline is not None else None
-        coach = _Lane(self.coach.run, "coach", self.out,
+        coach = _Lane(self._run_coach, "coach", self.out,
                       lambda c: 5 if c["trigger"] == "injury_concern" else 3) if self.coach is not None else None
         judge = _Lane(self._run_verdict, "verdict", self.out, lambda c: c["scores"].get("overall") or 0,
                       capacity=8) if self.judge is not None and moments is not None else None  # verdicts are few; keep them all
@@ -481,6 +519,7 @@ class StreamSession:
         except (WebSocketDisconnect, RuntimeError):
             log.info("client disconnected from %s", self.match_id)
         finally:
+            self.registry.drop_session(self.session_id)
             for task in (sender, reader, *(lane.task for lane in (moments, coach, judge) if lane is not None)):
                 task.cancel()
             try:

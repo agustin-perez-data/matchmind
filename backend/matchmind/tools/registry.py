@@ -10,6 +10,7 @@ fatigue / susceptibility never reach this layer.
 
 from __future__ import annotations
 
+import contextvars
 import hashlib
 import json
 import time
@@ -19,29 +20,56 @@ from matchmind.generate_match import generate
 INTERVENTION_ACTIONS = ("substitution", "tactic")
 
 
+current_session: contextvars.ContextVar[str | None] = contextvars.ContextVar("matchmind_session", default=None)
+
+
 class LiveStateRegistry:
-    """Latest Interpreter snapshot (+ risk summary, + counterfactual branches) per match."""
+    """Interpreter snapshot (+ risk summary, credibility, counterfactual branches) per match.
+
+    Every live stream is a session: it writes its own view of the match (its replay may be
+    at minute 30 while another viewer's is at minute 80), and the agent tools called from
+    inside that stream read that view, through the `current_session` context variable.
+    Readers outside any session (MCP clients, REST) get the most recently updated view.
+    """
 
     def __init__(self):
-        self._matches: dict[str, dict] = {}
+        self._matches: dict[str, dict] = {}          # match_id -> latest view (any session)
+        self._sessions: dict[str, dict[str, dict]] = {}  # session_id -> match_id -> view
         self._branches: dict[str, dict[str, dict]] = {}
 
+    def _view(self, match_id: str, create: bool) -> dict | None:
+        sid = current_session.get()
+        if sid is None:
+            return self._matches.setdefault(match_id, {}) if create else self._matches.get(match_id)
+        views = self._sessions.setdefault(sid, {})
+        if create:
+            return views.setdefault(match_id, {})
+        return views.get(match_id) or self._matches.get(match_id)
+
     def update(self, match_id: str, meta: dict, snapshot: dict) -> None:
-        entry = self._matches.setdefault(match_id, {})
-        entry.update({"meta": meta, "snapshot": snapshot, "updated_at": time.time()})
+        view = self._view(match_id, create=True)
+        view.update({"meta": meta, "snapshot": snapshot, "updated_at": time.time()})
+        if current_session.get() is not None:  # the latest view is also what outsiders see
+            self._matches[match_id] = view
 
     def update_risk(self, match_id: str, risk_summary: dict) -> None:
-        entry = self._matches.get(match_id)
-        if entry is not None:
-            entry["risk"] = risk_summary
+        view = self._view(match_id, create=False)
+        if view is not None:
+            view["risk"] = risk_summary
 
     def update_credibility(self, match_id: str, summary: dict, latest: dict | None = None) -> None:
-        entry = self._matches.get(match_id)
-        if entry is not None:
-            entry["credibility"] = {**summary, "latest": latest}
+        view = self._view(match_id, create=False)
+        if view is not None:
+            view["credibility"] = {**summary, "latest": latest}
 
     def get(self, match_id: str) -> dict | None:
-        return self._matches.get(match_id)
+        return self._view(match_id, create=False)
+
+    def drop_session(self, session_id: str) -> None:
+        self._sessions.pop(session_id, None)
+
+    def sessions(self) -> int:
+        return len(self._sessions)
 
     def ids(self) -> list[str]:
         return sorted(self._matches)

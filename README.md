@@ -150,6 +150,20 @@ latency stay predictable (~3-6 s per moment). Try them from the CLI:
 .venv/Scripts/python -m matchmind.agents.demo --limit 3 --mode analyst --mode commentator:es --mode player_focus:en:THU-15
 ```
 
+## Built for several viewers at once
+
+A replay is deterministic, so every agent output is cached per (match, moment,
+viewer profile) and written through to `data/cache/`: the first viewer pays the
+Foundry call, everyone after gets the same explanation instantly, and the
+Control room says "from cache". Degraded results are never cached. Each live
+stream also has its own view of the match in the state registry, so the agent
+tools read the caller's minute even when another viewer is at full time;
+MCP and REST clients outside any stream see the latest view. Before a demo:
+
+```bash
+.venv/Scripts/python -m matchmind.agents.warm_cache   # all matches, the four seat profiles
+```
+
 ## Who would use this
 
 - **Performance and medical staff**: the Risk Monitor turns the workload they

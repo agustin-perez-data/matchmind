@@ -58,6 +58,9 @@ cp .env.example .env   # then fill in the Foundry endpoint/key (never commit)
 # opt-in live test (real Foundry call)
 MATCHMIND_LIVE=1 .venv/Scripts/python -m pytest tests/test_live.py
 
+# Warm the agent cache through the running server before a demo (all matches, the four seat profiles)
+.venv/Scripts/python -m matchmind.agents.warm_cache
+
 # Grade the real Analyst's 10-minute forecasts over simulated matches (costs Foundry tokens; ~1 min per 10 matches)
 .venv/Scripts/python -m matchmind.agents.evaluate_forecasts --matches 10 --label baseline --out eval/forecasts_baseline.json
 # A/B a prompt variant on the same matches:

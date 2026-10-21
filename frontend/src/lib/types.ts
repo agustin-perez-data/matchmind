@@ -142,6 +142,7 @@ export type Credibility = {
 
 export type VerdictMsg = {
   kind: 'verdict'
+  cached?: boolean
   event_id: number
   issued_clock: string
   forecast: Forecast & { dominant_team: string | null; watch_player: string | null }
@@ -194,6 +195,7 @@ export type TraceEvent = {
 
 export type InsightMsg = {
   kind: 'insight'
+  cached?: boolean
   trace?: TraceEvent[]
   orchestration?: string
   event_id: number
@@ -249,6 +251,7 @@ export type BranchSummary = {
 }
 
 export type CoachMsg = {
+  cached?: boolean
   kind: 'coach'
   trace?: TraceEvent[]
   trigger: 'risk_alert' | 'injury_concern'

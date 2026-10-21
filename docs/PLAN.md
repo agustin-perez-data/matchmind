@@ -259,6 +259,21 @@ Foundry, Best Azure Cloud Native Integration.
   window only 0.61 / with loop 0.64 / v3 with the xG-default rule 0.66 vs
   naive 0.64 (dominance 0.64, watch 0.41). Table in the README. Live stream
   verified after the change (7 insights, 6 verdicts).
+  **Oct 22, demo robustness (list item 2)**: `agents/cache.py` AgentCache
+  (memory + write-through JSON per match under `<data>/cache`, keys
+  insight `event_id:profile.key`, coach `trigger:player:minute`, verdict
+  `event_id:lang`; degraded results never cached; `cached: true` on served
+  messages; `MATCHMIND_CACHE=0` disables, `MATCHMIND_CACHE_DIR` relocates);
+  cached verdicts keep the session's own scores/credibility, only the words
+  are shared. `LiveStateRegistry` is session-aware through the
+  `current_session` contextvar set at the top of `StreamSession.run` (the
+  lanes inherit it): each stream's tools read that stream's minute, outsiders
+  (MCP/REST) read the latest view; sessions are dropped on disconnect.
+  `/health` reports cache stats and live sessions. `agents/warm_cache.py`
+  drives the live server over WebSocket per (match, profile). Measured:
+  THU-NBF-40 fan/es warm run 131 s (14 insights, 7 coach, 13 verdicts),
+  replay at max speed 15 s with 20 cache hits. Control room shows "from
+  cache". 142 tests.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

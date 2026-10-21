@@ -36,7 +36,7 @@ export function ControlRoom({ meta, feed, risk, agentsOn, coachOn, verdicts, cre
       </div>
 
       <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-5">
-        <Stat label="Key moments explained" value={String(insights.length)} />
+        <Stat label="Key moments explained" value={`${insights.length}${insights.some((f) => f.msg.cached) ? ` (${insights.filter((f) => f.msg.cached).length} cached)` : ''}`} />
         <Stat label="Coach consultations" value={coachOn ? String(coaches.length) : 'off'} />
         <Stat label="Tool calls by agents" value={String(toolCalls)} />
         <Stat label="Fan-out, mean" value={mean(fanOut) != null ? `${(mean(fanOut)! / 1000).toFixed(1)}s` : '–'} />
@@ -124,7 +124,7 @@ function Swimlane({ item, meta }: { item: FeedItem; meta: Meta }) {
   void meta
   return (
     <article className="enter border-t border-line pt-2 first:border-0">
-      <div className="flex items-baseline justify-between gap-2 text-sm"><span className="truncate font-semibold">{title}</span><span className="shrink-0 tabular-nums text-muted">{(total / 1000).toFixed(1)}s</span></div>
+      <div className="flex items-baseline justify-between gap-2 text-sm"><span className="truncate font-semibold">{title}</span><span className="shrink-0 tabular-nums text-muted">{item.msg.cached ? 'from cache, ran in ' : ''}{(total / 1000).toFixed(1)}s</span></div>
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 w-full" role="img" aria-label="agent timeline">
         {bars.map((b, i) => {
           const y = 8 + i * ROW
