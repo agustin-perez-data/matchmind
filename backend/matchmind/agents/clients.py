@@ -73,6 +73,18 @@ def build_judge() -> "JudgePipeline":
     return JudgePipeline(JudgeAgent(agent))
 
 
+def build_analyst(tools: list | None = None, instructions: str | None = None) -> AnalystAgent:
+    """The Analyst alone (smart tier); `instructions` lets an evaluation harness try a prompt variant."""
+    from matchmind.agents.schemas import AnalystInsight
+    from matchmind.agents.tracing import TRACE_MIDDLEWARE
+
+    agent = chat_client("smart").as_agent(
+        name="Analyst", instructions=instructions or ANALYST_INSTRUCTIONS, tools=tools or None,
+        default_options={"temperature": 0.4, "response_format": AnalystInsight}, middleware=TRACE_MIDDLEWARE,
+    )
+    return AnalystAgent(agent)
+
+
 def build_pipeline(tools: list | None = None):
     """The three LLM agents on Foundry, orchestrated with Agent Framework workflows.
 
@@ -80,14 +92,11 @@ def build_pipeline(tools: list | None = None):
     plain asyncio pipeline instead of the ConcurrentBuilder fan-out.
     """
     from matchmind.agents.orchestration import FrameworkMomentPipeline
-    from matchmind.agents.schemas import AnalystInsight, DirectorDecision, Narration
+    from matchmind.agents.schemas import DirectorDecision, Narration
     from matchmind.agents.tracing import TRACE_MIDDLEWARE
 
-    smart, fast = chat_client("smart"), chat_client("fast")
-    analyst = smart.as_agent(
-        name="Analyst", instructions=ANALYST_INSTRUCTIONS, tools=tools or None,
-        default_options={"temperature": 0.4, "response_format": AnalystInsight}, middleware=TRACE_MIDDLEWARE,
-    )
+    fast = chat_client("fast")
+    analyst = build_analyst(tools).agent
     narrator = fast.as_agent(
         name="Narrator", instructions=NARRATOR_INSTRUCTIONS,
         default_options={"temperature": 0.8, "response_format": Narration}, middleware=TRACE_MIDDLEWARE,

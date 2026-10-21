@@ -51,13 +51,19 @@ class PendingForecast:
     away_id: str
 
 
-def naive_forecast(context: dict) -> dict:
-    """The baseline the Analyst has to beat: the xG leader keeps dominating, base-rate goal odds, nobody watched."""
+def naive_forecast(context: dict, history: list[dict] | None = None) -> dict:
+    """The baseline the Analyst has to beat, making the same three claims from the obvious numbers:
+    the xG leader keeps dominating, base-rate goal odds, and the player with most shots so far to watch."""
     teams = context.get("teams", {})
     home, away = context["home_id"], context["away_id"]
     xg_home, xg_away = float(teams.get(home, {}).get("xg", 0.0)), float(teams.get(away, {}).get("xg", 0.0))
+    shots: dict[str, int] = {}
+    for e in history or []:
+        if e.get("type") in ("shot", "goal") and e.get("player_id"):
+            shots[e["player_id"]] = shots.get(e["player_id"], 0) + 1
+    top = max(shots, key=lambda pid: (shots[pid], pid)) if shots else None
     return {"dominant_team_id": home if xg_home >= xg_away else away, "goal_probability": BASE_GOAL_RATE_10MIN,
-            "watch_player_id": None, "claim": "naive: the xG leader keeps creating more; base-rate goal odds"}
+            "watch_player_id": top, "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"}
 
 
 def _components(forecast: dict, facts: dict) -> dict[str, float | None]:
@@ -131,10 +137,12 @@ class ForecastLedger:
             return None  # nothing to forecast once the whistle has gone
         minute = int(context.get("minute", 0))
         teams = context.get("teams", {})
+        issued_id = int(insight_result.get("event_id") or context["moment"]["event_id"])
+        seen = [e for e in self.history if e["event_id"] <= issued_id]  # what the naive call could know at issue time
         item = PendingForecast(
             event_id=int(insight_result.get("event_id") or context["moment"]["event_id"]),
             issued_clock=str(context.get("clock")), issued_minute=minute, due_minute=minute + self.horizon,
-            forecast=dict(forecast), naive=naive_forecast(context),
+            forecast=dict(forecast), naive=naive_forecast(context, seen),
             xg_at_issue={tid: float(teams.get(tid, {}).get("xg", 0.0)) for tid in (context["home_id"], context["away_id"])},
             score_at_issue=dict(context.get("score", {})), home_id=context["home_id"], away_id=context["away_id"],
         )

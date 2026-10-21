@@ -40,7 +40,7 @@ export function ForecastLedger({ meta, snapshot, feed, verdicts, credibility, ag
         <div className="display text-[44px] font-black leading-none tabular-nums" style={{ color: beats == null ? 'var(--color-fg)' : beats >= 0 ? 'var(--color-teal)' : 'var(--color-bad)' }}>{pct(a)}</div>
         <div className="pb-1 text-sm text-fg-2">
           {credibility?.judged
-            ? <>forecast score, vs <b className="text-fg">{pct(n)}</b> for a naive call (the xG leader keeps dominating, base-rate goal odds), on the same windows.</>
+            ? <>forecast score, vs <b className="text-fg">{pct(n)}</b> for a naive call (the xG leader keeps dominating, base-rate goal odds, the top shooter so far), on the same windows.</>
             : <>Every Analyst read ends with a call for the next 10 minutes: who creates more, the odds of a goal, who to watch. Code grades it against what happens; the Judge explains.</>}
         </div>
       </div>

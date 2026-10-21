@@ -92,7 +92,7 @@ def test_grading_settles_dominance_by_xg_gained_goal_by_brier_and_watch_by_invol
     assert scores["dominance"] == 1.0 and scores["watch"] == 1.0
     assert scores["goal"] == round(1 - (0.4 - 1) ** 2, 3)
     assert scores["overall"] == round((1 + scores["goal"] + 1) / 3, 3)
-    # the naive baseline (xG leader keeps dominating, base-rate goal odds, nobody watched) on the same window
+    # the naive baseline (xG leader keeps dominating, base-rate goal odds, nobody to watch yet) on the same window
     assert naive["dominance"] == 1.0 and naive["watch"] is None
     assert naive["goal"] == round(1 - (BASE_GOAL_RATE_10MIN - 1) ** 2, 3)
     assert naive["overall"] == round((1 + naive["goal"]) / 2, 3)
@@ -135,10 +135,19 @@ def test_credibility_is_a_running_mean_next_to_the_baseline():
     assert ForecastLedger().summary()["analyst"]["overall"] is None
 
 
-def test_naive_forecast_backs_the_xg_leader_with_base_rate_odds():
+def test_naive_forecast_backs_the_xg_leader_with_base_rate_odds_and_the_top_shooter():
     n = naive_forecast(CONTEXT)
-    assert n == {"dominant_team_id": "NBF", "goal_probability": BASE_GOAL_RATE_10MIN, "watch_player_id": None,
-                 "claim": "naive: the xG leader keeps creating more; base-rate goal odds"}
+    assert n["dominant_team_id"] == "NBF" and n["goal_probability"] == BASE_GOAL_RATE_10MIN and n["watch_player_id"] is None
+    history = [{"event_id": 10, "type": "shot", "player_id": "THU-15"}, {"event_id": 20, "type": "goal", "player_id": "NBF-19"},
+               {"event_id": 30, "type": "shot", "player_id": "THU-15"}, {"event_id": 40, "type": "injury_concern", "player_id": "NBF-07"}]
+    assert naive_forecast(CONTEXT, history)["watch_player_id"] == "THU-15"  # two shots beat one goal; knocks do not count
+    # the ledger only lets the naive call see what happened before the forecast was issued
+    ledger = ForecastLedger()
+    for e in history:
+        ledger.observe(e)
+    ledger.observe({"event_id": 500, "type": "shot", "player_id": "NBF-19"})
+    ledger.observe({"event_id": 501, "type": "shot", "player_id": "NBF-19"})
+    assert ledger.add(_insight(), CONTEXT).naive["watch_player_id"] == "THU-15"  # issued at event 120, NBF-19's late shots unseen
 
 
 def test_verdict_thresholds():

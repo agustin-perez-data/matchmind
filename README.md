@@ -104,8 +104,9 @@ player most likely to be involved. The forecast goes into a ledger; when its
 window closes, code settles each claim (dominance by xG created, the goal call
 by a Brier score, the watched player by involvement in a shot, goal or knock)
 and the **Judge agent** writes the verdict and the lesson in the viewer's
-language. A naive forecast (the xG leader keeps dominating, base-rate goal
-odds) is graded on the same windows, so the Analyst's running credibility is
+language. A naive forecast making the same three claims (the xG leader keeps
+dominating, base-rate goal odds, the top shooter so far) is graded on the same
+windows, so the Analyst's running credibility is
 always shown next to a baseline, on the Analyst seat and in the Control room,
 and is exposed to agents and MCP clients as `get_analyst_credibility`. Windows
 close on the exact minute mark even when an insight arrives late at replay

@@ -57,6 +57,11 @@ cp .env.example .env   # then fill in the Foundry endpoint/key (never commit)
 .venv/Scripts/python -m matchmind.agents.demo --limit 3 --mode analyst --mode commentator:es
 # opt-in live test (real Foundry call)
 MATCHMIND_LIVE=1 .venv/Scripts/python -m pytest tests/test_live.py
+
+# Grade the real Analyst's 10-minute forecasts over simulated matches (costs Foundry tokens; ~1 min per 10 matches)
+.venv/Scripts/python -m matchmind.agents.evaluate_forecasts --matches 10 --label baseline --out eval/forecasts_baseline.json
+# A/B a prompt variant on the same matches:
+.venv/Scripts/python -m matchmind.agents.evaluate_forecasts --matches 10 --instructions prompts/analyst_v2.txt --label v2 --out eval/forecasts_v2.json
 # Risk Monitor offline evaluation (no LLM): model vs naive baseline over N simulated matches
 .venv/Scripts/python -m matchmind.risk.evaluate --matches 40
 ```
