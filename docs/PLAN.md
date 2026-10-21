@@ -141,6 +141,14 @@ Foundry, Best Azure Cloud Native Integration.
   (`@starting-style` transitions, no keyframe loops). Design notes in
   `frontend/README.md`. Third-party design skills installed project-scope
   under `.claude/skills/` (untracked; see its SOURCES.md).
+  **Oct 22 v3 (seats + readable pitch)**: entry screen "pick your seat"
+  (`SeatPicker`), `MatchStage` composes fan / analyst / bench layouts,
+  `lib/seats.ts` maps seats to viewer profiles, URL is the state, live seat
+  switching re-sends the profile over the open socket. Pitch: shot map + ball
+  trail + possession chip; engine keeps the ball continuous inside a move
+  (`_possession_chain` carries `y`; shots use the ball's `y`), test in
+  `test_engine.py`. Data now holds two demo matches: THU-NBF-40 (1-2, 4 knocks,
+  late goal; the default in the catalogue) and THU-NBF-42 (test fixture).
   Deploy plan agreed in principle, NOT yet authorised: ACR Basic + Container
   Apps scale-to-zero (min 1 replica only before submission) + Static Web Apps
   Free, ~USD 20 total through Nov 10.
@@ -164,7 +172,7 @@ to it makes the point.
   top-3 0.32 vs baseline 0.16 vs random 0.14; recall 0.46 vs 0.26; lead 25'
   vs 18'; 14 alerts/match. Weights still default (grid showed the rank metric
   is flat across weights; the policy mattered more than the weights). The
-  canonical demo match is now Thames 1-2 Northbridge (5 knocks).
+  canonical demo match is now THU-NBF-40 (see v3 note).
 - **D4 backend (Oct 20)**: `sim/engine.py` takes `interventions=[...]`
   (substitution / tactic at minute M; status applied|skipped; same seed =
   identical events until M). `generate(..., interventions, match_id)`; meta now

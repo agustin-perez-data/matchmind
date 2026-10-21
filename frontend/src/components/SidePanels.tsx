@@ -1,4 +1,12 @@
 import type { BranchSummary, CoachMsg, Meta, RiskMsg, RiskWindow, Snapshot, TrackScore } from '../lib/types'
+import { absMinute } from './Strip'
+
+/** Goals of one timeline up to a match minute (keeps the live viewer spoiler-free). */
+export function scoreUpTo(side: BranchSummary['actual'], home: string, away: string, minute: number | null): Record<string, number> {
+  const out: Record<string, number> = { [home]: 0, [away]: 0 }
+  for (const g of side.goals) if (minute == null || absMinute(g) <= minute) out[g.team_id] = (out[g.team_id] ?? 0) + 1
+  return out
+}
 
 const pct = (v: number) => `${Math.round(v * 100)}%`
 
@@ -27,7 +35,7 @@ export function StatsBlock({ meta, snapshot }: { meta: Meta; snapshot: Snapshot 
   )
 }
 
-export function RiskBlock({ meta, risk, alerts }: { meta: Meta; risk: RiskMsg | null; alerts: RiskWindow[] }) {
+export function RiskBlock({ meta, risk, alerts, expanded = false }: { meta: Meta; risk: RiskMsg | null; alerts: RiskWindow[]; expanded?: boolean }) {
   const teamColor = (id: string) => (id === meta.home_id ? 'var(--home-ink)' : 'var(--away-ink)')
   const sc = risk?.scorecard.model, base = risk?.scorecard.baseline
   return (
@@ -47,7 +55,7 @@ export function RiskBlock({ meta, risk, alerts }: { meta: Meta; risk: RiskMsg | 
             </p>
           </div>
           <ul className="mt-2">
-            {risk.hazards_top.slice(0, 4).map((h) => (
+            {risk.hazards_top.slice(0, expanded ? 5 : 4).map((h) => (
               <li key={h.player_id} className="my-1 grid grid-cols-[112px_1fr_44px] items-center gap-2.5 text-[15px]">
                 <span className="truncate" title={h.name}><span className="mr-1.5 inline-block h-3 w-1 align-middle" style={{ background: teamColor(h.team_id) }} />{h.name}</span>
                 <span className="block h-2.5 bg-ink-2"><span className="grow-x block h-full w-full" style={{ transform: `scaleX(${h.hazard})`, background: 'linear-gradient(90deg,#f97316,#e8405a)' }} /></span>
@@ -55,7 +63,7 @@ export function RiskBlock({ meta, risk, alerts }: { meta: Meta; risk: RiskMsg | 
               </li>
             ))}
           </ul>
-          <details className="mt-2 text-sm">
+          <details className="mt-2 text-sm" open={expanded}>
             <summary className="cursor-pointer text-muted">Scorecard, windows and knocks</summary>
             <table className="mt-2 w-full text-sm">
               <thead><tr className="blk-meta text-[11px]"><th className="text-left font-semibold"></th><th className="text-right font-semibold">model</th><th className="text-right font-semibold">minutes only</th></tr></thead>
@@ -66,7 +74,7 @@ export function RiskBlock({ meta, risk, alerts }: { meta: Meta; risk: RiskMsg | 
               </tbody>
             </table>
             {risk.active_windows.length > 0 && (
-              <p className="mt-2 text-fg-2">Open windows: {risk.active_windows.map((w) => `${w.name} (${w.level}, since ${w.open_minute}')`).join('; ')}.</p>
+              <p className="mt-2 text-fg-2">Open windows: {[...risk.active_windows].sort((x, y) => y.hazard - x.hazard).slice(0, 6).map((w) => `${w.name} (${w.level}, since ${w.open_minute}')`).join('; ')}{risk.active_windows.length > 6 ? ` and ${risk.active_windows.length - 6} more` : ''}.</p>
             )}
             {risk.concerns.length > 0 && (
               <ul className="mt-2">
@@ -99,9 +107,11 @@ function Row({ label, m, b, f }: { label: string; m: TrackScore; b: TrackScore; 
   )
 }
 
-export function CoachBlock({ meta, coach, onShowBranch }: { meta: Meta; coach: CoachMsg | null; onShowBranch: (b: BranchSummary) => void }) {
+export function CoachBlock({ meta, coach, onShowBranch, snapshot, ended }: { meta: Meta; coach: CoachMsg | null; onShowBranch: (b: BranchSummary) => void; snapshot: Snapshot | null; ended: boolean }) {
   const p = coach?.proposal, b = coach?.branch
   const h = meta.home_id, a = meta.away_id
+  const upTo = ended || !snapshot ? null : absMinute(snapshot)
+  const sa = b ? scoreUpTo(b.actual, h, a, upTo) : null, sb = b ? scoreUpTo(b.branch, h, a, upTo) : null
   const what = !coach ? null : !p ? 'No decision' : p.action === 'hold' ? `Hold, no change at ${coach.clock}`
     : p.action === 'substitution' ? `${nameOf(meta, p.player_off_id)} off at ${p.minute}'${p.player_on_id ? `, ${nameOf(meta, p.player_on_id)} on` : ''}`
       : `Tactics at ${p.minute}': press ${p.press_intensity ?? 'same'}, ${p.style ?? 'same style'}`
@@ -117,9 +127,10 @@ export function CoachBlock({ meta, coach, onShowBranch }: { meta: Meta; coach: C
             <>
               <dl className="mt-2 grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-0.5 text-[15px]">
                 <dt></dt><dd className="blk-meta text-[11px]">as played</dd><dd className="blk-meta text-[11px]">with the change</dd>
-                <dt className="text-fg-2">score</dt><dd className="display text-2xl font-extrabold">{b.actual.score[h]} - {b.actual.score[a]}</dd><dd className="display text-2xl font-extrabold">{b.branch.score[h]} - {b.branch.score[a]}</dd>
-                <dt className="text-fg-2">knocks</dt><dd className="display text-2xl font-extrabold">{b.actual.injury_concerns_total}</dd><dd className="display text-2xl font-extrabold text-teal">{b.branch.injury_concerns_total}</dd>
+                <dt className="text-fg-2">{upTo == null ? 'final score' : `score at ${upTo}'`}</dt><dd className="display text-2xl font-extrabold">{sa![h]} - {sa![a]}</dd><dd className="display text-2xl font-extrabold">{sb![h]} - {sb![a]}</dd>
+                {upTo == null && <><dt className="text-fg-2">knocks</dt><dd className="display text-2xl font-extrabold">{b.actual.injury_concerns_total}</dd><dd className="display text-2xl font-extrabold text-teal">{b.branch.injury_concerns_total}</dd></>}
               </dl>
+              {upTo != null && <p className="mt-1 text-xs text-muted">Full-time outcomes stay hidden until the final whistle, no spoilers.</p>}
               <button className="btn btn-teal mt-2 text-sm" onClick={() => onShowBranch(b)}>Show the branch</button>
             </>
           )}

@@ -1,4 +1,5 @@
 import type { MatchRow } from '../lib/api'
+import { SEAT_ORDER, SEATS, type Seat } from '../lib/seats'
 import type { Player, StreamStatus, ViewerProfile } from '../lib/types'
 
 type Props = {
@@ -7,15 +8,18 @@ type Props = {
   onMatch: (id: string) => void
   speed: number
   onSpeed: (v: number) => void
-  profile: ViewerProfile
-  onProfile: (p: ViewerProfile) => void
+  language: ViewerProfile['language']
+  onLanguage: (l: ViewerProfile['language']) => void
+  favoritePlayerId: string | null
+  onFavorite: (id: string | null) => void
+  seat: Seat | null
+  onSeat: (s: Seat) => void
   agents: boolean
   onAgents: (v: boolean) => void
   coach: boolean
   onCoach: (v: boolean) => void
   status: StreamStatus
-  onStart: () => void
-  onStop: () => void
+  onLeave: () => void
   players: Player[]
 }
 
@@ -30,33 +34,35 @@ export function ControlBar(p: Props) {
       <div className="display mr-2 text-xl font-black uppercase tracking-wide">
         MatchMind <span className="ml-1 text-xs font-semibold tracking-widest text-muted">synthetic league</span>
       </div>
+      {p.seat && (
+        <div className="flex" role="group" aria-label="seat">
+          {SEAT_ORDER.map((s) => (
+            <button key={s} type="button" onClick={() => p.onSeat(s)} aria-pressed={p.seat === s}
+              className={`display border px-3 py-1 text-sm font-extrabold uppercase tracking-wider transition-colors duration-150 ${p.seat === s ? 'border-white bg-white text-ink' : 'border-white/20 text-fg-2 hover:border-white/50'}`}
+              style={p.seat === s ? { background: SEATS[s].rule, borderColor: SEATS[s].rule } : undefined}>
+              {SEATS[s].label}
+            </button>
+          ))}
+        </div>
+      )}
       <Field label="Match">
         <select value={p.matchId} onChange={(e) => p.onMatch(e.target.value)} disabled={running}>
           {p.matches.map((m) => <option key={m.match_id} value={m.match_id}>{m.home} vs {m.away}</option>)}
         </select>
       </Field>
       <Field label="Speed">
-        <input type="number" min={0} max={1000} value={p.speed} className="w-18" aria-label="replay speed"
-          onChange={(e) => p.onSpeed(Math.max(0, Number(e.target.value)))} />
-      </Field>
-      <Field label="Viewer">
-        <select value={p.profile.mode} onChange={(e) => p.onProfile({ ...p.profile, mode: e.target.value as ViewerProfile['mode'] })}>
-          <option value="commentator">Commentator</option>
-          <option value="analyst">Analyst</option>
-          <option value="casual">Casual fan</option>
-          <option value="player_focus">Follow one player</option>
-        </select>
+        <input type="number" min={0} max={1000} value={p.speed} className="w-18" aria-label="replay speed" onChange={(e) => p.onSpeed(Math.max(0, Number(e.target.value)))} />
       </Field>
       <Field label="Language">
-        <select value={p.profile.language} onChange={(e) => p.onProfile({ ...p.profile, language: e.target.value as ViewerProfile['language'] })}>
+        <select value={p.language} onChange={(e) => p.onLanguage(e.target.value as ViewerProfile['language'])}>
           <option value="es">Español rioplatense</option>
           <option value="en">English</option>
         </select>
       </Field>
-      {p.profile.mode === 'player_focus' && (
-        <Field label="Player">
-          <select value={p.profile.favorite_player_id ?? ''} onChange={(e) => p.onProfile({ ...p.profile, favorite_player_id: e.target.value || null })}>
-            <option value="">choose</option>
+      {p.seat === 'fan' && (
+        <Field label="Follow">
+          <select value={p.favoritePlayerId ?? ''} onChange={(e) => p.onFavorite(e.target.value || null)}>
+            <option value="">nobody in particular</option>
             {p.players.map((pl) => <option key={pl.player_id} value={pl.player_id}>{pl.name}</option>)}
           </select>
         </Field>
@@ -67,9 +73,7 @@ export function ControlBar(p: Props) {
         <span className={`display text-sm font-bold uppercase tracking-widest ${p.status === 'live' ? 'text-teal' : p.status === 'error' ? 'text-bad' : 'text-muted'}`}>
           {p.status === 'live' && <span aria-hidden className="mr-1.5 inline-block h-2 w-2 bg-teal align-middle" />}{STATUS[p.status]}
         </span>
-        {running
-          ? <button className="btn-quiet" onClick={p.onStop}>Stop</button>
-          : <button className="btn" onClick={p.onStart} disabled={!p.matchId}>{p.status === 'ended' ? 'Replay' : 'Start'}</button>}
+        {p.seat && <button className="btn-quiet" onClick={p.onLeave}>{running ? 'Stop' : 'Change seat'}</button>}
       </div>
     </div>
   )

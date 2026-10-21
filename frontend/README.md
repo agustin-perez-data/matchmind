@@ -1,7 +1,23 @@
 # MatchMind frontend
 
-React + Vite + TypeScript + Tailwind. One page: scoreboard, pitch, xG race,
-momentum, agent feed, Load & Risk Monitor and the what-if panel.
+React + Vite + TypeScript + Tailwind. An entry screen where you pick a seat,
+then one match stage with three compositions:
+
+- **Fan**: top band, pitch with the commentary lower third, momentum, moments.
+- **Analyst**: momentum, pitch with the Analyst lower third, a tall xG race,
+  match stats.
+- **Bench**: the what-if band right under the score, the Risk Monitor expanded,
+  Coach proposals, a small pitch.
+
+The URL is the state (`/?seat=bench&lang=es&speed=60&match=THU-NBF-40`). The
+seat buttons in the control bar switch seats mid-match: the stream stays open
+and the viewer profile sent to the agents changes, so the Director and the
+Narrator adapt on the next key moment.
+
+The pitch shows a shot map (dots sized by xG, goals ringed in amber), the ball
+with a short trail, and a possession chip (team and third of the pitch). Pass
+lines are not drawn: the simulator now keeps the ball continuous inside a move,
+but a web of passes still reads as noise.
 
 ```bash
 npm install
@@ -12,7 +28,7 @@ npm run build    # dist/ for Azure Static Web Apps
 In production set `VITE_API_BASE` to the backend URL (Container Apps) at build time.
 
 URL parameters prefill the controls and can start the replay, handy for demos:
-`/?speed=120&mode=casual&lang=en&player=THU-15&agents=1&coach=1&autostart=1`.
+`/?seat=fan&speed=120&lang=en&player=THU-15&agents=1&coach=1`.
 
 ## Design
 

@@ -45,6 +45,23 @@ def test_injury_model_never_changes_the_rest_of_the_match():
     assert strip(calm) == strip(fragile)
 
 
+def test_the_ball_is_continuous_inside_a_possession_chain(events):
+    """A completed pass ends where the next pass (or the shot) of the same move starts."""
+    checked, prev = 0, None
+    for e in events:
+        if e["type"] == "pressure":
+            continue  # pressing happens between two touches of the same move
+        if e["type"] in ("pass", "shot") and prev is not None and prev["outcome"] == "complete":
+            if e["type"] == "pass":
+                assert (e["x"], e["y"]) == (prev["end_x"], prev["end_y"]), (prev["event_id"], e["event_id"])
+            else:
+                assert e["x"] == prev["end_x"], (prev["event_id"], e["event_id"])
+                assert abs(e["y"] - min(75.0, max(25.0, prev["end_y"]))) < 0.11
+            checked += 1
+        prev = e if e["type"] == "pass" else None  # anything else ends the move
+    assert checked > 300
+
+
 def test_nobody_assists_their_own_shot(events):
     shots = [e for e in events if e["type"] in ("shot", "goal")]
     assert shots

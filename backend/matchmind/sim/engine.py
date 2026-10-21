@@ -312,6 +312,7 @@ class MatchSimulator:
         style_len = {"possession": (5, 14), "balanced": (4, 10), "direct": (3, 7)}
         max_passes = self.rng.randint(*style_len[attacking.style])
         x = self.rng.uniform(20, 45)  # team frame: 0 own goal -> 100 opponent goal
+        y = self.rng.uniform(10, 90)  # the ball keeps its position between passes of a move
         passer = self._weighted_player(attacking, x)
 
         for _ in range(max_passes):
@@ -326,10 +327,10 @@ class MatchSimulator:
             difficulty = min(0.95, pass_dist / 55 + (0.18 if forward else 0.0) + (0.22 if under_pressure else 0.0))
             p_complete = max(0.50, min(0.97, 0.60 + passer.effective(passer.passing) * 0.50 - difficulty * 0.32))
 
-            y = self.rng.uniform(10, 90)
             x_end_team = min(98.0, x + (pass_dist * 0.7 if forward else -pass_dist * 0.3))
+            y_end = max(5.0, min(95.0, y + self.rng.gauss(0, 14)))  # lateral drift, continuous with the last position
             x0, y0 = self._abs_coords(attacking, x, y)
-            x1, y1 = self._abs_coords(attacking, x_end_team, self.rng.uniform(10, 90))
+            x1, y1 = self._abs_coords(attacking, x_end_team, y_end)
             complete = self.rng.random() < p_complete
             self._emit(
                 "pass",
@@ -350,7 +351,7 @@ class MatchSimulator:
                 self._turnover(defending, attacking, x_end_team, via)
                 return
 
-            x = x_end_team
+            x, y = x_end_team, round(y_end, 1)
             passer = receiver
             if forward and pass_dist > 20:
                 receiver.sprints += 1
@@ -361,7 +362,7 @@ class MatchSimulator:
             if x > 68 and self.rng.random() < 0.30 + 0.15 * (x - 68) / 32:
                 shooter = self._weighted_player(attacking, x)
                 assist = passer if passer is not shooter else None
-                self._shot(attacking, defending, shooter, x, self.rng.uniform(30, 70), assist=assist)
+                self._shot(attacking, defending, shooter, x, min(75.0, max(25.0, y)), assist=assist)
                 self._tick()
                 self._emit("possession_change", defending, won_by="restart")
                 return

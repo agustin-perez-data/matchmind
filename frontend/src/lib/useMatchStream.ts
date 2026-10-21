@@ -11,13 +11,15 @@ export type StreamOptions = {
 }
 
 export type FeedItem = { id: string; at: number; msg: InsightMsg | CoachMsg }
+export type BallPoint = { x: number; y: number; team_id?: string }
 
 export type StreamState = {
   status: StreamStatus
   meta: Meta | null
   snapshot: Snapshot | null
   lastEvent: MatchEvent | null
-  trail: MatchEvent[] // recent events with coordinates, oldest first
+  ball: BallPoint[] // recent ball positions, oldest first
+  shots: MatchEvent[] // every shot so far, oldest first
   keyEvents: MatchEvent[] // newest first
   feed: FeedItem[] // newest first
   risk: RiskMsg | null
@@ -28,12 +30,12 @@ export type StreamState = {
 }
 
 const EMPTY: StreamState = {
-  status: 'idle', meta: null, snapshot: null, lastEvent: null, trail: [], keyEvents: [], feed: [],
+  status: 'idle', meta: null, snapshot: null, lastEvent: null, ball: [], shots: [], keyEvents: [], feed: [],
   risk: null, alerts: [], agentsOn: false, coachOn: false, goalFlash: 0,
 }
 
 const KEY_TYPES = new Set(['goal', 'shot', 'card', 'injury_concern', 'substitution', 'tactical_change', 'half_time', 'full_time', 'kickoff', 'second_half_kickoff'])
-const TRAIL = 16
+const BALL_TRAIL = 6
 
 export function useMatchStream() {
   const [state, setState] = useState<StreamState>(EMPTY)
@@ -42,10 +44,11 @@ export function useMatchStream() {
   const stop = useCallback(() => {
     ws.current?.close()
     ws.current = null
+    setState((s) => (s.status === 'idle' ? s : { ...s, status: 'idle' }))
   }, [])
 
   const start = useCallback((opts: StreamOptions) => {
-    stop()
+    ws.current?.close()
     setState({ ...EMPTY, status: 'connecting' })
     const q = new URLSearchParams({
       speed: String(opts.speed), mode: opts.profile.mode, lang: opts.profile.language,
@@ -65,8 +68,9 @@ export function useMatchStream() {
             const e = x.event as MatchEvent
             const next: StreamState = { ...s, lastEvent: e }
             if (x.state) next.snapshot = x.state
-            if (typeof e.x === 'number') next.trail = [...s.trail.slice(-(TRAIL - 1)), e]
-            if (KEY_TYPES.has(e.type)) next.keyEvents = [e, ...s.keyEvents].slice(0, 80)
+            if (typeof e.x === 'number') next.ball = [...s.ball.slice(-(BALL_TRAIL - 1)), { x: e.end_x ?? e.x, y: e.end_y ?? (e.y as number), team_id: e.team_id }]
+            if (e.type === 'shot') next.shots = [...s.shots, e]
+            if (KEY_TYPES.has(e.type)) next.keyEvents = [e, ...s.keyEvents].slice(0, 120)
             if (e.type === 'goal') next.goalFlash = s.goalFlash + 1
             return next
           }
@@ -85,14 +89,14 @@ export function useMatchStream() {
       })
     }
     socket.onerror = () => setState((s) => ({ ...s, status: 'error' }))
-    socket.onclose = () => setState((s) => (s.status === 'ended' ? s : { ...s, status: s.status === 'connecting' ? 'error' : s.status }))
-  }, [stop])
+    socket.onclose = () => setState((s) => (s.status === 'connecting' ? { ...s, status: 'error' } : s))
+  }, [])
 
   const send = useCallback((payload: Record<string, unknown>) => {
     if (ws.current?.readyState === WebSocket.OPEN) ws.current.send(JSON.stringify(payload))
   }, [])
 
-  useEffect(() => () => stop(), [stop])
+  useEffect(() => () => { ws.current?.close() }, [])
 
   return { state, start, stop, send }
 }
