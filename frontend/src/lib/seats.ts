@@ -44,3 +44,8 @@ export function profileForSeat(seat: Seat, language: ViewerProfile['language'], 
   if (seat === 'fan' && favoritePlayerId) return { mode: 'player_focus', language, favorite_player_id: favoritePlayerId }
   return { mode: SEATS[seat].mode, language, favorite_player_id: seat === 'fan' ? favoritePlayerId : null }
 }
+
+/** The Control room watches two viewers at once: its own commentator line and an analyst, same language. */
+export function compareForSeat(seat: Seat, language: ViewerProfile['language']): ViewerProfile | null {
+  return seat === 'control' ? { mode: 'analyst', language, favorite_player_id: null } : null
+}

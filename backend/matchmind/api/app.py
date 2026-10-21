@@ -254,6 +254,7 @@ def create_app(
         agents_on: bool = Query(True, alias="agents"),
         coach_on: bool = Query(True, alias="coach"),
         min_importance: int = Query(3, ge=1, le=5),
+        compare: str | None = Query(None, description="extra viewer profile to compare, mode:lang[:player] (Control room)"),
     ) -> None:
         await websocket.accept()
         meta = catalog.meta(match_id)
@@ -262,6 +263,7 @@ def create_app(
             return
         try:
             profile = ViewerProfile(mode=mode, language=lang, favorite_player_id=player)
+            compare_profiles = [parse_profile_spec(compare)] if compare else []
         except ValidationError as exc:
             await websocket.close(code=4400, reason=f"bad viewer profile: {exc.errors()[0]['msg']}")
             return
@@ -270,13 +272,22 @@ def create_app(
             pipeline=agents["pipeline"] if agents_on else None,
             coach=agents["coach"] if coach_on else None,
             judge=agents["judge"] if agents_on else None,
-            profile=profile, speed=speed, min_importance=min_importance, cache=agents["cache"],
+            profile=profile, speed=speed, min_importance=min_importance, cache=agents["cache"], compare=compare_profiles,
         )
         await session.run()
 
     # MCP server (streamable HTTP) lives at /mcp; mounted last so API routes win.
     app.mount("/", mcp.streamable_http_app())
     return app
+
+
+def parse_profile_spec(spec: str) -> ViewerProfile:
+    """'analyst:en' | 'commentator:es' | 'player_focus:en:THU-15' (validation errors propagate)."""
+    parts = [p for p in str(spec).split(":")]
+    if not parts or not parts[0]:
+        raise ValueError(f"empty profile spec {spec!r}")
+    return ViewerProfile(mode=parts[0], language=parts[1] if len(parts) > 1 and parts[1] else "en",
+                         favorite_player_id=parts[2] if len(parts) > 2 and parts[2] else None)
 
 
 class _Lane:
@@ -322,9 +333,10 @@ class _Lane:
 class StreamSession:
     """One WebSocket connection: replay loop + control reader + agent lanes + single sender."""
 
-    def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance, judge=None, cache=None):
+    def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance, judge=None, cache=None, compare=None):
         self.ws, self.meta, self.events, self.registry = websocket, meta, events, registry
         self.pipeline, self.coach, self.judge, self.profile, self.speed = pipeline, coach, judge, profile, speed
+        self.compare: list[ViewerProfile] = list(compare or [])  # extra viewers explained side by side (Control room)
         self.min_importance = min_importance
         self.match_id = meta["match_id"]
         self.session_id = f"{self.match_id}:{id(websocket):x}:{int(time.time() * 1000) % 1_000_000}"
@@ -343,10 +355,11 @@ class StreamSession:
     async def _run_moment(self, context: dict) -> dict:
         """Moments lane runner: the insight goes to the viewer, its forecast into the ledger.
         The same moment for the same profile is explained once: later viewers get it from the cache."""
-        key = insight_key(context["moment"]["event_id"], self.profile.key)
+        profiles = [self.profile, *self.compare]
+        key = insight_key(context["moment"]["event_id"], "+".join(p.key for p in profiles))
         result = self._cached("insight", key)
         if result is None:
-            result = await self.pipeline.run(context, [self.profile])
+            result = await self.pipeline.run(context, profiles)
             self._remember("insight", key, result)
         self.ledger.add(result, context)
         return result
@@ -421,6 +434,14 @@ class StreamSession:
                     await self.out.put({"kind": "error", "detail": f"bad profile: {exc.errors()[0]['msg']}"})
                     continue
                 await self.out.put({"kind": "ack", "profile": self.profile.model_dump()})
+            if "compare" in msg:
+                try:
+                    specs = msg["compare"] if isinstance(msg["compare"], list) else ([msg["compare"]] if msg["compare"] else [])
+                    self.compare = [parse_profile_spec(s) if isinstance(s, str) else ViewerProfile.model_validate(s) for s in specs]
+                except (ValidationError, ValueError) as exc:
+                    await self.out.put({"kind": "error", "detail": f"bad compare profile: {exc}"})
+                    continue
+                await self.out.put({"kind": "ack", "compare": [p.model_dump() for p in self.compare]})
 
     # ------------------------------------------------------------ helpers
 
@@ -460,6 +481,7 @@ class StreamSession:
                 "kind": "meta", "meta": self.meta, "speed": self.speed,
                 "agents": self.pipeline is not None, "coach": self.coach is not None,
                 "profile": self.profile.model_dump(),
+                "compare": [p.model_dump() for p in self.compare],
             })
             prev: dict | None = None
             n = len(self.events)

@@ -10,6 +10,7 @@ trace says so: the broadcast never waits on the orchestrator.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -82,11 +83,7 @@ class FrameworkMomentPipeline:
         t0 = time.perf_counter()
         errors: list[str] = []
         try:
-            if len(profiles) != 1:
-                trace.mark("fallback", None, reason=f"{len(profiles)} viewer profiles, direct path")
-                result = await self._direct.run(context, profiles)
-                return {**result, "trace": trace.to_list() + result.get("trace", []), "orchestration": "direct (multi-profile)"}
-            profile = profiles[0]
+            profile, extra = profiles[0], profiles[1:]
 
             trace.mark("stage", None, stage="fan-out", participants=[self.analyst.agent.name if hasattr(self.analyst.agent, "name") else "Analyst", "Narrator"])
             t_stage = time.perf_counter()
@@ -102,28 +99,47 @@ class FrameworkMomentPipeline:
                 result = await self._direct.run(context, profiles)
                 return {**result, "errors": errors + result["errors"], "trace": trace.to_list(), "orchestration": "direct (fallback)"}
 
+            # Extra viewers (the Control room compares two seats): the Analyst's read is shared,
+            # each extra profile gets its own Narrator line and Director decision, in parallel.
+            async def guarded(label: str, coro):
+                try:
+                    return await coro
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("%s failed: %r", label, exc)
+                    errors.append(f"{label}: {exc!r}")
+                    return None
+
+            extra_narrations: list[Narration | None] = []
+            if extra:
+                trace.mark("stage", None, stage="extra viewers", viewers=[p.key for p in extra])
+                t_stage = time.perf_counter()
+                extra_narrations = list(await asyncio.gather(*(guarded(f"narrator[{p.key}]", self.narrator.narrate(context, p)) for p in extra)))
+                trace.mark("stage_end", None, stage="extra viewers", latency_ms=round((time.perf_counter() - t_stage) * 1000))
+
             trace.mark("stage", None, stage="director")
             t_stage = time.perf_counter()
-            decision = None
-            try:
-                decision = await self.director.direct(context, insight, narration, profile)
-            except Exception as exc:  # noqa: BLE001
-                log.warning("director failed: %r", exc)
-                errors.append(f"director: {exc!r}")
+            decisions = await asyncio.gather(
+                guarded("director", self.director.direct(context, insight, narration, profile)),
+                *(guarded(f"director[{p.key}]", self.director.direct(context, insight, n, p)) for p, n in zip(extra, extra_narrations)),
+            )
             trace.mark("stage_end", None, stage="director", latency_ms=round((time.perf_counter() - t_stage) * 1000))
 
+            viewers = {profile.key: {"profile": profile.model_dump(), "narration": narration.model_dump(),
+                                     "decision": decisions[0].model_dump() if decisions[0] else None}}
+            for p, n, d in zip(extra, extra_narrations, decisions[1:]):
+                viewers[p.key] = {"profile": p.model_dump(), "narration": n.model_dump() if n else None,
+                                  "decision": d.model_dump() if d else None}
             return {
                 "event_id": context.get("moment", {}).get("event_id"),
                 "clock": context.get("clock"),
                 "score": context.get("score"),
                 "moment": context.get("moment"),
                 "analyst": insight.model_dump(),
-                "viewers": {profile.key: {"profile": profile.model_dump(), "narration": narration.model_dump(),
-                                          "decision": decision.model_dump() if decision else None}},
+                "viewers": viewers,
                 "errors": errors,
                 "latency_ms": round((time.perf_counter() - t0) * 1000),
                 "trace": trace.to_list(),
-                "orchestration": ORCHESTRATION_LABEL,
+                "orchestration": ORCHESTRATION_LABEL if not extra else f"{ORCHESTRATION_LABEL}; +{len(extra)} compared viewer(s)",
             }
         finally:
             current_trace.reset(token)

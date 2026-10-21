@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { listMatches, type MatchRow } from './lib/api'
-import { parseSeat, profileForSeat, type Seat } from './lib/seats'
+import { compareForSeat, parseSeat, profileForSeat, type Seat } from './lib/seats'
 import { useMatchStream, type StreamOptions } from './lib/useMatchStream'
 import { soundFor, stadium } from './lib/sounds'
 import type { BranchSummary, ViewerProfile } from './lib/types'
@@ -51,7 +51,7 @@ export default function App() {
 
   const begin = useCallback((s: Seat, id: string, opts?: Partial<StreamOptions>) => {
     setSelectedBranch(null)
-    start({ matchId: id, speed, profile: profileForSeat(s, language, favorite), agents, coach, minImportance: s === 'fan' ? 2 : 3, ...opts })
+    start({ matchId: id, speed, profile: profileForSeat(s, language, favorite), compare: compareForSeat(s, language), agents, coach, minImportance: s === 'fan' ? 2 : 3, ...opts })
   }, [start, speed, language, favorite, agents, coach])
 
   // Load the catalogue; a seat in the URL means "straight into the match".
@@ -103,7 +103,8 @@ export default function App() {
   const switchSeat = useCallback((s: Seat) => {
     setSeat(s)
     writeUrl({ seat: s }, true)
-    send({ profile: profileForSeat(s, language, favorite) })
+    const c = compareForSeat(s, language)
+    send({ profile: profileForSeat(s, language, favorite), compare: c ? [`${c.mode}:${c.language}`] : [] })
   }, [send, language, favorite])
 
   const leave = useCallback(() => {

@@ -274,6 +274,16 @@ Foundry, Best Azure Cloud Native Integration.
   THU-NBF-40 fan/es warm run 131 s (14 insights, 7 coach, 13 verdicts),
   replay at max speed 15 s with 20 cache hits. Control room shows "from
   cache". 142 tests.
+  **Oct 22, "same moment, two viewers" (list item 3)**: a stream can carry
+  extra compared profiles (`?compare=mode:lang[:player]`, control message
+  `{"compare": [...]}`, echoed in `meta`/`ack`); `FrameworkMomentPipeline`
+  keeps one fan-out for the seat's own profile and adds, per extra viewer, a
+  Narrator line and a Director decision in parallel (trace stage "extra
+  viewers"; orchestration label says "+N compared viewer(s)"); cache key
+  joins all profile keys. The Control room seat sends its own commentator
+  profile plus `analyst:<lang>` and renders `TwoViewers.tsx`: per viewer the
+  Director headline, the four cards shown/struck through, priority, the
+  Narrator line and any personal note. Verified live on IRA-MRV-21.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

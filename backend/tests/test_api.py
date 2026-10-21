@@ -262,6 +262,29 @@ def test_coach_can_be_switched_off(agent_client, fake_coach, meta):
         msgs = _drain(ws)
     assert not [m for m in msgs if m["kind"] == "coach"] and fake_coach.calls == []
 
+def test_control_room_compares_a_second_viewer_on_every_moment(agent_client, fake_pipeline, meta):
+    url = f"/ws/matches/{meta['match_id']}?speed=0&mode=commentator&lang=es&compare=analyst:en&coach=0"
+    with agent_client.websocket_connect(url) as ws:
+        first = ws.receive_json()
+        assert first["compare"] == [{"mode": "analyst", "language": "en", "favorite_player_id": None}]
+        ws.send_json({"compare": ["player_focus:en:THU-15"]})
+        msgs = _drain(ws)
+    acks = [m for m in msgs if m["kind"] == "ack" and "compare" in m]
+    assert acks and acks[0]["compare"][0]["favorite_player_id"] == "THU-15"
+    insights = [m for m in msgs if m["kind"] == "insight"]
+    assert insights and all(len(i["viewers"]) == 2 for i in insights)
+    assert "commentator:es:-" in insights[0]["viewers"]
+    assert any("analyst:en:-" in i["viewers"] or "player_focus:en:THU-15" in i["viewers"] for i in insights)
+    _, profiles = fake_pipeline.calls[-1]
+    assert [p.key for p in profiles][0] == "commentator:es:-" and len(profiles) == 2
+
+
+def test_bad_compare_profile_closes_with_error(client, meta):
+    with pytest.raises(Exception):
+        with client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&compare=wizard:en") as ws:
+            ws.receive_json()
+
+
 def test_forecasts_are_graded_ten_minutes_later_and_the_judge_speaks(agent_client, fake_pipeline, fake_judge, meta):
     with agent_client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&coach=0") as ws:
         ws.receive_json()

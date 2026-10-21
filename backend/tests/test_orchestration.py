@@ -115,12 +115,20 @@ def test_pipeline_falls_back_to_direct_calls_when_the_workflow_fails():
     assert any(e["kind"] == "fallback" for e in result["trace"])
 
 
-def test_pipeline_with_several_profiles_uses_the_direct_path():
+def test_pipeline_compares_extra_viewers_after_one_fan_out():
     calls = []
 
     async def fake_workflow(prompt):
-        calls.append(1)
-        return []
+        calls.append(prompt)
+        return [("Analyst", json.dumps(INSIGHT)), ("Narrator", json.dumps(NARRATION))]
 
-    result = asyncio.run(_pipeline(fake_workflow).run(CONTEXT, [ViewerProfile(), ViewerProfile(mode="casual")]))
-    assert calls == [] and set(result["viewers"]) == {"analyst:en:-", "casual:en:-"}
+    narrator, director = FakeAgent(NARRATION), FakeAgent(DECISION)
+    pipeline = FrameworkMomentPipeline(AnalystAgent(FakeAgent(INSIGHT)), NarratorAgent(narrator), DirectorAgent(director), run_workflow=fake_workflow)
+    result = asyncio.run(pipeline.run(CONTEXT, [ViewerProfile(mode="commentator", language="es"), ViewerProfile(mode="analyst", language="en")]))
+    assert len(calls) == 1 and "rioplatense" in calls[0]  # one fan-out, for the seat's own profile
+    assert set(result["viewers"]) == {"commentator:es:-", "analyst:en:-"}
+    assert len(narrator.calls) == 1 and len(director.calls) == 2  # the extra viewer gets its own line and decision
+    assert result["viewers"]["analyst:en:-"]["decision"]["show"] == DECISION["show"]
+    stages = [e["stage"] for e in result["trace"] if e["kind"] == "stage"]
+    assert stages == ["fan-out", "extra viewers", "director"] and "+1 compared viewer" in result["orchestration"]
+    assert result["errors"] == []

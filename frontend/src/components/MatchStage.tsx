@@ -10,6 +10,7 @@ import { WhatIfBand } from './WhatIfBand'
 import { ControlRoom } from './ControlRoom'
 import { FollowBlock } from './FollowBlock'
 import { ForecastLedger } from './ForecastLedger'
+import { TwoViewers } from './TwoViewers'
 
 type Props = {
   favoritePlayerId: string | null
@@ -62,6 +63,7 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
         <main key="control" className="grid gap-3 px-3 pb-6 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="stagger flex min-w-0 flex-col gap-3">
             <div className="enter" style={{ ['--i' as string]: 1 }}><ControlRoom meta={meta} feed={state.feed} risk={state.risk} agentsOn={state.agentsOn} coachOn={state.coachOn} verdicts={state.verdicts} credibility={state.credibility} /></div>
+            <div className="enter" style={{ ['--i' as string]: 2 }}><TwoViewers meta={meta} feed={state.feed} /></div>
           </div>
           <aside className="stagger flex min-w-0 flex-col gap-3">
             <div className="enter" style={{ ['--i' as string]: 2 }}>{ledger(true)}</div>
