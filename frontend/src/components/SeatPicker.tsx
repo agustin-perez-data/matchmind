@@ -25,19 +25,28 @@ export function SeatPicker({ onPick, disabled, matches, matchId, onMatch }: Prop
           const on = m.match_id === matchId
           return (
             <button key={m.match_id} type="button" role="radio" aria-checked={on} onClick={() => onMatch(m.match_id)}
-              className={`blk flex items-center gap-3 px-3 py-2 text-left transition-[background,border-color] duration-150 ${on ? 'bg-ink-2' : 'hover:bg-ink-2/60'}`}
-              style={{ borderTopColor: on ? '#ffd166' : 'rgba(255,255,255,0.25)' }}>
-              <Crest team={m.home_team} size={36} />
+              className={`relative flex items-center gap-3 px-3 py-3 text-left transition-[background,opacity,box-shadow] duration-150 ${on ? 'bg-amber text-ink' : 'blk opacity-70 hover:opacity-100'}`}
+              style={on ? { boxShadow: '0 0 0 3px #ffd166, 0 10px 30px rgba(255,209,102,.25)' } : { borderTopColor: 'rgba(255,255,255,0.25)' }}>
+              <Crest team={m.home_team} size={40} />
               <span className="min-w-0 flex-1">
-                <span className="display block text-base font-extrabold uppercase leading-tight">{m.home_team.short_name} <span className="text-muted">v</span> {m.away_team.short_name}</span>
-                <span className="block text-xs text-muted">{m.home_team.city} v {m.away_team.city}</span>
+                <span className="display block text-lg font-black uppercase leading-tight">{m.home_team.short_name} <span className={on ? 'text-ink/50' : 'text-muted'}>v</span> {m.away_team.short_name}</span>
+                <span className={`block text-xs ${on ? 'text-ink/70' : 'text-muted'}`}>{m.home_team.city} v {m.away_team.city}</span>
               </span>
-              <Crest team={m.away_team} size={36} />
+              <Crest team={m.away_team} size={40} />
+              {on && <span className="display absolute -top-3 left-3 bg-ink px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-widest text-amber">Selected</span>}
             </button>
           )
         })}
       </div>
-      <p className="display mt-8 text-xl font-extrabold uppercase tracking-wider text-muted">Pick your seat</p>
+      {(() => {
+        const sel = matches.find((m) => m.match_id === matchId)
+        return (
+          <p className="display mt-8 flex flex-wrap items-center gap-2 text-xl font-extrabold uppercase tracking-wider text-muted">
+            Pick your seat for
+            {sel && <><span className="inline-flex items-center gap-1.5 text-fg"><Crest team={sel.home_team} size={26} />{sel.home_team.short_name}</span><span>v</span><span className="inline-flex items-center gap-1.5 text-fg"><Crest team={sel.away_team} size={26} />{sel.away_team.short_name}</span></>}
+          </p>
+        )
+      })()}
       <div className="stagger mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {SEAT_ORDER.map((seat, i) => {
           const s = SEATS[seat]
