@@ -204,11 +204,17 @@ Foundry, Best Azure Cloud Native Integration.
   contour and vibrato through "ah" formant filters + a pink-noise bed), a
   long whistle at full time; limiter on the master bus; on/off switch on the
   desk, remembered in localStorage; audio is unlocked by the seat click.
-  Evaluated by capturing the master bus from headless Edge
-  (`scratchpad/capture_audio.py` + `analyze_audio.py`): roar rms ≈ 0.2 for
-  2.5 s then a 2.5 s fade, no clipping, spectrum "choir-like" (peak 24 dB
-  over median, centroid ≈ 850 Hz); whistles rms ≈ 0.12. Capture on the
-  entry page: during a replay the match whistles contaminate the measurement.
+  Evaluated by capturing the output bus from headless Edge
+  (`scratchpad/capture_audio.py` + `analyze_audio.py`) and comparing with a
+  reference goal-cheer recording Agustín supplied (decoded with the browser,
+  `decode_mp3.py`; NOT shipped: ringtone-site file of unknown licence). The
+  roar was reshaped to match it: 0.4 s of expectation, crescendo to the peak
+  at ~1 s, ~2 s sustain, fade by 4.3 s; highpass 480 Hz with shouting
+  formants at 820/1150/1550 Hz (centroid ≈ 1120 Hz vs 1116 reference, band
+  shares within a few points), clap bursts plus a slow "surge" modulation
+  for texture (10 ms envelope roughness 0.25-0.28 vs 0.28 reference), peak
+  ≈ 0.8, no clipping. Whistles rms ≈ 0.12-0.15. Capture on the entry page:
+  during a replay the match whistles contaminate the measurement.
   Deploy plan agreed in principle, NOT yet authorised: ACR Basic + Container
   Apps scale-to-zero (min 1 replica only before submission) + Static Web Apps
   Free, ~USD 20 total through Nov 10.
