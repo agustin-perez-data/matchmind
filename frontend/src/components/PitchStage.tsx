@@ -9,11 +9,11 @@ const sy = (y: number) => (y / 100) * H
 
 type Props = {
   meta: Meta; ball: BallPoint[]; shots: MatchEvent[]; lastEvent: MatchEvent | null; snapshot: Snapshot | null
-  latest: FeedItem | null; keyEvent: MatchEvent | null; seat: Seat; size?: 'lg' | 'sm'
+  latest: FeedItem | null; keyEvent: MatchEvent | null; seat: Seat; size?: 'lg' | 'sm'; agentsOn?: boolean
 }
 
 /** Pitch in studio perspective: shot map, ball with a short trail, possession chip, and the lower third. */
-export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg' }: Props) {
+export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false }: Props) {
   const color = (team?: string) => (team === meta.home_id ? 'var(--home-ink)' : 'var(--away-ink)')
   const homeRight = snapshot ? snapshot.period === 1 : true
   const left = homeRight ? meta.teams[meta.home_id] : meta.teams[meta.away_id]
@@ -62,7 +62,7 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
           <text x={W - 2} y={H - 2} fontSize={3.2} textAnchor="end" fontFamily="Barlow Condensed" fontWeight={700} fill={homeRight ? 'var(--away-ink)' : 'var(--home-ink)'}>◂ {right.short_name.toUpperCase()}</text>
         </svg>
       </div>
-      {size === 'lg' && <LowerThird meta={meta} latest={latest} keyEvent={keyEvent} seat={seat} />}
+      {size === 'lg' && <LowerThird meta={meta} latest={latest} keyEvent={keyEvent} seat={seat} agentsOn={agentsOn} />}
     </section>
   )
 }
@@ -93,7 +93,7 @@ export function describe(e: MatchEvent): string {
   }
 }
 
-function LowerThird({ meta, latest, keyEvent, seat }: { meta: Meta; latest: FeedItem | null; keyEvent: MatchEvent | null; seat: Seat }) {
+function LowerThird({ meta, latest, keyEvent, seat, agentsOn }: { meta: Meta; latest: FeedItem | null; keyEvent: MatchEvent | null; seat: Seat; agentsOn: boolean }) {
   const insight = latest?.msg.kind === 'insight' ? latest.msg : null
   const coach = latest?.msg.kind === 'coach' ? latest.msg : null
   const v = insight ? Object.values(insight.viewers)[0] : null
@@ -101,20 +101,22 @@ function LowerThird({ meta, latest, keyEvent, seat }: { meta: Meta; latest: Feed
     : coach ? `Coach: ${coach.proposal?.action === 'hold' ? 'holding' : 'proposes a change'} · ${coach.clock}`
       : keyEvent ? `${describe(keyEvent)} · ${keyEvent.clock}` : null
   if (!title) return null
-  const key = `${latest?.id ?? `ev-${keyEvent?.event_id}`}-${seat}`
+  const key = `${latest?.id ?? 'events'}-${seat}`  // agent outputs animate in; plain event titles just update
   const h = meta.home_id, a = meta.away_id
-  const narration = insight && v?.narration ? <><span className="tag"><IconMic />{v.narration.language === 'es' ? 'Relator' : 'Narrator'}</span><span>{v.narration.text}</span></> : null
+  const narration = insight && v?.narration ? <><span className="tag"><IconMic />{v.narration.language === 'es' ? 'Relator' : 'Narrator'}</span><span className={seat === 'fan' ? 'display text-2xl font-semibold leading-tight sm:text-[28px]' : ''}>{v.narration.text}</span></> : null
   const analysis = insight?.analyst ? <><span className="tag tag-w"><IconChart />Analyst</span><span><b>{insight.analyst.headline}.</b> {insight.analyst.why_it_matters}{seat === 'analyst' ? <span className="text-muted"> {insight.analyst.key_stat}</span> : null}</span></> : null
   const bench = coach?.proposal ? <><span className="tag tag-t">Coach</span><span>{coach.proposal.rationale}{coach.branch ? ` With the change: ${coach.branch.branch.score[h]}-${coach.branch.branch.score[a]}, knocks ${coach.branch.actual.injury_concerns_total} to ${coach.branch.branch.injury_concerns_total}.` : ''}</span></> : null
   const rows = seat === 'fan' ? [narration, analysis] : seat === 'analyst' ? [analysis, narration] : [bench, analysis, narration]
   return (
     <div key={key} className="relative -mt-6 px-2 sm:-mt-10 sm:px-6">
       <div className="lt-bar wipe-in-left inline-block px-5 py-1 text-2xl sm:text-[36px]">{title}</div>
-      {rows.some(Boolean) && (
+      {rows.some(Boolean) ? (
         <div className="lt-sub enter grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-2 px-5 py-3 text-base leading-snug sm:text-lg">
-          {rows.filter(Boolean).slice(0, seat === 'bench' ? 2 : 2)}
+          {rows.filter(Boolean).slice(0, 2)}
         </div>
-      )}
+      ) : agentsOn && !latest ? (
+        <div className="lt-sub enter px-5 py-2 text-sm text-muted">{seat === 'fan' ? 'Relator warming up: the first call comes with the first chance, goal or knock.' : 'Agents warming up: the first read comes with the first key moment.'}</div>
+      ) : null}
     </div>
   )
 }

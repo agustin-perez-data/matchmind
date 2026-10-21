@@ -8,6 +8,7 @@ export type StreamOptions = {
   profile: ViewerProfile
   agents: boolean
   coach: boolean
+  minImportance?: number
 }
 
 export type FeedItem = { id: string; at: number; msg: InsightMsg | CoachMsg }
@@ -53,6 +54,7 @@ export function useMatchStream() {
     const q = new URLSearchParams({
       speed: String(opts.speed), mode: opts.profile.mode, lang: opts.profile.language,
       agents: opts.agents ? '1' : '0', coach: opts.coach ? '1' : '0',
+      min_importance: String(opts.minImportance ?? 3),
     })
     if (opts.profile.favorite_player_id) q.set('player', opts.profile.favorite_player_id)
     const socket = new WebSocket(wsUrl(`/ws/matches/${opts.matchId}?${q}`))

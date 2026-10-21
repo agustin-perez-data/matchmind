@@ -50,7 +50,7 @@ export default function App() {
 
   const begin = useCallback((s: Seat, id: string, opts?: Partial<StreamOptions>) => {
     setSelectedBranch(null)
-    start({ matchId: id, speed, profile: profileForSeat(s, language, favorite), agents, coach, ...opts })
+    start({ matchId: id, speed, profile: profileForSeat(s, language, favorite), agents, coach, minImportance: s === 'fan' ? 2 : 3, ...opts })
   }, [start, speed, language, favorite, agents, coach])
 
   // Load the catalogue; a seat in the URL means "straight into the match".
@@ -117,16 +117,20 @@ export default function App() {
 
   return (
     <div className="stage flex min-h-full flex-col" style={teamVars}>
-      <ControlBar
-        matches={matches} matchId={matchId} onMatch={(id) => { setMatchId(id); writeUrl({ match: id }, true) }}
-        speed={speed} onSpeed={onSpeed} language={language} onLanguage={onLanguage}
-        favoritePlayerId={favorite} onFavorite={onFavorite} seat={inMatch ? seat : null} onSeat={switchSeat}
-        agents={agents} onAgents={setAgents} coach={coach} onCoach={setCoach}
-        status={state.status} onLeave={leave}
-        players={meta ? Object.values(meta.teams).flatMap((t) => t.players) : []}
-      />
+      {inMatch && seat && (
+        <ControlBar
+          matches={matches} matchId={matchId}
+          onMatch={(id) => { setMatchId(id); writeUrl({ match: id }, true); begin(seat, id) }}
+          speed={speed} onSpeed={onSpeed} language={language} onLanguage={onLanguage}
+          favoritePlayerId={favorite} onFavorite={onFavorite} seat={seat} onSeat={switchSeat}
+          agents={agents} onAgents={(v) => { setAgents(v); writeUrl({ agents: v ? null : '0' }, true); begin(seat, matchId, { agents: v }) }}
+          coach={coach} onCoach={(v) => { setCoach(v); writeUrl({ coach: v ? null : '0' }, true); begin(seat, matchId, { coach: v }) }}
+          status={state.status} onLeave={leave}
+          players={meta ? Object.values(meta.teams).flatMap((t) => t.players) : []}
+        />
+      )}
       {loadError && <p className="mx-6 mt-3 bg-ink px-4 py-3 text-bad">{loadError}</p>}
-      {!inMatch && !loadError && <SeatPicker onPick={pickSeat} disabled={!matchId} />}
+      {!inMatch && !loadError && <SeatPicker onPick={pickSeat} disabled={!matchId} matches={matches} matchId={matchId} onMatch={(id) => { setMatchId(id); writeUrl({ match: id }, true) }} />}
       {inMatch && seat && state.status === 'connecting' && <p className="display px-6 py-10 text-2xl font-bold uppercase tracking-wider text-muted">Connecting to the studio</p>}
       {inMatch && seat && meta && (
         <MatchStage seat={seat} meta={meta} state={state} branches={branches} latestCoach={latestCoach} lastGoal={lastGoal}

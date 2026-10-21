@@ -30,7 +30,7 @@ const STATUS: Record<StreamStatus, string> = {
 export function ControlBar(p: Props) {
   const running = p.status === 'live' || p.status === 'connecting'
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-ink/80 px-4 py-2 text-sm backdrop-blur-sm sm:px-6">
+    <div className="enter-up flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-ink/80 px-4 py-2 text-sm backdrop-blur-sm sm:px-6">
       <div className="display mr-2 text-xl font-black uppercase tracking-wide">
         MatchMind <span className="ml-1 text-xs font-semibold tracking-widest text-muted">synthetic league</span>
       </div>
@@ -46,7 +46,7 @@ export function ControlBar(p: Props) {
         </div>
       )}
       <Field label="Match">
-        <select value={p.matchId} onChange={(e) => p.onMatch(e.target.value)} disabled={running}>
+        <select value={p.matchId} onChange={(e) => p.onMatch(e.target.value)} title="changing the match restarts the replay">
           {p.matches.map((m) => <option key={m.match_id} value={m.match_id}>{m.home} vs {m.away}</option>)}
         </select>
       </Field>
@@ -67,8 +67,8 @@ export function ControlBar(p: Props) {
           </select>
         </Field>
       )}
-      <label className="flex items-center gap-1 text-muted"><input type="checkbox" checked={p.agents} onChange={(e) => p.onAgents(e.target.checked)} disabled={running} /> agents</label>
-      <label className="flex items-center gap-1 text-muted"><input type="checkbox" checked={p.coach} onChange={(e) => p.onCoach(e.target.checked)} disabled={running} /> coach</label>
+      <label className="flex items-center gap-1 text-muted" title="restarts the replay"><input type="checkbox" checked={p.agents} onChange={(e) => p.onAgents(e.target.checked)} /> agents</label>
+      <label className="flex items-center gap-1 text-muted" title="restarts the replay"><input type="checkbox" checked={p.coach} onChange={(e) => p.onCoach(e.target.checked)} /> coach</label>
       <div className="ml-auto flex items-center gap-3">
         <span className={`display text-sm font-bold uppercase tracking-widest ${p.status === 'live' ? 'text-teal' : p.status === 'error' ? 'text-bad' : 'text-muted'}`}>
           {p.status === 'live' && <span aria-hidden className="mr-1.5 inline-block h-2 w-2 bg-teal align-middle" />}{STATUS[p.status]}

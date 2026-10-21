@@ -24,7 +24,7 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
   const keyEvent = state.keyEvents.find((e) => e.type !== 'kickoff') ?? null
   const pitch = (size: 'lg' | 'sm') => (
     <PitchStage meta={meta} ball={state.ball} shots={state.shots} lastEvent={state.lastEvent} snapshot={state.snapshot}
-      latest={state.feed[0] ?? null} keyEvent={keyEvent} seat={seat} size={size} />
+      latest={state.feed[0] ?? null} keyEvent={keyEvent} seat={seat} size={size} agentsOn={state.agentsOn} />
   )
   const rail = <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} />
   const band = <TopBand meta={meta} snapshot={state.snapshot} status={state.status} lastGoal={lastGoal} flash={state.goalFlash} />
