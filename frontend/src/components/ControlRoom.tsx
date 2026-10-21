@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
-import type { FeedItem } from '../lib/useMatchStream'
-import type { CoachMsg, InsightMsg, Meta, RiskMsg, TraceEvent } from '../lib/types'
+import type { FeedItem, VerdictItem } from '../lib/useMatchStream'
+import type { CoachMsg, Credibility, InsightMsg, Meta, RiskMsg, TraceEvent } from '../lib/types'
 
-type Props = { meta: Meta; feed: FeedItem[]; risk: RiskMsg | null; agentsOn: boolean; coachOn: boolean }
+type Props = { meta: Meta; feed: FeedItem[]; risk: RiskMsg | null; agentsOn: boolean; coachOn: boolean; verdicts: VerdictItem[]; credibility: Credibility | null }
 
 const LANES = ['Analyst', 'Narrator', 'Director', 'Coach', 'Engine'] as const
-const LANE_COLOR: Record<string, string> = { Analyst: '#ffd166', Narrator: '#ffffff', Director: '#c084fc', Coach: '#2dd4bf', Engine: '#8fb0ff' }
+const LANE_COLOR: Record<string, string> = { Analyst: '#ffd166', Narrator: '#ffffff', Director: '#c084fc', Coach: '#2dd4bf', Engine: '#8fb0ff', Judge: '#f6a6ff' }
 
 /** The studio's control room: the agent system at work, moment by moment. */
-export function ControlRoom({ meta, feed, risk, agentsOn, coachOn }: Props) {
+export function ControlRoom({ meta, feed, risk, agentsOn, coachOn, verdicts, credibility }: Props) {
   const [now, setNow] = useState(Date.now())
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(id) }, [])
   const latest = feed[0]
@@ -25,6 +25,8 @@ export function ControlRoom({ meta, feed, risk, agentsOn, coachOn }: Props) {
     if (latest.msg.kind === 'insight') ['stream', 'interpreter', 'gate', 'Analyst', 'Narrator', 'Director', 'seat'].forEach((n) => litNodes.add(n))
     else ['stream', 'interpreter', 'risk', 'Coach', 'Engine', 'whatif'].forEach((n) => litNodes.add(n))
   }
+  if (verdicts[0] && now - verdicts[0].at < 2500) ['ledger', 'Judge', 'credibility'].forEach((n) => litNodes.add(n))
+  const judgeLatency = mean(verdicts.map((v) => v.msg.latency_ms))
 
   return (
     <section className="blk px-4 py-3" style={{ borderTopColor: '#c084fc' }}>
@@ -39,6 +41,10 @@ export function ControlRoom({ meta, feed, risk, agentsOn, coachOn }: Props) {
         <Stat label="Tool calls by agents" value={String(toolCalls)} />
         <Stat label="Fan-out, mean" value={mean(fanOut) != null ? `${(mean(fanOut)! / 1000).toFixed(1)}s` : '–'} />
         <Stat label="Risk windows open" value={risk ? String(risk.active_windows.length) : '–'} />
+        <Stat label="Forecasts graded" value={credibility ? `${credibility.judged}${credibility.pending ? ` +${credibility.pending} pending` : ''}` : '0'} />
+        <Stat label="Analyst credibility" value={credibility?.analyst.overall != null ? `${Math.round(credibility.analyst.overall * 100)}%` : '–'} />
+        <Stat label="Naive baseline" value={credibility?.naive.overall != null ? `${Math.round(credibility.naive.overall * 100)}%` : '–'} />
+        <Stat label="Judge, mean" value={judgeLatency != null ? `${(judgeLatency / 1000).toFixed(1)}s` : '–'} />
       </dl>
 
       <PipelineMap lit={litNodes} />
@@ -70,16 +76,21 @@ function PipelineMap({ lit }: { lit: Set<string> }) {
     { id: 'seat', label: 'Your seat', x: 780, y: 14 },
     { id: 'risk', label: 'Risk Monitor', x: 290, y: 70 }, { id: 'Coach', label: 'Coach · gpt-4o', x: 450, y: 70 },
     { id: 'Engine', label: 'Engine, re-simulated branch', x: 640, y: 70, w: 160 }, { id: 'whatif', label: 'What-if', x: 820, y: 70 },
+    { id: 'ledger', label: 'Forecast ledger, +10 min', x: 290, y: 112, w: 150 }, { id: 'Judge', label: 'Judge · gpt-4.1-mini', x: 450, y: 112 },
+    { id: 'credibility', label: 'Credibility vs naive', x: 640, y: 112, w: 160 },
   ]
-  const edges: [string, string][] = [['stream', 'interpreter'], ['interpreter', 'gate'], ['gate', 'Analyst'], ['gate', 'Narrator'], ['Analyst', 'Director'], ['Narrator', 'Director'], ['Director', 'seat'], ['interpreter', 'risk'], ['risk', 'Coach'], ['Coach', 'Engine'], ['Engine', 'whatif']]
+  const edges: [string, string][] = [['stream', 'interpreter'], ['interpreter', 'gate'], ['gate', 'Analyst'], ['gate', 'Narrator'], ['Analyst', 'Director'], ['Narrator', 'Director'], ['Director', 'seat'], ['interpreter', 'risk'], ['risk', 'Coach'], ['Coach', 'Engine'], ['Engine', 'whatif'], ['Analyst', 'ledger'], ['ledger', 'Judge'], ['Judge', 'credibility']]
   const pos = Object.fromEntries(nodes.map((n) => [n.id, n]))
   const W = (n: (typeof nodes)[number]) => n.w ?? 120
   return (
-    <svg viewBox="0 0 960 100" className="mt-3 w-full" role="img" aria-label="Agent pipeline: interpreter, key-moment gate, analyst and narrator in parallel, director; risk monitor, coach, engine">
+    <svg viewBox="0 0 960 140" className="mt-3 w-full" role="img" aria-label="Agent pipeline: interpreter, key-moment gate, analyst and narrator in parallel, director; risk monitor, coach, engine; forecast ledger and judge">
       {edges.map(([a, b]) => {
         const A = pos[a], B = pos[b]
         const on = lit.has(a) && lit.has(b)
-        return <line key={`${a}-${b}`} x1={A.x + W(A)} y1={A.y + 11} x2={B.x} y2={B.y + 11} stroke={on ? '#c084fc' : '#3a4560'} strokeWidth={on ? 2 : 1.2} />
+        const down = B.y > A.y + 30 && B.x <= A.x  // the ledger hangs below the Analyst: ten match minutes later
+        return down
+          ? <path key={`${a}-${b}`} d={`M ${A.x + 20} ${A.y + 22} V ${B.y + 11} H ${B.x + W(B)}`} fill="none" stroke={on ? '#c084fc' : '#3a4560'} strokeWidth={on ? 2 : 1.2} strokeDasharray="4 3" />
+          : <line key={`${a}-${b}`} x1={A.x + W(A)} y1={A.y + 11} x2={B.x} y2={B.y + 11} stroke={on ? '#c084fc' : '#3a4560'} strokeWidth={on ? 2 : 1.2} />
       })}
       {nodes.map((n) => {
         const on = lit.has(n.id)

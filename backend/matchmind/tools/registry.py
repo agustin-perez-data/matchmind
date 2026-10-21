@@ -35,6 +35,11 @@ class LiveStateRegistry:
         if entry is not None:
             entry["risk"] = risk_summary
 
+    def update_credibility(self, match_id: str, summary: dict, latest: dict | None = None) -> None:
+        entry = self._matches.get(match_id)
+        if entry is not None:
+            entry["credibility"] = {**summary, "latest": latest}
+
     def get(self, match_id: str) -> dict | None:
         return self._matches.get(match_id)
 
@@ -206,6 +211,15 @@ class MatchTools:
                     "scorecard": None, "note": "no live risk monitor for this match yet"}
         return {"match_id": match_id, **risk}
 
+    def get_analyst_credibility(self, match_id: str) -> dict:
+        """How the Analyst agent's 10-minute forecasts have scored so far in this match (dominance, goal odds, watched player), next to a naive baseline graded on the same windows, plus the latest verdict."""
+        e = self._entry(match_id)
+        cred = e.get("credibility")
+        if cred is None:
+            return {"match_id": match_id, "judged": 0, "pending": 0, "analyst": None, "naive": None, "latest": None,
+                    "note": "no graded forecasts for this match yet"}
+        return {"match_id": match_id, **cred}
+
     def simulate_intervention(
         self,
         match_id: str,
@@ -288,4 +302,4 @@ class MatchTools:
     def as_functions(self) -> list:
         """The tool callables, for Agent Framework function calling."""
         return [self.list_matches, self.get_match_state, self.get_player_workload, self.get_risk_alerts,
-                self.get_xg_race, self.get_risk_windows, self.simulate_intervention]
+                self.get_xg_race, self.get_risk_windows, self.get_analyst_credibility, self.simulate_intervention]

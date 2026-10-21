@@ -28,14 +28,38 @@ class ViewerProfile(BaseModel):
         return f"{self.mode}:{self.language}:{self.favorite_player_id or '-'}"
 
 
+FORECAST_HORIZON_MIN = 10
+
+
+class Forecast(BaseModel):
+    """A falsifiable call about the next 10 minutes; the Judge grades it against what happens."""
+
+    dominant_team_id: str = Field(description="team_id expected to create more xG over the next 10 minutes")
+    goal_probability: float = Field(ge=0.0, le=1.0, description="Probability that ANY goal is scored in the next 10 minutes")
+    watch_player_id: str | None = Field(description="player_id most likely to be involved in a shot, goal, assist or knock next; null if no clear candidate")
+    claim: str = Field(description="<= 25 words: the call in plain words, e.g. 'Thames keep the ball but Northbridge get the better chances'")
+
+
 class AnalystInsight(BaseModel):
-    """Why a key moment matters (Explain stage)."""
+    """Why a key moment matters (Explain stage), plus a forecast that will be graded."""
 
     headline: str = Field(description="<= 10 words, broadcast caption style")
     why_it_matters: str = Field(description="<= 40 words, grounded in the numbers provided")
     tactical_read: str = Field(description="<= 40 words: control vs chaos, shape, rhythm, pressing")
     key_stat: str = Field(description="One number-backed fact from the context, e.g. 'xG 1.11 vs 0.71'")
     confidence: float = Field(ge=0.0, le=1.0, description="How well the data supports the read")
+    forecast: Forecast
+
+
+Verdict = Literal["called_it", "partly", "missed"]
+
+
+class JudgeVerdict(BaseModel):
+    """The Judge's reading of a graded forecast (the numbers come from code, the words from the Judge)."""
+
+    verdict: Verdict
+    summary: str = Field(description="<= 30 words: what the Analyst called and what actually happened, in the viewer's language")
+    lesson: str = Field(description="<= 25 words: what the Analyst over- or under-estimated, or 'nothing' if the call was right")
 
 
 class Narration(BaseModel):

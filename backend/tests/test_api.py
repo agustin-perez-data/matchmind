@@ -25,7 +25,9 @@ class FakePipeline:
             "event_id": context["moment"]["event_id"], "clock": context["clock"], "score": context["score"],
             "moment": context["moment"],
             "analyst": {"headline": f"fake insight for {context['moment']['kind']}", "why_it_matters": "x",
-                        "tactical_read": "y", "key_stat": "z", "confidence": 0.5},
+                        "tactical_read": "y", "key_stat": "z", "confidence": 0.5,
+                        "forecast": {"dominant_team_id": context["home_id"], "goal_probability": 0.3,
+                                     "watch_player_id": None, "claim": "fake: the home side keep creating"}},
             "viewers": {p.key: {"profile": p.model_dump(), "narration": {"text": "fake", "language": p.language, "mode": p.mode},
                                 "decision": {"show": ["narration"], "priority": 3, "headline": "h", "personalized_note": None}}
                         for p in profiles},
@@ -47,6 +49,20 @@ class FakeCoach:
                              "player_on_id": None, "press_intensity": None, "style": None, "minute": context["minute"],
                              "rationale": "fake", "urgency": 2, "expected_effect": "none"},
                 "branch": None, "errors": [], "latency_ms": 1}
+
+
+class FakeJudge:
+    """Stands in for JudgePipeline: records graded contexts, echoes the scores with canned words."""
+
+    def __init__(self):
+        self.calls: list[dict] = []
+
+    async def run(self, context):
+        self.calls.append(context)
+        return {"event_id": context["event_id"], "issued_clock": context["issued_clock"], "forecast": context["forecast"],
+                "facts": context["facts"], "scores": context["scores"], "naive_scores": context["naive_scores"],
+                "verdict": {"verdict": "partly", "summary": "fake verdict", "lesson": "nothing"},
+                "credibility": context["credibility"], "errors": [], "latency_ms": 1, "trace": []}
 
 
 @pytest.fixture(scope="module")
@@ -73,8 +89,13 @@ def fake_coach():
 
 
 @pytest.fixture()
-def agent_client(data_dir, fake_pipeline, fake_coach):
-    with TestClient(create_app(data_dir=data_dir, pipeline=fake_pipeline, coach=fake_coach)) as c:
+def fake_judge():
+    return FakeJudge()
+
+
+@pytest.fixture()
+def agent_client(data_dir, fake_pipeline, fake_coach, fake_judge):
+    with TestClient(create_app(data_dir=data_dir, pipeline=fake_pipeline, coach=fake_coach, judge=fake_judge)) as c:
         yield c
 
 
@@ -240,6 +261,34 @@ def test_coach_can_be_switched_off(agent_client, fake_coach, meta):
         ws.receive_json()
         msgs = _drain(ws)
     assert not [m for m in msgs if m["kind"] == "coach"] and fake_coach.calls == []
+
+def test_forecasts_are_graded_ten_minutes_later_and_the_judge_speaks(agent_client, fake_pipeline, fake_judge, meta):
+    with agent_client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&coach=0") as ws:
+        ws.receive_json()
+        msgs = _drain(ws)
+    insights = [m for m in msgs if m["kind"] == "insight"]
+    verdicts = [m for m in msgs if m["kind"] == "verdict"]
+    assert insights and verdicts, "every insight carries a forecast, so verdicts must follow"
+    assert len(verdicts) <= len(insights)
+    first = verdicts[0]
+    assert first["event_id"] in {i["event_id"] for i in insights}
+    assert set(first["scores"]) == {"dominance", "goal", "watch", "overall"} and 0 <= first["scores"]["goal"] <= 1
+    assert first["scores"]["watch"] is None  # the fake watches nobody: that claim is not graded
+    assert first["naive_scores"]["overall"] is not None
+    assert first["verdict"]["verdict"] == "partly" and first["credibility"]["judged"] >= 1
+    # a window is settled only once its 10 minutes have run (or at full time)
+    issued = {i["event_id"]: i for i in insights}
+    settled_on_time = [v for v in verdicts if not v["facts"]["truncated"]]
+    assert all(v["facts"]["minutes"] >= 10 for v in settled_on_time)
+    assert all(v["facts"]["window"].startswith(issued[v["event_id"]]["clock"]) for v in verdicts)
+    assert all(issued[v["event_id"]]["moment"]["kind"] != "full_time" for v in verdicts)
+    end = msgs[-1]
+    assert end["credibility"]["judged"] == len(verdicts) and end["credibility"]["pending"] == 0  # no verdict is ever dropped
+    assert end["credibility"]["analyst"]["overall"] is not None and end["credibility"]["naive"]["overall"] is not None
+    # the running credibility is also an MCP/agent tool
+    cred = agent_client.get(f"/matches/{meta['match_id']}/meta").status_code  # the REST surface is untouched
+    assert cred == 200
+
 
 def test_insights_arrive_for_key_moments_without_breaking_the_event_stream(agent_client, fake_pipeline, meta, events):
     url = f"/ws/matches/{meta['match_id']}?speed=0&mode=player_focus&player=THU-15"

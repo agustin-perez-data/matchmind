@@ -45,6 +45,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from matchmind.agents.coach import build_coach_context
+from matchmind.agents.judge import ForecastLedger, build_judge_context, grade_forecast
 from matchmind.agents.moments import build_moment_context, detect_key_moment
 from matchmind.agents.schemas import ViewerProfile
 from matchmind.generate_match import generate, write_match
@@ -115,19 +116,21 @@ def create_app(
     data_dir: Path | str | None = None,
     pipeline=None,
     coach=None,
+    judge=None,
     enable_agents: bool | None = None,
 ) -> FastAPI:
     """Build the service.
 
     pipeline: object with `async run(context, profiles) -> dict` (moments lane; tests inject a fake).
     coach:    object with `async run(context) -> dict` (risk lane; tests inject a fake).
+    judge:    object with `async run(context) -> dict` (verdict lane; graded forecasts get their words here).
     enable_agents: None = build the Foundry agents on startup if configured; False = never call an LLM.
     """
     catalog = MatchCatalog(Path(data_dir) if data_dir else default_data_dir())
     registry = LiveStateRegistry()
     tools = MatchTools(registry)
     mcp = build_mcp_server(registry)
-    agents = {"pipeline": pipeline, "coach": coach}
+    agents = {"pipeline": pipeline, "coach": coach, "judge": judge}
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -137,8 +140,8 @@ def create_app(
                 registry.update(mid, catalog.meta(mid), catalog.final_state(mid))
             except Exception as exc:  # noqa: BLE001
                 log.warning("could not preload %s: %r", mid, exc)
-        if enable_agents is not False and (agents["pipeline"] is None or agents["coach"] is None):
-            from matchmind.agents.clients import build_coach, build_pipeline, foundry_configured
+        if enable_agents is not False and any(agents[k] is None for k in ("pipeline", "coach", "judge")):
+            from matchmind.agents.clients import build_coach, build_judge, build_pipeline, foundry_configured
 
             if foundry_configured():
                 try:
@@ -146,6 +149,8 @@ def create_app(
                         agents["pipeline"] = build_pipeline(tools=tools.as_functions())
                     if agents["coach"] is None:
                         agents["coach"] = build_coach(tools)
+                    if agents["judge"] is None:
+                        agents["judge"] = build_judge()
                     log.info("LLM agents enabled (Azure AI Foundry)")
                 except Exception as exc:  # noqa: BLE001
                     log.warning("LLM agents disabled: %r", exc)
@@ -256,6 +261,7 @@ def create_app(
             websocket, meta, catalog.events(match_id), registry,
             pipeline=agents["pipeline"] if agents_on else None,
             coach=agents["coach"] if coach_on else None,
+            judge=agents["judge"] if agents_on else None,
             profile=profile, speed=speed, min_importance=min_importance,
         )
         await session.run()
@@ -268,9 +274,9 @@ def create_app(
 class _Lane:
     """One background agent lane: a 1-slot queue where the more important item survives."""
 
-    def __init__(self, runner, kind: str, out: asyncio.Queue, importance):
+    def __init__(self, runner, kind: str, out: asyncio.Queue, importance, capacity: int = 1):
         self.runner, self.kind, self.out, self.importance = runner, kind, out, importance
-        self.queue: asyncio.Queue = asyncio.Queue(maxsize=1)
+        self.queue: asyncio.Queue = asyncio.Queue(maxsize=capacity)
         self.task = asyncio.create_task(self._worker())
 
     async def _worker(self) -> None:
@@ -308,13 +314,36 @@ class _Lane:
 class StreamSession:
     """One WebSocket connection: replay loop + control reader + agent lanes + single sender."""
 
-    def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance):
+    def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance, judge=None):
         self.ws, self.meta, self.events, self.registry = websocket, meta, events, registry
-        self.pipeline, self.coach, self.profile, self.speed = pipeline, coach, profile, speed
+        self.pipeline, self.coach, self.judge, self.profile, self.speed = pipeline, coach, judge, profile, speed
         self.min_importance = min_importance
         self.match_id = meta["match_id"]
         self.closed = False
         self.out: asyncio.Queue = asyncio.Queue()
+        self.ledger = ForecastLedger()  # the Analyst's forecasts, graded 10 match minutes later
+
+    async def _run_moment(self, context: dict) -> dict:
+        """Moments lane runner: the insight goes to the viewer, its forecast into the ledger."""
+        result = await self.pipeline.run(context, [self.profile])
+        self.ledger.add(result, context)
+        return result
+
+    def _grade_due(self, snapshot: dict, lane, *, flush: bool = False) -> list[dict]:
+        """Settle every forecast whose window has closed: scores now (code), words later (Judge lane)."""
+        settled = []
+        for pending in self.ledger.due(snapshot, flush=flush):
+            close = self.ledger.window_close(pending, snapshot)
+            facts, scores, naive_scores = grade_forecast(pending, close, self.ledger.window_events(pending, close.get("event_id")))
+            self.ledger.record({"event_id": pending.event_id, "scores": scores, "naive_scores": naive_scores})
+            summary = self.ledger.summary()
+            ctx = build_judge_context(pending, facts, scores, naive_scores, self.meta, self.profile.language)
+            ctx["credibility"] = summary
+            self.registry.update_credibility(self.match_id, summary, {"event_id": pending.event_id, "scores": scores, "facts": facts})
+            settled.append(ctx)
+            if lane is not None:
+                lane.offer(ctx)
+        return settled
 
     # ------------------------------------------------------------ tasks
 
@@ -375,10 +404,12 @@ class StreamSession:
     async def run(self) -> None:
         sender = asyncio.create_task(self._sender())
         reader = asyncio.create_task(self._read_controls())
-        moments = _Lane(lambda ctx: self.pipeline.run(ctx, [self.profile]), "insight", self.out,
+        moments = _Lane(self._run_moment, "insight", self.out,
                         lambda c: c["moment"]["importance"]) if self.pipeline is not None else None
         coach = _Lane(self.coach.run, "coach", self.out,
                       lambda c: 5 if c["trigger"] == "injury_concern" else 3) if self.coach is not None else None
+        judge = _Lane(self.judge.run, "verdict", self.out, lambda c: c["scores"].get("overall") or 0,
+                      capacity=8) if self.judge is not None and moments is not None else None  # verdicts are few; keep them all
         state, monitor = MatchState(self.meta), RiskMonitor(self.meta)
         try:
             await self.out.put({
@@ -396,6 +427,10 @@ class StreamSession:
                 state.apply(event)
                 snapshot = state.snapshot()
                 message: dict = {"kind": "event", "event": event}
+                if moments is not None:
+                    self.ledger.observe(event, snapshot)
+                    if self.ledger.pending and event["type"] != "physical_sample":
+                        self._grade_due(snapshot, judge)
                 key_event = event["type"] in MatchState.SNAPSHOT_TYPES
                 if key_event or i % SNAPSHOT_EVERY == 0 or i == n:
                     message["state"] = snapshot
@@ -426,16 +461,20 @@ class StreamSession:
                 await self.out.put(message)
                 prev = event
 
-            for lane in (moments, coach):
+            if moments is not None:
+                await moments.close(AGENT_DRAIN_TIMEOUT_S)  # the last insight may still add a forecast
+                self._grade_due(state.snapshot(), judge, flush=True)  # full time settles what is left
+            for lane in (coach, judge):
                 if lane is not None:
                     await lane.close(AGENT_DRAIN_TIMEOUT_S)
-            await self.out.put({"kind": "end", "state": state.snapshot(), "risk": monitor.summary()})
+            await self.out.put({"kind": "end", "state": state.snapshot(), "risk": monitor.summary(),
+                                "credibility": self.ledger.summary() if moments is not None else None})
             await self.out.put(None)
             await sender
         except (WebSocketDisconnect, RuntimeError):
             log.info("client disconnected from %s", self.match_id)
         finally:
-            for task in (sender, reader, *(lane.task for lane in (moments, coach) if lane is not None)):
+            for task in (sender, reader, *(lane.task for lane in (moments, coach, judge) if lane is not None)):
                 task.cancel()
             try:
                 await self.ws.close()

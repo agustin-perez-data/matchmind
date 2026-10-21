@@ -107,7 +107,7 @@ function LowerThird({ meta, latest, keyEvent, seat, agentsOn }: { meta: Meta; la
   const key = `${latest?.id ?? 'events'}-${seat}`  // agent outputs animate in; plain event titles just update
   const h = meta.home_id, a = meta.away_id
   const narration = insight && v?.narration ? <><span className="tag"><IconMic />{v.narration.language === 'es' ? 'Relator' : 'Narrator'}</span><span className={seat === 'fan' ? 'display text-2xl font-semibold leading-tight sm:text-[28px]' : ''}>{v.narration.text}</span></> : null
-  const analysis = insight?.analyst ? <><span className="tag tag-w"><IconChart />Analyst</span><span><b>{sentence(insight.analyst.headline)}</b> {insight.analyst.why_it_matters}{seat === 'analyst' ? <span className="text-muted"> {insight.analyst.key_stat}</span> : null}</span></> : null
+  const analysis = insight?.analyst ? <><span className="tag tag-w"><IconChart />Analyst</span><span><b>{sentence(insight.analyst.headline)}</b> {insight.analyst.why_it_matters}{seat === 'analyst' ? <span className="text-muted"> {insight.analyst.key_stat}</span> : null}{seat === 'analyst' && insight.analyst.forecast && insight.moment.kind !== 'full_time' ? <span className="mt-1 block text-base text-amber">Next 10': {insight.analyst.forecast.claim}</span> : null}</span></> : null
   const bench = coach?.proposal ? <><span className="tag tag-t">Coach</span><span>{coach.proposal.rationale}{coach.branch ? ` With the change: ${coach.branch.branch.score[h]}-${coach.branch.branch.score[a]}, knocks ${coach.branch.actual.injury_concerns_total} to ${coach.branch.branch.injury_concerns_total}.` : ''}</span></> : null
   const rows = seat === 'fan' ? [narration, analysis] : seat === 'analyst' ? [analysis, narration] : [bench, analysis, narration]
   return (

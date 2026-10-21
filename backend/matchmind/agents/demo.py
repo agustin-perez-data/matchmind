@@ -71,6 +71,9 @@ async def main_async(args: argparse.Namespace) -> int:
             print(f"            why: {a['why_it_matters']}")
             print(f"            read: {a['tactical_read']}")
             print(f"            stat: {a['key_stat']}")
+            if a.get("forecast"):
+                f = a["forecast"]
+                print(f"            FORECAST next 10': {f['claim']}  [dominant {f['dominant_team_id']}, P(goal) {f['goal_probability']:.2f}, watch {f['watch_player_id']}]")
         for key, view in result["viewers"].items():
             n, d = view["narration"], view["decision"]
             print(f"  [{key}]")

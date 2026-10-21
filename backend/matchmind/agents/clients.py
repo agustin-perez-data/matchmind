@@ -60,6 +60,19 @@ def build_coach(match_tools) -> "CoachPipeline":
     return CoachPipeline(CoachAgent(agent), match_tools)
 
 
+def build_judge() -> "JudgePipeline":
+    """Judge agent (fast tier): words only; the forecast scores are computed in code."""
+    from matchmind.agents.judge import JUDGE_INSTRUCTIONS, JudgeAgent, JudgePipeline
+    from matchmind.agents.schemas import JudgeVerdict
+    from matchmind.agents.tracing import TRACE_MIDDLEWARE
+
+    agent = chat_client("fast").as_agent(
+        name="Judge", instructions=JUDGE_INSTRUCTIONS,
+        default_options={"temperature": 0.2, "response_format": JudgeVerdict}, middleware=TRACE_MIDDLEWARE,
+    )
+    return JudgePipeline(JudgeAgent(agent))
+
+
 def build_pipeline(tools: list | None = None):
     """The three LLM agents on Foundry, orchestrated with Agent Framework workflows.
 

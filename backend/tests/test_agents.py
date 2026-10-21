@@ -50,8 +50,11 @@ CONTEXT = {
     "risk_alerts": [],
 }
 
+FORECAST = {"dominant_team_id": "NBF", "goal_probability": 0.4, "watch_player_id": "NBF-19",
+            "claim": "Northbridge keep finding Okafor behind the line"}
 INSIGHT = {"headline": "Northbridge punish a slow press", "why_it_matters": "Thames' high line was beaten.",
-           "tactical_read": "Direct ball behind the full-back.", "key_stat": "xG 0.46 vs 0.62", "confidence": 0.8}
+           "tactical_read": "Direct ball behind the full-back.", "key_stat": "xG 0.46 vs 0.62", "confidence": 0.8,
+           "forecast": FORECAST}
 NARRATION = {"text": "GOAL! Okafor finishes a slick move.", "language": "en", "mode": "analyst"}
 DECISION = {"show": ["narration", "insight"], "priority": 5, "headline": "Okafor strikes first",
             "personalized_note": None}

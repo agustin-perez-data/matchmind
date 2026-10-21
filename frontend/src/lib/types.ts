@@ -114,12 +114,54 @@ export type ViewerProfile = {
   favorite_player_id: string | null
 }
 
+export type Forecast = {
+  dominant_team_id: string
+  goal_probability: number
+  watch_player_id: string | null
+  claim: string
+}
+
 export type AnalystInsight = {
   headline: string
   why_it_matters: string
   tactical_read: string
   key_stat: string
   confidence: number
+  forecast?: Forecast
+}
+
+export type ForecastScores = { dominance: number | null; goal: number | null; watch: number | null; overall: number | null }
+
+export type Credibility = {
+  judged: number
+  pending: number
+  horizon_min: number
+  analyst: ForecastScores
+  naive: ForecastScores
+}
+
+export type VerdictMsg = {
+  kind: 'verdict'
+  event_id: number
+  issued_clock: string
+  forecast: Forecast & { dominant_team: string | null; watch_player: string | null }
+  facts: {
+    window: string
+    minutes: number
+    truncated: boolean
+    xg_gained: Record<string, number>
+    goals: { clock: string; team_id: string; player_name: string }[]
+    shots: number
+    players_involved: string[]
+    score_now: Record<string, number>
+  }
+  scores: ForecastScores
+  naive_scores: ForecastScores
+  verdict: { verdict: 'called_it' | 'partly' | 'missed'; summary: string | null; lesson: string | null }
+  credibility: Credibility | null
+  errors: string[]
+  latency_ms: number
+  trace?: TraceEvent[]
 }
 
 export type Narration = { text: string; language: string; mode: string }

@@ -39,9 +39,15 @@ measure whether the risk agent is right, and branch the match.
    per-player **risk windows** ("high risk in the next 15 min") from observables
    only; **self-evaluating**: scored against the injury_concern events the
    latent state produces (precision, recall, lead time) vs a naive baseline. D4.
-4. **Analyst agent** (gpt-4o) — why a key moment matters, grounded in numbers. DONE.
-   Stretch (D6): adds a structured 10-minute forecast graded by a **Judge agent**
-   → live credibility score.
+4. **Analyst agent** (gpt-4o) — why a key moment matters, grounded in numbers,
+   plus a structured 10-minute forecast (dominant side, goal probability,
+   player to watch). DONE.
+4b. **Judge agent** (gpt-4.1-mini) — the forecast ledger closes each window on
+   the minute mark, code scores every claim (xG dominance, Brier on the goal
+   call, involvement of the watched player) next to a naive baseline, and the
+   Judge writes verdict + lesson in the viewer's language → live Analyst
+   credibility on the Analyst seat, the Control room and the MCP tool
+   `get_analyst_credibility`. DONE (Oct 22).
 5. **Coach agent** (gpt-4o) — proposes interventions when risk/momentum calls for
    it, via the MCP tool `simulate_intervention`; returns the counterfactual
    branch comparison (score, xG, alerts, concerns). D4.
@@ -215,6 +221,33 @@ Foundry, Best Azure Cloud Native Integration.
   for texture (10 ms envelope roughness 0.25-0.28 vs 0.28 reference), peak
   ≈ 0.8, no clipping. Whistles rms ≈ 0.12-0.15. Capture on the entry page:
   during a replay the match whistles contaminate the measurement.
+  **Oct 22, pillar 3 (Analyst forecast + Judge)**: `agents/judge.py` holds
+  the `ForecastLedger` (pending forecasts, settling-event history sliced by
+  event_id, per-minute state marks so windows close exactly on the due
+  minute even when insights arrive late at replay speed), `grade_forecast`
+  (deterministic: dominance 1/0 by xG gained, goal = 1 − Brier, watch 1/0 by
+  involvement; unsettleable claims are left out of the mean), the naive
+  baseline, `JudgeAgent`/`JudgePipeline` (fast tier, structured
+  `JudgeVerdict`; code verdict thresholds as fallback). Stream: moments lane
+  runner feeds the ledger; `_grade_due` runs on every non-physical event and
+  at full time (flush); verdicts go out on a `verdict` lane with capacity 8
+  so none is dropped; `end` carries the credibility summary; the registry
+  exposes it as `get_analyst_credibility`. No forecast is taken at full
+  time. Live run (THU-NBF-40, speed 150): 6 forecasts graded, Analyst
+  0.57 vs naive 0.52 overall — the home/possession bias of the Analyst's
+  dominance calls is visible (0.5 vs 0.33 on dominance, 0.4 on watched
+  players), which is the point: a credibility that is earned. Frontend:
+  `ForecastLedger.tsx` on the Analyst seat (full) and Control room
+  (compact), forecast line in the analyst lower third, Judge row + stats in
+  the Control room pipeline map. 126 backend tests.
+  **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
+  Judge (done) · 2 demo robustness (insight cache per moment+profile,
+  per-viewer registry sessions) · 3 "same moment, two viewers" in the
+  Control room · 4 the five brief stages labelled in UI + README · 5 Risk
+  Monitor reliability diagram + post-match bench report · 6 groundedness
+  evaluation with the Azure AI evaluation SDK · 7 mobile pass · 8 deploy
+  (Key Vault + managed identity + Application Insights), then video, pitch,
+  submit.
   Deploy plan agreed in principle, NOT yet authorised: ACR Basic + Container
   Apps scale-to-zero (min 1 replica only before submission) + Static Web Apps
   Free, ~USD 20 total through Nov 10.

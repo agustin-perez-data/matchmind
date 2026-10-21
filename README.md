@@ -20,7 +20,7 @@ Monitor** grounded in sports science (ACWR).
 |---|---|---|
 | 1. Ingest | Synthetic match engine + FastAPI/WebSocket live replay (configurable speed) | ✅ |
 | 2. Interpret | Interpreter agent: team stats, xG race, momentum, per-player ACWR workload | ✅ |
-| 3. Explain | Analyst agent (gpt-4o, Agent Framework): *why* a moment matters, grounded in the Interpreter's numbers | ✅ |
+| 3. Explain | Analyst agent (gpt-4o, Agent Framework): *why* a moment matters, grounded in the Interpreter's numbers, plus a 10-minute forecast that the Judge grades | ✅ |
 | 4. Render | Narrator agent (English analytical, casual, play-by-play, *relator rioplatense* 🇦🇷) + live 2D pitch & overlays (React) | ✅ agent / 🔜 UI |
 | 5. Personalize | Director agent: decides per viewer (Analyst / Casual / Commentator / Player-Focus, language) which cards to show and how loudly | ✅ |
 
@@ -60,8 +60,8 @@ The simulator outputs an event stream (`*_events.jsonl`) and match metadata
   response compares both timelines (score, xG, shots, injury concerns).
 - `POST /mcp` — MCP server (streamable HTTP) exposing `list_matches`,
   `get_match_state`, `get_player_workload`, `get_risk_alerts`, `get_xg_race`,
-  `get_risk_windows`, `simulate_intervention` to any MCP client. The same
-  functions are the agents' tools.
+  `get_risk_windows`, `get_analyst_credibility`, `simulate_intervention` to any
+  MCP client. The same functions are the agents' tools.
 
 ## AI that gets graded, not just heard
 
@@ -98,6 +98,19 @@ pass or a shot.
 The **Coach agent** turns high-risk alerts into proposals, and the engine shows
 the counterfactual branch of each proposal.
 
+The **Analyst is graded too.** Every read ends with a forecast for the next 10
+match minutes: which side creates more xG, the probability of a goal, and the
+player most likely to be involved. The forecast goes into a ledger; when its
+window closes, code settles each claim (dominance by xG created, the goal call
+by a Brier score, the watched player by involvement in a shot, goal or knock)
+and the **Judge agent** writes the verdict and the lesson in the viewer's
+language. A naive forecast (the xG leader keeps dominating, base-rate goal
+odds) is graded on the same windows, so the Analyst's running credibility is
+always shown next to a baseline, on the Analyst seat and in the Control room,
+and is exposed to agents and MCP clients as `get_analyst_credibility`. Windows
+close on the exact minute mark even when an insight arrives late at replay
+speed, and nothing is forecast once the final whistle has gone.
+
 ## Agents
 
 | Agent | Model | Job |
@@ -108,6 +121,7 @@ the counterfactual branch of each proposal.
 | Director | gpt-4.1-mini | Picks the cards and priority each viewer gets |
 | Load & Risk Monitor | none (pure Python) | Predicts risk windows from observables; self-evaluates against ground truth |
 | Coach | gpt-4o | Proposes substitutions / tactical changes on risk alerts; the engine simulates the branch |
+| Judge | gpt-4.1-mini | Reads each settled forecast (scores come from code) and writes the verdict and the lesson |
 
 All agents run on **Azure AI Foundry** through the **Microsoft Agent Framework**
 (Python). A deterministic key-moment gate decides when they wake up, so cost and

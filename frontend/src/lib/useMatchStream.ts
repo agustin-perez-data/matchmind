@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { wsUrl } from './api'
-import type { CoachMsg, InsightMsg, MatchEvent, Meta, RiskMsg, RiskWindow, Snapshot, StreamStatus, ViewerProfile } from './types'
+import type { CoachMsg, Credibility, InsightMsg, MatchEvent, Meta, RiskMsg, RiskWindow, Snapshot, StreamStatus, VerdictMsg, ViewerProfile } from './types'
 
 export type StreamOptions = {
   matchId: string
@@ -12,6 +12,7 @@ export type StreamOptions = {
 }
 
 export type FeedItem = { id: string; at: number; msg: InsightMsg | CoachMsg }
+export type VerdictItem = { id: string; at: number; msg: VerdictMsg }
 export type BallPoint = { x: number; y: number; team_id?: string }
 
 export type StreamState = {
@@ -25,6 +26,8 @@ export type StreamState = {
   feed: FeedItem[] // newest first
   risk: RiskMsg | null
   alerts: RiskWindow[] // newest first
+  verdicts: VerdictItem[] // the Judge's graded forecasts, newest first
+  credibility: Credibility | null
   agentsOn: boolean
   coachOn: boolean
   goalFlash: number
@@ -32,7 +35,7 @@ export type StreamState = {
 
 const EMPTY: StreamState = {
   status: 'idle', meta: null, snapshot: null, lastEvent: null, ball: [], shots: [], keyEvents: [], feed: [],
-  risk: null, alerts: [], agentsOn: false, coachOn: false, goalFlash: 0,
+  risk: null, alerts: [], verdicts: [], credibility: null, agentsOn: false, coachOn: false, goalFlash: 0,
 }
 
 const KEY_TYPES = new Set(['goal', 'shot', 'card', 'injury_concern', 'substitution', 'tactical_change', 'half_time', 'full_time', 'kickoff', 'second_half_kickoff'])
@@ -83,8 +86,10 @@ export function useMatchStream() {
             return { ...s, risk: x }
           case 'risk_alert':
             return { ...s, alerts: [x, ...s.alerts].slice(0, 40) }
+          case 'verdict':
+            return { ...s, verdicts: [{ id: `verdict-${x.event_id}`, at: Date.now(), msg: x }, ...s.verdicts].slice(0, 40), credibility: x.credibility ?? s.credibility }
           case 'end':
-            return { ...s, status: 'ended', snapshot: x.state }
+            return { ...s, status: 'ended', snapshot: x.state, credibility: x.credibility ?? s.credibility }
           default:
             return s
         }

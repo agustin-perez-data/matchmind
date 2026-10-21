@@ -9,6 +9,7 @@ import { CoachBlock, RiskBlock, StatsBlock } from './SidePanels'
 import { WhatIfBand } from './WhatIfBand'
 import { ControlRoom } from './ControlRoom'
 import { FollowBlock } from './FollowBlock'
+import { ForecastLedger } from './ForecastLedger'
 
 type Props = {
   favoritePlayerId: string | null
@@ -33,6 +34,9 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
   const rail = <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} />
   const band = <TopBand meta={meta} snapshot={state.snapshot} status={state.status} lastGoal={lastGoal} flash={state.goalFlash} />
   const ended = state.status === 'ended'
+  const ledger = (compact = false) => (
+    <ForecastLedger meta={meta} snapshot={state.snapshot} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} agentsOn={state.agentsOn} ended={ended} compact={compact} />
+  )
   const whatIf = <WhatIfBand meta={meta} snapshot={state.snapshot} actualEvents={state.keyEvents} branches={branches} selected={selectedBranch} onSelect={onSelectBranch} ended={ended} />
 
   if (seat === 'fan') {
@@ -57,10 +61,11 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
         {band}
         <main key="control" className="grid gap-3 px-3 pb-6 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="stagger flex min-w-0 flex-col gap-3">
-            <div className="enter" style={{ ['--i' as string]: 1 }}><ControlRoom meta={meta} feed={state.feed} risk={state.risk} agentsOn={state.agentsOn} coachOn={state.coachOn} /></div>
+            <div className="enter" style={{ ['--i' as string]: 1 }}><ControlRoom meta={meta} feed={state.feed} risk={state.risk} agentsOn={state.agentsOn} coachOn={state.coachOn} verdicts={state.verdicts} credibility={state.credibility} /></div>
           </div>
           <aside className="stagger flex min-w-0 flex-col gap-3">
-            <div className="enter" style={{ ['--i' as string]: 2 }}>{pitch('sm')}</div>
+            <div className="enter" style={{ ['--i' as string]: 2 }}>{ledger(true)}</div>
+            <div className="enter" style={{ ['--i' as string]: 3 }}>{pitch('sm')}</div>
             <div className="enter" style={{ ['--i' as string]: 3 }}><RiskBlock meta={meta} risk={state.risk} alerts={state.alerts} /></div>
             <div className="enter" style={{ ['--i' as string]: 4 }}>{rail}</div>
           </aside>
@@ -80,8 +85,9 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
             <div className="enter" style={{ ['--i' as string]: 3 }}>{rail}</div>
           </div>
           <aside className="stagger flex min-w-0 flex-col gap-3">
-            <div className="enter" style={{ ['--i' as string]: 2 }}><XgRace meta={meta} snapshot={state.snapshot} size="lg" /></div>
-            <div className="enter" style={{ ['--i' as string]: 3 }}><StatsBlock meta={meta} snapshot={state.snapshot} /></div>
+            <div className="enter" style={{ ['--i' as string]: 2 }}>{ledger()}</div>
+            <div className="enter" style={{ ['--i' as string]: 3 }}><XgRace meta={meta} snapshot={state.snapshot} size="lg" /></div>
+            <div className="enter" style={{ ['--i' as string]: 4 }}><StatsBlock meta={meta} snapshot={state.snapshot} /></div>
           </aside>
         </main>
       </>
