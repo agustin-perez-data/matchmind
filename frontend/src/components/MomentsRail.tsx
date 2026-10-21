@@ -1,3 +1,4 @@
+import { sentence } from './PitchStage'
 import type { Seat } from '../lib/seats'
 import type { FeedItem } from '../lib/useMatchStream'
 import type { MatchEvent, Meta } from '../lib/types'
@@ -18,7 +19,7 @@ export function MomentsRail({ meta, feed, keyEvents, agentsOn, seat }: Props) {
           const m = f.msg
           if (m.kind === 'insight') {
             const v = Object.values(m.viewers)[0]
-            const body = seat === 'fan' ? v?.narration?.text : m.analyst ? `${m.analyst.headline}. ${m.analyst.why_it_matters}` : v?.narration?.text
+            const body = seat === 'fan' ? v?.narration?.text : m.analyst ? `${sentence(m.analyst.headline)} ${m.analyst.why_it_matters}` : v?.narration?.text
             return <article key={f.id} className="border-l-2 border-white/20 pl-3"><div className="blk-meta text-[11px]">{m.clock} · {m.moment.kind.replace('_', ' ')}</div><div className="font-semibold">{v?.decision?.headline ?? m.moment.summary}</div>{body && <div className="text-fg-2">{body}</div>}</article>
           }
           return <article key={f.id} className="border-l-2 border-teal/60 pl-3"><div className="blk-meta text-[11px]">{m.clock} · coach</div><div className="font-semibold">{m.proposal ? (m.proposal.action === 'hold' ? 'Held' : `${m.proposal.action} at ${m.proposal.minute}'`) : 'no decision'}</div>{m.branch && <div className="text-fg-2">What-if {m.branch.branch.score[meta.home_id]}-{m.branch.branch.score[meta.away_id]}, knocks {m.branch.actual.injury_concerns_total} to {m.branch.branch.injury_concerns_total}</div>}</article>

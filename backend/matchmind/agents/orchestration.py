@@ -31,7 +31,7 @@ ORCHESTRATION_LABEL = "agent-framework concurrent fan-out (Analyst + Narrator), 
 def compose_fan_out_prompt(context: dict, profile: ViewerProfile) -> str:
     """One message for both concurrent participants; each agent's instructions pick its part."""
     return (
-        analyst_prompt(context)
+        analyst_prompt(context, profile.language)
         + "\n\n--- For the Narrator only ---\n"
         + narrator_brief(context, profile)
         + "\nAnalyst: ignore the viewer brief and answer with your structured insight. "

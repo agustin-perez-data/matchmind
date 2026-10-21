@@ -174,6 +174,17 @@ Foundry, Best Azure Cloud Native Integration.
   colours get dark text via `onColor`). Data = Matchday 9: THU-NBF-40 (1-2,
   headline), IRA-MRV-21 (2-2), CRC-ALV-47 (3-2), TGW-KPF-46 (2-1, 6 knocks).
   THU-NBF-42 stays only as the in-memory test fixture.
+  **Oct 22, language + desk**: the Analyst (and so the Director's headline)
+  now follows the viewer's language — `analyst_prompt(context, language)`
+  carries it in both the direct and the Agent Framework fan-out paths
+  (verified live: Spanish fan seat gets a Spanish Analyst). The entry page
+  asks for the language ("The agents speak": ES / EN) between the fixture
+  and the seats, so the first key moment already arrives in the chosen
+  language. The top bar is now a production desk: brand, seat tabs filled
+  in the seat colour, then speed (− / + over the preset ladder), ES/EN
+  segmented, Agents/Coach switches, Follow (fan seat only), status, Stop.
+  The fixture select left the bar: a fixture is chosen on the entry page.
+  Analyst headlines are normalised to one full stop (`sentence()`).
   Deploy plan agreed in principle, NOT yet authorised: ACR Basic + Container
   Apps scale-to-zero (min 1 replica only before submission) + Static Web Apps
   Free, ~USD 20 total through Nov 10.

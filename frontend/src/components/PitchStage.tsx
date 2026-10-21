@@ -78,6 +78,9 @@ function possessionChip(meta: Meta, last: MatchEvent | null, now: BallPoint | un
   return { text: `${meta.teams[team]?.short_name ?? team} in possession, ${zone}`, color: team === meta.home_id ? 'var(--home-ink)' : 'var(--away-ink)' }
 }
 
+/** A headline as a sentence: one full stop, never two. */
+export function sentence(s: string) { return s.replace(/[.!?…]+$/, '') + '.' }
+
 export function describe(e: MatchEvent): string {
   switch (e.type) {
     case 'shot': return `${e.player_name}, ${e.outcome === 'saved' ? 'shot saved' : e.outcome === 'blocked' ? 'shot blocked' : 'shot off target'}`
@@ -104,7 +107,7 @@ function LowerThird({ meta, latest, keyEvent, seat, agentsOn }: { meta: Meta; la
   const key = `${latest?.id ?? 'events'}-${seat}`  // agent outputs animate in; plain event titles just update
   const h = meta.home_id, a = meta.away_id
   const narration = insight && v?.narration ? <><span className="tag"><IconMic />{v.narration.language === 'es' ? 'Relator' : 'Narrator'}</span><span className={seat === 'fan' ? 'display text-2xl font-semibold leading-tight sm:text-[28px]' : ''}>{v.narration.text}</span></> : null
-  const analysis = insight?.analyst ? <><span className="tag tag-w"><IconChart />Analyst</span><span><b>{insight.analyst.headline}.</b> {insight.analyst.why_it_matters}{seat === 'analyst' ? <span className="text-muted"> {insight.analyst.key_stat}</span> : null}</span></> : null
+  const analysis = insight?.analyst ? <><span className="tag tag-w"><IconChart />Analyst</span><span><b>{sentence(insight.analyst.headline)}</b> {insight.analyst.why_it_matters}{seat === 'analyst' ? <span className="text-muted"> {insight.analyst.key_stat}</span> : null}</span></> : null
   const bench = coach?.proposal ? <><span className="tag tag-t">Coach</span><span>{coach.proposal.rationale}{coach.branch ? ` With the change: ${coach.branch.branch.score[h]}-${coach.branch.branch.score[a]}, knocks ${coach.branch.actual.injury_concerns_total} to ${coach.branch.branch.injury_concerns_total}.` : ''}</span></> : null
   const rows = seat === 'fan' ? [narration, analysis] : seat === 'analyst' ? [analysis, narration] : [bench, analysis, narration]
   return (

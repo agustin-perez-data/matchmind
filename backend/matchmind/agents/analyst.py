@@ -22,11 +22,15 @@ Explain why THIS moment matters to someone watching, like a sharp TV analyst:
 - Use the get_player_workload / get_match_state tools only if the context lacks a number you need."""
 
 
-def analyst_prompt(context: dict) -> str:
+LANGUAGE_NAMES = {"en": "English", "es": "Spanish (rioplatense, voseo)"}
+
+
+def analyst_prompt(context: dict, language: str = "en") -> str:
     return (
         "Key moment context (JSON):\n"
         + json.dumps(context, ensure_ascii=False)
-        + "\n\nExplain why this moment matters and what it tells us about the game."
+        + "\n\nExplain why this moment matters and what it tells us about the game. "
+        + f"Write every text field in {LANGUAGE_NAMES.get(language, 'English')}; keep club and player names as given."
     )
 
 
@@ -36,8 +40,8 @@ class AnalystAgent:
     def __init__(self, agent):
         self.agent = agent
 
-    async def explain(self, context: dict) -> AnalystInsight:
-        response = await self.agent.run(analyst_prompt(context), options={"response_format": AnalystInsight})
+    async def explain(self, context: dict, language: str = "en") -> AnalystInsight:
+        response = await self.agent.run(analyst_prompt(context, language), options={"response_format": AnalystInsight})
         if response.value is None:
             raise ValueError(f"Analyst returned no structured output: {getattr(response, 'text', '')[:200]!r}")
         return response.value

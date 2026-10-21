@@ -61,6 +61,7 @@ def test_middleware_is_a_no_op_without_an_active_trace():
 def test_fan_out_prompt_carries_context_and_viewer_profile():
     prompt = compose_fan_out_prompt(CONTEXT, ViewerProfile(mode="commentator", language="es"))
     assert "Kai Okafor" in prompt and "rioplatense" in prompt and "Key moment context" in prompt
+    assert "Write every text field in Spanish" in prompt  # the Analyst follows the viewer's language too
 
 
 def test_parse_participant_reads_json_even_with_prose_around_it():

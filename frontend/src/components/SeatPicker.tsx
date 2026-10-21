@@ -1,11 +1,21 @@
 import type { MatchRow } from '../lib/api'
 import { SEAT_ORDER, SEATS, type Seat } from '../lib/seats'
+import type { ViewerProfile } from '../lib/types'
 import { Crest } from './Crest'
 
-type Props = { onPick: (seat: Seat) => void; disabled: boolean; matches: MatchRow[]; matchId: string; onMatch: (id: string) => void }
+type Language = ViewerProfile['language']
+type Props = {
+  onPick: (seat: Seat) => void; disabled: boolean
+  matches: MatchRow[]; matchId: string; onMatch: (id: string) => void
+  language: Language; onLanguage: (l: Language) => void
+}
+const LANGUAGES: { id: Language; label: string; note: string }[] = [
+  { id: 'es', label: 'Español', note: 'relato rioplatense' },
+  { id: 'en', label: 'English', note: 'broadcast English' },
+]
 
-/** Entry screen: the thesis, then three doors into the same match. */
-export function SeatPicker({ onPick, disabled, matches, matchId, onMatch }: Props) {
+/** Entry screen: the thesis, a fixture, a language, then four doors into the same match. */
+export function SeatPicker({ onPick, disabled, matches, matchId, onMatch, language, onLanguage }: Props) {
   return (
     <section className="enter mx-auto w-full max-w-6xl px-6 pb-16 pt-6 sm:pt-10">
       <div className="display text-xl font-black uppercase tracking-wide">MatchMind <span className="ml-1 text-xs font-semibold tracking-widest text-muted">synthetic league, fictional clubs</span></div>
@@ -38,6 +48,23 @@ export function SeatPicker({ onPick, disabled, matches, matchId, onMatch }: Prop
           )
         })}
       </div>
+      <p className="display mt-8 text-xl font-extrabold uppercase tracking-wider text-muted">The agents speak</p>
+      <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="language">
+        {LANGUAGES.map((l) => {
+          const on = l.id === language
+          return (
+            <button key={l.id} type="button" role="radio" aria-checked={on} onClick={() => onLanguage(l.id)}
+              className={`flex items-center gap-3 px-4 py-2.5 text-left transition-[background,opacity,box-shadow] duration-150 ${on ? 'bg-amber text-ink' : 'blk opacity-70 hover:opacity-100'}`}
+              style={on ? { boxShadow: '0 0 0 3px #ffd166, 0 10px 30px rgba(255,209,102,.25)' } : { borderTopColor: 'rgba(255,255,255,0.25)' }}>
+              <span className="display text-2xl font-black uppercase leading-none">{l.id}</span>
+              <span className="min-w-0">
+                <span className="display block text-lg font-black uppercase leading-tight">{l.label}</span>
+                <span className={`block text-xs ${on ? 'text-ink/70' : 'text-muted'}`}>{l.note}</span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
       {(() => {
         const sel = matches.find((m) => m.match_id === matchId)
         return (
@@ -63,7 +90,7 @@ export function SeatPicker({ onPick, disabled, matches, matchId, onMatch }: Prop
           )
         })}
       </div>
-      <p className="mt-4 text-sm text-muted">Speed, language, agents and the seat itself can be changed during the match from the bar that appears once you are seated. Speed 60 plays a match in about a minute and a half.</p>
+      <p className="mt-4 text-sm text-muted">Speed, language, agents and the seat itself can be changed during the match from the desk that appears once you are seated. Speed 60 plays a match in about a minute and a half.</p>
     </section>
   )
 }

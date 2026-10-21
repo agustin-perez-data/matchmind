@@ -1,18 +1,15 @@
-import type { MatchRow } from '../lib/api'
+import type { ReactNode } from 'react'
 import { SEAT_ORDER, SEATS, type Seat } from '../lib/seats'
 import type { Player, StreamStatus, ViewerProfile } from '../lib/types'
 
 type Props = {
-  matches: MatchRow[]
-  matchId: string
-  onMatch: (id: string) => void
   speed: number
   onSpeed: (v: number) => void
   language: ViewerProfile['language']
   onLanguage: (l: ViewerProfile['language']) => void
   favoritePlayerId: string | null
   onFavorite: (id: string | null) => void
-  seat: Seat | null
+  seat: Seat
   onSeat: (s: Seat) => void
   agents: boolean
   onAgents: (v: boolean) => void
@@ -23,62 +20,82 @@ type Props = {
   players: Player[]
 }
 
-const STATUS: Record<StreamStatus, string> = {
-  idle: 'ready', connecting: 'connecting', live: 'live', ended: 'full time', error: 'server unreachable',
-}
+const SPEEDS = [0, 15, 30, 60, 120, 300, 1000]
+const STATUS: Record<StreamStatus, string> = { idle: 'ready', connecting: 'connecting', live: 'live', ended: 'full time', error: 'server unreachable' }
 
+/** The production desk: brand, seat tabs, and the few controls that matter during a match. */
 export function ControlBar(p: Props) {
   const running = p.status === 'live' || p.status === 'connecting'
+  const step = (dir: 1 | -1) => {
+    const i = SPEEDS.findIndex((s) => s >= p.speed)
+    const cur = i < 0 ? SPEEDS.length - 1 : i
+    p.onSpeed(SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, cur + dir))])
+  }
   return (
-    <div className="enter-up flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-ink/80 px-4 py-2 text-sm backdrop-blur-sm sm:px-6">
-      <div className="display mr-2 text-xl font-black uppercase tracking-wide">
-        MatchMind <span className="ml-1 text-xs font-semibold tracking-widest text-muted">synthetic league</span>
-      </div>
-      {p.seat && (
-        <div className="flex" role="group" aria-label="seat">
-          {SEAT_ORDER.map((s) => (
-            <button key={s} type="button" onClick={() => p.onSeat(s)} aria-pressed={p.seat === s}
-              className={`display border px-3 py-1 text-sm font-extrabold uppercase tracking-wider transition-colors duration-150 ${p.seat === s ? 'border-white bg-white text-ink' : 'border-white/20 text-fg-2 hover:border-white/50'}`}
-              style={p.seat === s ? { background: SEATS[s].rule, borderColor: SEATS[s].rule } : undefined}>
+    <div className="enter-up flex flex-wrap items-stretch gap-x-3 gap-y-2 border-b border-white/10 bg-ink px-3 py-2 sm:px-6">
+      <div className="display flex items-center text-xl font-black uppercase tracking-wide">MatchMind</div>
+
+      <div className="flex items-stretch" role="tablist" aria-label="seat">
+        {SEAT_ORDER.map((s) => {
+          const on = p.seat === s
+          return (
+            <button key={s} type="button" role="tab" aria-selected={on} onClick={() => p.onSeat(s)}
+              className={`display px-3 text-sm font-extrabold uppercase tracking-wider transition-[background,color] duration-150 ${on ? 'text-ink' : 'text-fg-2 hover:text-fg'}`}
+              style={on ? { background: SEATS[s].rule } : { boxShadow: 'inset 0 -2px 0 rgba(255,255,255,0.15)' }}>
               {SEATS[s].label}
             </button>
+          )
+        })}
+      </div>
+
+      <div className="ml-auto flex flex-wrap items-center gap-2">
+        <Desk label="Speed">
+          <button type="button" className="desk-btn" aria-label="slower" onClick={() => step(-1)}>−</button>
+          <span className="display w-12 text-center text-base font-extrabold tabular-nums">{p.speed === 0 ? 'max' : `×${p.speed}`}</span>
+          <button type="button" className="desk-btn" aria-label="faster" onClick={() => step(1)}>+</button>
+        </Desk>
+        <Desk label="Language">
+          {(['es', 'en'] as const).map((l) => (
+            <button key={l} type="button" aria-pressed={p.language === l} onClick={() => p.onLanguage(l)}
+              className={`display px-2 text-sm font-extrabold uppercase tracking-wider ${p.language === l ? 'bg-white text-ink' : 'text-fg-2 hover:text-fg'}`}>{l}</button>
           ))}
-        </div>
-      )}
-      <Field label="Match">
-        <select value={p.matchId} onChange={(e) => p.onMatch(e.target.value)} title="changing the match restarts the replay">
-          {p.matches.map((m) => <option key={m.match_id} value={m.match_id}>{m.home} vs {m.away}</option>)}
-        </select>
-      </Field>
-      <Field label="Speed">
-        <input type="number" min={0} max={1000} value={p.speed} className="w-18" aria-label="replay speed" onChange={(e) => p.onSpeed(Math.max(0, Number(e.target.value)))} />
-      </Field>
-      <Field label="Language">
-        <select value={p.language} onChange={(e) => p.onLanguage(e.target.value as ViewerProfile['language'])}>
-          <option value="es">Español rioplatense</option>
-          <option value="en">English</option>
-        </select>
-      </Field>
-      {p.seat === 'fan' && (
-        <Field label="Follow">
-          <select value={p.favoritePlayerId ?? ''} onChange={(e) => p.onFavorite(e.target.value || null)}>
-            <option value="">nobody in particular</option>
-            {p.players.map((pl) => <option key={pl.player_id} value={pl.player_id}>{pl.name}</option>)}
-          </select>
-        </Field>
-      )}
-      <label className="flex items-center gap-1 text-muted" title="restarts the replay"><input type="checkbox" checked={p.agents} onChange={(e) => p.onAgents(e.target.checked)} /> agents</label>
-      <label className="flex items-center gap-1 text-muted" title="restarts the replay"><input type="checkbox" checked={p.coach} onChange={(e) => p.onCoach(e.target.checked)} /> coach</label>
-      <div className="ml-auto flex items-center gap-3">
-        <span className={`display text-sm font-bold uppercase tracking-widest ${p.status === 'live' ? 'text-teal' : p.status === 'error' ? 'text-bad' : 'text-muted'}`}>
+        </Desk>
+        <Toggle label="Agents" on={p.agents} onChange={p.onAgents} hint="restarts the replay" />
+        <Toggle label="Coach" on={p.coach} onChange={p.onCoach} hint="restarts the replay" />
+        {p.seat === 'fan' && (
+          <Desk label="Follow">
+            <select value={p.favoritePlayerId ?? ''} onChange={(e) => p.onFavorite(e.target.value || null)} className="border-0 py-0 text-sm">
+              <option value="">nobody</option>
+              {p.players.map((pl) => <option key={pl.player_id} value={pl.player_id}>{pl.name}</option>)}
+            </select>
+          </Desk>
+        )}
+        <span className={`display ml-1 text-sm font-bold uppercase tracking-widest ${p.status === 'live' ? 'text-teal' : p.status === 'error' ? 'text-bad' : 'text-muted'}`}>
           {p.status === 'live' && <span aria-hidden className="mr-1.5 inline-block h-2 w-2 bg-teal align-middle" />}{STATUS[p.status]}
         </span>
-        {p.seat && <button className="btn-quiet" onClick={p.onLeave}>{running ? 'Stop' : 'Change seat'}</button>}
+        <button className="btn-quiet" onClick={p.onLeave}>{running ? 'Stop' : 'Change seat'}</button>
       </div>
     </div>
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-muted">{label}{children}</label>
+function Desk({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-1 border border-white/15 pl-2">
+      <span className="blk-meta mr-1 text-[10px]">{label}</span>
+      <div className="flex items-center">{children}</div>
+    </div>
+  )
+}
+
+function Toggle({ label, on, onChange, hint }: { label: string; on: boolean; onChange: (v: boolean) => void; hint?: string }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} title={hint} onClick={() => onChange(!on)}
+      className="flex items-center gap-2 border border-white/15 px-2 py-1">
+      <span className="blk-meta text-[10px]">{label}</span>
+      <span className={`relative inline-block h-4 w-8 transition-colors duration-150 ${on ? 'bg-amber' : 'bg-white/20'}`}>
+        <span className="absolute top-0.5 h-3 w-3 bg-ink transition-transform duration-150" style={{ transform: `translateX(${on ? 18 : 2}px)` }} />
+      </span>
+    </button>
+  )
 }

@@ -46,7 +46,7 @@ class MomentPipeline:
                 return None
 
         insight, *narrations = await asyncio.gather(
-            guarded("analyst", self.analyst.explain(context)),
+            guarded("analyst", self.analyst.explain(context, profiles[0].language)),
             *[guarded(f"narrator[{p.key}]", self.narrator.narrate(context, p)) for p in profiles],
         )
         decisions = await asyncio.gather(
