@@ -27,3 +27,6 @@ Thumbs.db
 
 # Keep the template, never the real file
 !.env.example
+
+# Project-scoped third-party skills and local Claude settings
+.claude/

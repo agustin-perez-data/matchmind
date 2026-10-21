@@ -33,7 +33,7 @@ const EMPTY: StreamState = {
 }
 
 const KEY_TYPES = new Set(['goal', 'shot', 'card', 'injury_concern', 'substitution', 'tactical_change', 'half_time', 'full_time', 'kickoff', 'second_half_kickoff'])
-const TRAIL = 28
+const TRAIL = 16
 
 export function useMatchStream() {
   const [state, setState] = useState<StreamState>(EMPTY)

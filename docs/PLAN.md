@@ -131,10 +131,19 @@ Foundry, Best Azure Cloud Native Integration.
   URL params + autostart. Design tokens in `src/index.css`; palette validated
   with the dataviz validator; reviewed against frontend-design / Impeccable
   craft floor / Emil Kowalski checklists (desktop + 390px screenshots).
-  Left: Agustín reviewed it locally on Oct 21 and is not convinced yet: polish
-  the frontend FIRST (Oct 22), then deploy. Deploy plan agreed in principle:
-  ACR Basic + Container Apps scale-to-zero (min 1 replica only before
-  submission) + Static Web Apps Free, ~USD 20 total through Nov 10.
+  **Oct 22 redesign (v2)**: Agustín found v1 generic. Ran a direction round
+  (bench whiteboard / teletext / broadcast canon mockups in the scratchpad),
+  he chose the broadcast studio done with commitment. Rebuilt the UI on that
+  world: `ControlBar`, `TopBand` (team-colour wipes + white score), `Strip`
+  (xG race + momentum), `PitchStage` (perspective pitch + lower third of the
+  latest insight), `SidePanels` (stats / risk / coach blocks), `WhatIfBand`
+  (double timeline + form), `MomentsRail`. Motion grammar in `index.css`
+  (`@starting-style` transitions, no keyframe loops). Design notes in
+  `frontend/README.md`. Third-party design skills installed project-scope
+  under `.claude/skills/` (untracked; see its SOURCES.md).
+  Deploy plan agreed in principle, NOT yet authorised: ACR Basic + Container
+  Apps scale-to-zero (min 1 replica only before submission) + Static Web Apps
+  Free, ~USD 20 total through Nov 10.
 - **D6 bis (Oct 24-25)**: deploy (Container Apps + Static Web Apps), README
   with architecture diagram, Analyst forecast + Judge credibility if time.
 - **D7 (Oct 26)**: demo video (scripted), pitch text, SUBMIT with buffer.

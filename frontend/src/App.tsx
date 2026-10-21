@@ -2,20 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { listMatches, type MatchRow } from './lib/api'
 import { useMatchStream, type StreamOptions } from './lib/useMatchStream'
 import type { BranchSummary, ViewerProfile } from './lib/types'
-import { Header } from './components/Header'
-import { Scoreboard } from './components/Scoreboard'
-import { Pitch } from './components/Pitch'
-import { XgRace } from './components/XgRace'
-import { MomentumBar } from './components/MomentumBar'
-import { AgentFeed } from './components/AgentFeed'
-import { RiskPanel } from './components/RiskPanel'
-import { WhatIf } from './components/WhatIf'
+import { ControlBar } from './components/ControlBar'
+import { TopBand } from './components/TopBand'
+import { Strip } from './components/Strip'
+import { PitchStage } from './components/PitchStage'
+import { MomentsRail } from './components/MomentsRail'
+import { CoachBlock, RiskBlock, StatsBlock } from './components/SidePanels'
+import { WhatIfBand } from './components/WhatIfBand'
 
 const DEFAULT_PROFILE: ViewerProfile = { mode: 'commentator', language: 'es', favorite_player_id: null }
 
 export default function App() {
   const [matches, setMatches] = useState<MatchRow[]>([])
-  const [matchId, setMatchId] = useState<string>('')
+  const [matchId, setMatchId] = useState('')
   const [speed, setSpeed] = useState(60)
   const [profile, setProfile] = useState<ViewerProfile>(DEFAULT_PROFILE)
   const [agents, setAgents] = useState(true)
@@ -27,14 +26,14 @@ export default function App() {
   // URL parameters prefill the controls and can start the replay, e.g. /?speed=120&mode=casual&lang=en&agents=0&autostart=1
   useEffect(() => {
     const q = new URLSearchParams(location.search)
-    if (q.has('speed')) setSpeed(Math.max(0, Number(q.get('speed'))))
-    if (q.has('mode') || q.has('lang') || q.has('player')) {
-      setProfile((p) => ({
-        mode: (q.get('mode') as ViewerProfile['mode']) ?? p.mode,
-        language: (q.get('lang') as ViewerProfile['language']) ?? p.language,
-        favorite_player_id: q.get('player') ?? p.favorite_player_id,
-      }))
+    const qProfile: ViewerProfile = {
+      mode: (q.get('mode') as ViewerProfile['mode']) ?? DEFAULT_PROFILE.mode,
+      language: (q.get('lang') as ViewerProfile['language']) ?? DEFAULT_PROFILE.language,
+      favorite_player_id: q.get('player'),
     }
+    const qSpeed = q.has('speed') ? Math.max(0, Number(q.get('speed'))) : 60
+    if (q.has('speed')) setSpeed(qSpeed)
+    if (q.has('mode') || q.has('lang') || q.has('player')) setProfile(qProfile)
     if (q.has('agents')) setAgents(q.get('agents') !== '0')
     if (q.has('coach')) setCoach(q.get('coach') !== '0')
     listMatches()
@@ -43,15 +42,7 @@ export default function App() {
         const first = q.get('match') ?? rows[0]?.match_id
         if (first) setMatchId(first)
         if (first && q.get('autostart') === '1') {
-          start({
-            matchId: first, speed: q.has('speed') ? Math.max(0, Number(q.get('speed'))) : 60,
-            profile: {
-              mode: (q.get('mode') as ViewerProfile['mode']) ?? DEFAULT_PROFILE.mode,
-              language: (q.get('lang') as ViewerProfile['language']) ?? DEFAULT_PROFILE.language,
-              favorite_player_id: q.get('player'),
-            },
-            agents: q.get('agents') !== '0', coach: q.get('coach') !== '0',
-          })
+          start({ matchId: first, speed: qSpeed, profile: qProfile, agents: q.get('agents') !== '0', coach: q.get('coach') !== '0' })
         }
       })
       .catch((e: Error) => setLoadError(`Could not reach the match server (${e.message}). Start the backend and reload.`))
@@ -63,62 +54,62 @@ export default function App() {
     const opts: StreamOptions = { matchId, speed, profile, agents, coach }
     start(opts)
   }, [matchId, speed, profile, agents, coach, start])
-
   const onSpeed = useCallback((v: number) => { setSpeed(v); send({ speed: v }) }, [send])
   const onProfile = useCallback((p: ViewerProfile) => { setProfile(p); send({ profile: p }) }, [send])
 
   const live = state.status === 'live' || state.status === 'ended'
-  const branches = useMemo(
-    () => state.feed.flatMap((f) => (f.msg.kind === 'coach' && f.msg.branch ? [f.msg.branch] : [])),
-    [state.feed],
-  )
+  const meta = state.meta
+  const branches = useMemo(() => state.feed.flatMap((f) => (f.msg.kind === 'coach' && f.msg.branch ? [f.msg.branch] : [])), [state.feed])
+  const latestCoach = useMemo(() => {
+    const f = state.feed.find((x) => x.msg.kind === 'coach')
+    return f && f.msg.kind === 'coach' ? f.msg : null
+  }, [state.feed])
+  const lastGoal = useMemo(() => state.keyEvents.find((e) => e.type === 'goal') ?? null, [state.keyEvents])
+  const teamVars = meta ? { ['--home' as string]: meta.teams[meta.home_id].primary_color, ['--away' as string]: meta.teams[meta.away_id].primary_color } : undefined
 
   return (
-    <div className="min-h-full flex flex-col">
-      <Header
+    <div className="stage flex min-h-full flex-col" style={teamVars}>
+      <ControlBar
         matches={matches} matchId={matchId} onMatch={setMatchId}
-        speed={speed} onSpeed={onSpeed}
-        profile={profile} onProfile={onProfile}
+        speed={speed} onSpeed={onSpeed} profile={profile} onProfile={onProfile}
         agents={agents} onAgents={setAgents} coach={coach} onCoach={setCoach}
         status={state.status} onStart={onStart} onStop={stop}
-        players={state.meta ? Object.values(state.meta.teams).flatMap((t) => t.players) : []}
+        players={meta ? Object.values(meta.teams).flatMap((t) => t.players) : []}
       />
-      {loadError && <p className="mx-4 mt-3 panel px-4 py-3 text-bad">{loadError}</p>}
+      {loadError && <p className="mx-6 mt-3 bg-ink px-4 py-3 text-bad">{loadError}</p>}
 
       {!live && !loadError && (
-        <section className="mx-auto max-w-3xl px-6 py-16">
-          <h1 className="display text-6xl font-bold leading-none tracking-tight">AI that gets graded,<br />not just heard.</h1>
-          <p className="mt-6 text-lg text-ink-2 max-w-prose">
-            MatchMind replays a synthetic match as a live feed. Agents explain, narrate and personalise it. A Load &amp; Risk
-            Monitor predicts injury-risk windows from workload only and is scored against what actually happens. A Coach
-            proposes interventions, and the engine shows the match that would have followed.
+        <section className="enter mx-auto w-full max-w-5xl px-6 py-14 sm:py-24">
+          <h1 className="display max-w-4xl text-[64px] font-black uppercase leading-[0.9] tracking-tight sm:text-[112px]">AI that gets graded,<br /><span className="text-amber">not just heard.</span></h1>
+          <p className="mt-8 max-w-prose text-lg leading-relaxed text-fg-2">
+            A synthetic match replays as a live broadcast. Agents narrate, explain and personalise it. A Load &amp; Risk Monitor
+            predicts who gets hurt from workload alone and is scored against what actually happens. A Coach proposes a change,
+            and the engine shows the match that would have followed.
           </p>
-          <p className="mt-4 text-ink-3 max-w-prose">Pick a viewer profile above, then press Start. Speed 60 plays the match in about a minute and a half.</p>
+          <p className="mt-4 text-muted">Pick a viewer above and press Start. Speed 60 plays the match in about a minute and a half.</p>
         </section>
       )}
 
-      {live && state.meta && (
-        <main className="grid gap-3 px-3 pb-6 pt-3 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-          <div className="flex flex-col gap-3 min-w-0">
-            <Scoreboard meta={state.meta} snapshot={state.snapshot} flash={state.goalFlash} status={state.status} />
-            <Pitch meta={state.meta} trail={state.trail} lastEvent={state.lastEvent} snapshot={state.snapshot} />
-            <div className="grid gap-3 md:grid-cols-[3fr_2fr]">
-              <XgRace meta={state.meta} snapshot={state.snapshot} />
-              <MomentumBar meta={state.meta} snapshot={state.snapshot} />
+      {live && meta && (
+        <>
+          <TopBand meta={meta} snapshot={state.snapshot} status={state.status} lastGoal={lastGoal} flash={state.goalFlash} />
+          <main className="grid gap-3 px-3 pb-4 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_470px]">
+            <div className="stagger flex min-w-0 flex-col gap-3">
+              <div className="enter" style={{ ['--i' as string]: 1 }}><Strip meta={meta} snapshot={state.snapshot} /></div>
+              <div className="enter" style={{ ['--i' as string]: 2 }}>
+                <PitchStage meta={meta} trail={state.trail} lastEvent={state.lastEvent} snapshot={state.snapshot}
+                  latest={state.feed[0] ?? null} keyEvent={state.keyEvents.find((e) => e.type !== 'kickoff') ?? null} />
+              </div>
+              <div className="enter" style={{ ['--i' as string]: 3 }}><MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} /></div>
             </div>
-            <WhatIf
-              meta={state.meta} snapshot={state.snapshot} actualEvents={state.keyEvents} branches={branches}
-              selected={selectedBranch} onSelect={setSelectedBranch}
-            />
-          </div>
-          <div className="flex flex-col gap-3 min-w-0">
-            <AgentFeed
-              meta={state.meta} feed={state.feed} keyEvents={state.keyEvents}
-              agentsOn={state.agentsOn} coachOn={state.coachOn} onShowBranch={setSelectedBranch}
-            />
-            <RiskPanel meta={state.meta} risk={state.risk} alerts={state.alerts} />
-          </div>
-        </main>
+            <aside className="stagger flex min-w-0 flex-col gap-3">
+              <div className="enter" style={{ ['--i' as string]: 2 }}><StatsBlock meta={meta} snapshot={state.snapshot} /></div>
+              <div className="enter" style={{ ['--i' as string]: 3 }}><RiskBlock meta={meta} risk={state.risk} alerts={state.alerts} /></div>
+              <div className="enter" style={{ ['--i' as string]: 4 }}><CoachBlock meta={meta} coach={latestCoach} onShowBranch={setSelectedBranch} /></div>
+            </aside>
+          </main>
+          <WhatIfBand meta={meta} snapshot={state.snapshot} actualEvents={state.keyEvents} branches={branches} selected={selectedBranch} onSelect={setSelectedBranch} />
+        </>
       )}
     </div>
   )
