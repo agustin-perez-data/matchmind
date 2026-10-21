@@ -295,6 +295,14 @@ Foundry, Best Azure Cloud Native Integration.
   with this match's windows as amber bars. `BenchReport.tsx` appears at full
   time on the bench seat: knocks with warning times, Coach proposals with
   branch outcomes, Analyst credibility, Download JSON.
+  **Oct 22, groundedness (item 6)**: `agents/evaluate_groundedness.py`
+  rebuilds each cached moment's context by replaying the match and scores
+  the Analyst read and the Narrator line with `GroundednessEvaluator` from
+  `azure-ai-evaluation` (installed from `requirements-eval.txt`, kept out of
+  the service image; config `AzureOpenAIModelConfiguration` on the fast
+  deployment). THU-NBF-40, fan/es, 28 items: Analyst 4.86, Narrator 5.0.
+  `--run analyst:en` fills the cache first for uncached moments. Also fixed a
+  flaky API test (control acks could land after "end" at max speed).
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

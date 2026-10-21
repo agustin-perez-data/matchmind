@@ -1,0 +1,3 @@
+# Offline evaluation extras (not part of the service image)
+azure-ai-evaluation>=1.18
+numpy>=1.26

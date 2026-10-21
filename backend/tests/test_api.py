@@ -219,7 +219,9 @@ def test_bad_viewer_profile_closes_with_error(client, meta):
 
 
 def test_client_can_change_speed_and_profile_mid_stream(client, meta):
-    with client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0") as ws:
+    # not at maximum speed: the replay must still be running when the control messages are read,
+    # otherwise the acks can land after "end" and the test is a coin flip
+    with client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=2000") as ws:
         ws.receive_json()
         ws.send_json({"speed": 0})
         ws.send_json({"profile": {"mode": "casual", "language": "es"}})

@@ -158,6 +158,16 @@ latency stay predictable (~3-6 s per moment). Try them from the CLI:
 .venv/Scripts/python -m matchmind.agents.demo --limit 3 --mode analyst --mode commentator:es --mode player_focus:en:THU-15
 ```
 
+**The words are checked too.** Whether the Analyst's reads and the Narrator's
+lines are substantiated by the numbers they were given is scored with the
+**Azure AI Evaluation SDK** (`GroundednessEvaluator`, gpt-4.1-mini on Foundry
+as the judge, scale 1-5) over every cached agent output of a match
+(`python -m matchmind.agents.evaluate_groundedness --match THU-NBF-40`). On the
+headline fixture, 28 items: Analyst mean 4.86 (12 scored 5, 2 scored 4),
+rioplatense Narrator mean 5.0. The two 4s flagged tactical inferences that go
+a step beyond the numbers, which is the right place for an analyst to be
+challenged. Results in `backend/eval/`.
+
 ## Built for several viewers at once
 
 A replay is deterministic, so every agent output is cached per (match, moment,

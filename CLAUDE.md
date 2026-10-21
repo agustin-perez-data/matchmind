@@ -61,6 +61,9 @@ MATCHMIND_LIVE=1 .venv/Scripts/python -m pytest tests/test_live.py
 # Warm the agent cache through the running server before a demo (all matches, the four seat profiles)
 .venv/Scripts/python -m matchmind.agents.warm_cache
 
+# Groundedness of what the agents said in a match (Azure AI Evaluation SDK; pip install -r requirements-eval.txt once)
+.venv/Scripts/python -m matchmind.agents.evaluate_groundedness --match THU-NBF-40 --out eval/groundedness_THU-NBF-40.json
+
 # Grade the real Analyst's 10-minute forecasts over simulated matches (costs Foundry tokens; ~1 min per 10 matches)
 .venv/Scripts/python -m matchmind.agents.evaluate_forecasts --matches 10 --label baseline --out eval/forecasts_baseline.json
 # A/B a prompt variant on the same matches:
