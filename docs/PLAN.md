@@ -303,6 +303,14 @@ Foundry, Best Azure Cloud Native Integration.
   deployment). THU-NBF-40, fan/es, 28 items: Analyst 4.86, Narrator 5.0.
   `--run analyst:en` fills the cache first for uncached moments. Also fixed a
   flaky API test (control acks could land after "end" at max speed).
+  **Oct 22, mobile pass (item 7 of the list, last before deploy)**: screens
+  checked at 390 px for the entry page and the four seats. Fixes: the top
+  band shows team codes (THU / NBF) below `sm`, short names up to `md`, full
+  names above; the score block is narrower on phones; the Control room's
+  pipeline map is replaced below `sm` by a five-row stage list; the
+  possession chip no longer says "Waiting for kick off" mid-match (a pressure
+  event by the other side now falls back to the ball's own tag, and the
+  placeholder only shows before kick-off).
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

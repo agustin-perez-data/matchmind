@@ -26,7 +26,7 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
       <div className="flex flex-wrap items-center justify-between gap-2 px-2 text-xs text-muted sm:px-6">
         {possession
           ? <span className="display text-sm font-extrabold uppercase tracking-wider" style={{ color: possession.color }}>{possession.text}</span>
-          : <span>Waiting for kick off</span>}
+          : <span>{!snapshot || snapshot.minute === 0 ? 'Waiting for kick off' : ''}</span>}
         {size === 'lg' && <span>dots are shots sized by expected goals, ringed when they went in</span>}
       </div>
       <div className={`${size === 'lg' ? '-mt-3 sm:-mt-6' : '-mt-1'} px-2 sm:px-6`} style={{ perspective: '1000px' }}>
@@ -68,9 +68,8 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
 }
 
 function possessionChip(meta: Meta, last: MatchEvent | null, now: BallPoint | undefined, homeRight: boolean) {
-  const team = last?.team_id && ['pass', 'shot', 'tackle', 'interception', 'pressure'].includes(last.type)
-    ? (last.type === 'pressure' ? undefined : last.team_id)
-    : now?.team_id
+  // the ball holder: the last on-ball event's side; a pressure is by the other side, so fall back to the ball's own tag
+  const team = last?.team_id && ['pass', 'shot', 'tackle', 'interception'].includes(last.type) ? last.team_id : now?.team_id
   if (!team || !now) return null
   const attacksRight = team === meta.home_id ? homeRight : !homeRight
   const xTeam = attacksRight ? now.x : 100 - now.x

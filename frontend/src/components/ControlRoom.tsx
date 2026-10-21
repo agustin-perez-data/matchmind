@@ -47,7 +47,12 @@ export function ControlRoom({ meta, feed, risk, agentsOn, coachOn, verdicts, cre
         <Stat label="Judge, mean" value={judgeLatency != null ? `${(judgeLatency / 1000).toFixed(1)}s` : '–'} />
       </dl>
 
-      <PipelineMap lit={litNodes} />
+      <div className="hidden sm:block"><PipelineMap lit={litNodes} /></div>
+      <ol className="mt-3 grid gap-1 text-sm sm:hidden">
+        {[['1 Ingest', 'Event stream'], ['2 Interpret', 'Interpreter, key-moment gate, Risk Monitor, forecast ledger'], ['3 Explain', 'Analyst and Narrator in parallel, Coach, Judge'], ['5 Personalize', 'Director, engine branch, credibility'], ['4 Render', 'Your seat, what-if']].map(([stage, what]) => (
+          <li key={stage} className="grid grid-cols-[92px_1fr] gap-2 border-t border-line py-1"><span className="blk-meta text-[11px]">{stage}</span><span className="text-fg-2">{what}</span></li>
+        ))}
+      </ol>
 
       <h3 className="blk-meta mt-4">Latest moments, as the agents ran them</h3>
       <div className="mt-2 grid gap-3 lg:grid-cols-2">

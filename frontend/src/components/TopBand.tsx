@@ -14,7 +14,7 @@ export function TopBand({ meta, snapshot, status, lastGoal, flash }: Props) {
         <span className="hidden sm:block"><Crest team={h} size={56} /></span>
         <TeamSide team={h} sub={th ? `${th.shots_on_target} on target · xG ${th.xg.toFixed(2)}` : ''} />
       </div>
-      <div className="drop-in grid min-w-[150px] grid-rows-[1fr_auto] place-items-center bg-white px-4 pt-1 text-ink sm:min-w-[340px]">
+      <div className="drop-in grid min-w-[136px] grid-rows-[1fr_auto] place-items-center bg-white px-3 pt-1 text-ink sm:min-w-[340px] sm:px-4">
         <div className="display flex items-baseline text-5xl font-black leading-none sm:text-7xl">
           <Flip value={score[h.team_id]} />
           <span className="mx-2 text-3xl sm:text-5xl">-</span>
@@ -38,7 +38,7 @@ function TeamSide({ team, sub }: { team: Team; sub: string }) {
   return (
     <div className="min-w-0 py-2 sm:py-0">
       <div className="display truncate text-2xl font-extrabold uppercase leading-none sm:text-[46px]" title={name}>
-        <span className="sm:hidden">{short}</span><span className="hidden sm:inline">{name}</span>
+        <span className="sm:hidden">{team.team_id}</span><span className="hidden sm:inline md:hidden">{short}</span><span className="hidden md:inline">{name}</span>
       </div>
       {sub && <div className="display mt-1.5 hidden text-sm font-semibold tracking-[0.14em] uppercase opacity-80 sm:block">{sub}</div>}
     </div>
