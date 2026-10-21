@@ -55,7 +55,7 @@ export function ControlBar(p: Props) {
           <button type="button" className="desk-btn" aria-label="faster" onClick={() => step(1)}>+</button>
         </Desk>
         <Desk label="Language">
-          {(['es', 'en'] as const).map((l) => (
+          {(['en', 'es'] as const).map((l) => (
             <button key={l} type="button" aria-pressed={p.language === l} onClick={() => p.onLanguage(l)}
               className={`display px-2 text-sm font-extrabold uppercase tracking-wider ${p.language === l ? 'bg-white text-ink' : 'text-fg-2 hover:text-fg'}`}>{l}</button>
           ))}

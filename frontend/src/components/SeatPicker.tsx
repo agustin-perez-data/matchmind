@@ -10,8 +10,8 @@ type Props = {
   language: Language; onLanguage: (l: Language) => void
 }
 const LANGUAGES: { id: Language; label: string; note: string }[] = [
-  { id: 'es', label: 'Español', note: 'relato rioplatense' },
   { id: 'en', label: 'English', note: 'broadcast English' },
+  { id: 'es', label: 'Español rioplatense', note: 'relato con voseo' },
 ]
 
 /** Entry screen: the thesis, a fixture, a language, then four doors into the same match. */

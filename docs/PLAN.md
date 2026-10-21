@@ -178,7 +178,8 @@ Foundry, Best Azure Cloud Native Integration.
   now follows the viewer's language — `analyst_prompt(context, language)`
   carries it in both the direct and the Agent Framework fan-out paths
   (verified live: Spanish fan seat gets a Spanish Analyst). The entry page
-  asks for the language ("The agents speak": ES / EN) between the fixture
+  asks for the language ("The agents speak": English first and by default,
+  then rioplatense Spanish) between the fixture
   and the seats, so the first key moment already arrives in the chosen
   language. The top bar is now a production desk: brand, seat tabs filled
   in the seat colour, then speed (− / + over the preset ladder), ES/EN

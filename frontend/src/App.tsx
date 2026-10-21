@@ -14,7 +14,7 @@ function readUrl() {
   const q = new URLSearchParams(location.search)
   return {
     seat: parseSeat(q.get('seat')),
-    language: (q.get('lang') === 'en' ? 'en' : 'es') as Language,
+    language: (q.get('lang') === 'es' ? 'es' : 'en') as Language,
     speed: q.has('speed') ? Math.max(0, Number(q.get('speed'))) : 60,
     match: q.get('match'),
     player: q.get('player'),
