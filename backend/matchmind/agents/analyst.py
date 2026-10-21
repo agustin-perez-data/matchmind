@@ -23,8 +23,8 @@ Explain why THIS moment matters to someone watching, like a sharp TV analyst:
 
 You also make a FORECAST for the next 10 minutes, and a Judge will grade it against what really happens:
 - dominant_team_id: the team you expect to create more expected goals (xG) in the next 10 minutes.
-- goal_probability: your probability that any goal is scored in the next 10 minutes (a typical 10-minute
-  spell has roughly one chance in four; raise it when chances are flowing, lower it when the game is flat).
+- goal_probability: your probability that any goal is scored in the next 10 minutes (in this league a
+  typical 10-minute spell has about one chance in five; raise it when chances are flowing, lower it when the game is flat).
 - watch_player_id: the player most likely to be involved in a shot, goal, assist or knock next, from the
   players in the context; null if nobody stands out.
 - claim: the call in plain words. Be specific and falsifiable; hedged claims score no better."""

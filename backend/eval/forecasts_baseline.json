@@ -1,0 +1,3596 @@
+{
+ "report": {
+  "label": "baseline",
+  "matches": 10,
+  "forecasts": 66,
+  "seconds": 208,
+  "analyst": {
+   "overall": {
+    "mean": 0.604,
+    "n": 66
+   },
+   "dominance": {
+    "mean": 0.6,
+    "n": 60
+   },
+   "goal": {
+    "mean": 0.897,
+    "n": 66
+   },
+   "watch": {
+    "mean": 0.267,
+    "n": 60
+   }
+  },
+  "naive": {
+   "overall": {
+    "mean": 0.625,
+    "n": 66
+   },
+   "dominance": {
+    "mean": 0.667,
+    "n": 60
+   },
+   "goal": {
+    "mean": 0.909,
+    "n": 66
+   },
+   "watch": {
+    "mean": 0.318,
+    "n": 66
+   }
+  },
+  "wins": {
+   "analyst": 18,
+   "naive": 48,
+   "tie": 0
+  },
+  "habits": {
+   "picked_home": 0.39,
+   "picked_possession_leader": 0.8,
+   "picked_xg_leader": 0.86,
+   "named_a_player": 0.91,
+   "goal_probability_mean": 0.298,
+   "goal_probability_spread": 0.2,
+   "windows_with_a_goal": 0.03
+  },
+  "seed0": 5000,
+  "min_importance": 3,
+  "instructions": null
+ },
+ "rows": [
+  {
+   "match_id": "MRV-IRA-5000",
+   "clock": "31:30",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "IRA",
+    "goal_probability": 0.3,
+    "watch_player_id": "IRA-08",
+    "claim": "Ironfield's control may falter if Halloway exits."
+   },
+   "naive": {
+    "dominant_team_id": "IRA",
+    "goal_probability": 0.28,
+    "watch_player_id": "IRA-16",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "31:30 to 41:15",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "MRV": 0.0,
+     "IRA": 0.0
+    },
+    "goals": [],
+    "shots": 0,
+    "players_involved": [],
+    "score_now": {
+     "MRV": 0,
+     "IRA": 0
+    }
+   },
+   "scores": {
+    "dominance": null,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.455
+   },
+   "naive_scores": {
+    "dominance": null,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.461
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "MRV-IRA-5000",
+   "clock": "45:33",
+   "moment": "half_time",
+   "forecast": {
+    "dominant_team_id": "IRA",
+    "goal_probability": 0.3,
+    "watch_player_id": null,
+    "claim": "Ironfield sustain pressure but Rovers resist with solid defense."
+   },
+   "naive": {
+    "dominant_team_id": "IRA",
+    "goal_probability": 0.28,
+    "watch_player_id": "IRA-16",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "45:33 to 55:01",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "MRV": 0.0,
+     "IRA": 0.1
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "IRA-18"
+    ],
+    "score_now": {
+     "MRV": 0,
+     "IRA": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": null,
+    "overall": 0.955
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "MRV-IRA-5000",
+   "clock": "60:59",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "IRA",
+    "goal_probability": 0.35,
+    "watch_player_id": "IRA-18",
+    "claim": "Ironfield sustain pressure; Varela remains a key threat."
+   },
+   "naive": {
+    "dominant_team_id": "IRA",
+    "goal_probability": 0.28,
+    "watch_player_id": "IRA-16",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "60:59 to 70:10",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "MRV": 0.0,
+     "IRA": 0.13
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "IRA-09",
+     "IRA-16"
+    ],
+    "score_now": {
+     "MRV": 0,
+     "IRA": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.626
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-MRV-5001",
+   "clock": "09:43",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.2,
+    "watch_player_id": "TGW-16",
+    "claim": "Tynegate maintain control; Whitlow's absence limits Rovers' counterplay."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "09:43 to 19:01",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.02,
+     "MRV": 0.08
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "MRV-15",
+     "MRV-07",
+     "MRV-18",
+     "MRV-06",
+     "TGW-16",
+     "TGW-18"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "MRV": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.96,
+    "watch": 1.0,
+    "overall": 0.653
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-MRV-5001",
+   "clock": "19:16",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.35,
+    "watch_player_id": "MRV-13",
+    "claim": "Mersey Rovers maintain dominance, Petrakis remains key in attack."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "19:16 to 29:03",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.0,
+     "MRV": 0.16
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "MRV-13",
+     "MRV-12",
+     "MRV-15"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "MRV": 1
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.878,
+    "watch": 1.0,
+    "overall": 0.959
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-MRV-5001",
+   "clock": "38:27",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.35,
+    "watch_player_id": "MRV-18",
+    "claim": "Rovers maintain pressure; Idris Whitlow remains central to attacks."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-13",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "38:27 to 48:01",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.0,
+     "MRV": 0.14
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "MRV-18",
+     "MRV-10",
+     "MRV-07",
+     "MRV-09"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "MRV": 1
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.878,
+    "watch": 1.0,
+    "overall": 0.959
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-MRV-5001",
+   "clock": "47:39",
+   "moment": "half_time",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.3,
+    "watch_player_id": "MRV-10",
+    "claim": "Rovers maintain control; Roussel key in midfield."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "47:39 to 57:12",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.03,
+     "MRV": 0.06
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "TGW-13",
+     "TGW-04",
+     "MRV-09",
+     "MRV-12"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "MRV": 1
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-MRV-5001",
+   "clock": "74:15",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.35,
+    "watch_player_id": "MRV-10",
+    "claim": "Rovers likely to create another big chance soon."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "74:15 to 84:02",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.15,
+     "MRV": 0.06
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "TGW-18",
+     "TGW-11",
+     "MRV-12",
+     "MRV-05"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "MRV": 1
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.293
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-MRV-5001",
+   "clock": "84:29",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.2,
+    "watch_player_id": "MRV-10",
+    "claim": "Rovers maintain control but struggle to increase their lead."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "84:29 to 93:30",
+    "minutes": 9,
+    "truncated": true,
+    "xg_gained": {
+     "TGW": 0.0,
+     "MRV": 0.04
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "TGW-01",
+     "MRV-15"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "MRV": 1
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.96,
+    "watch": 0.0,
+    "overall": 0.653
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-MRV-5001",
+   "clock": "86:26",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.15,
+    "watch_player_id": "MRV-18",
+    "claim": "Rovers maintain control; Whitlow remains a key threat."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "86:26 to 93:30",
+    "minutes": 7,
+    "truncated": true,
+    "xg_gained": {
+     "TGW": 0.0,
+     "MRV": 0.04
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "MRV-15"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "MRV": 1
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.978,
+    "watch": 0.0,
+    "overall": 0.659
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-CRC-5002",
+   "clock": "27:44",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.35,
+    "watch_player_id": "NBF-11",
+    "claim": "Northbridge builds on momentum; Stanhope remains influential."
+   },
+   "naive": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.28,
+    "watch_player_id": "NBF-11",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "27:44 to 37:05",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.06,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "NBF-12",
+     "NBF-10",
+     "NBF-15",
+     "NBF-04",
+     "NBF-17",
+     "NBF-03"
+    ],
+    "score_now": {
+     "NBF": 1,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.626
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-CRC-5002",
+   "clock": "29:48",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.3,
+    "watch_player_id": "NBF-12",
+    "claim": "Northbridge maintains control but may lose midfield stability."
+   },
+   "naive": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.28,
+    "watch_player_id": "NBF-11",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "29:48 to 39:04",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.06,
+     "CRC": 0.08
+    },
+    "goals": [],
+    "shots": 4,
+    "players_involved": [
+     "NBF-10",
+     "NBF-12",
+     "NBF-15",
+     "NBF-04",
+     "NBF-17",
+     "NBF-03",
+     "CRC-16",
+     "CRC-14"
+    ],
+    "score_now": {
+     "NBF": 1,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 1.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-CRC-5002",
+   "clock": "44:40",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.3,
+    "watch_player_id": "CRC-10",
+    "claim": "Northbridge will dominate possession but Crowmoor remain dangerous."
+   },
+   "naive": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.28,
+    "watch_player_id": "NBF-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "44:40 to 54:15",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.15,
+     "CRC": 0.02
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "NBF-07",
+     "NBF-10",
+     "NBF-15",
+     "NBF-12",
+     "CRC-15"
+    ],
+    "score_now": {
+     "NBF": 1,
+     "CRC": 1
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-CRC-5002",
+   "clock": "47:48",
+   "moment": "half_time",
+   "forecast": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.3,
+    "watch_player_id": null,
+    "claim": "Northbridge will maintain control, but Crowmoor remains dangerous."
+   },
+   "naive": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.28,
+    "watch_player_id": "NBF-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "47:48 to 57:13",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.15,
+     "CRC": 0.11
+    },
+    "goals": [
+     {
+      "clock": "55:38",
+      "team_id": "CRC",
+      "player_name": "Mateo Brackley"
+     }
+    ],
+    "shots": 5,
+    "players_involved": [
+     "NBF-07",
+     "NBF-10",
+     "NBF-15",
+     "NBF-12",
+     "CRC-15",
+     "CRC-10"
+    ],
+    "score_now": {
+     "NBF": 1,
+     "CRC": 2
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.51,
+    "watch": null,
+    "overall": 0.755
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.482,
+    "watch": 0.0,
+    "overall": 0.494
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-CRC-5002",
+   "clock": "55:38",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.35,
+    "watch_player_id": "NBF-17",
+    "claim": "Northbridge will dominate possession and create key chances."
+   },
+   "naive": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.28,
+    "watch_player_id": "NBF-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "55:38 to 65:05",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.32,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "CRC-16",
+     "NBF-03",
+     "NBF-15",
+     "NBF-13",
+     "CRC-06"
+    ],
+    "score_now": {
+     "NBF": 1,
+     "CRC": 2
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.626
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-CRC-5002",
+   "clock": "57:34",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.3,
+    "watch_player_id": "NBF-17",
+    "claim": "Northbridge dominate possession; Zubiri likely to create chances."
+   },
+   "naive": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.28,
+    "watch_player_id": "NBF-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "57:34 to 67:09",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.41,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 4,
+    "players_involved": [
+     "NBF-03",
+     "NBF-15",
+     "NBF-13",
+     "CRC-06",
+     "NBF-12",
+     "NBF-16",
+     "NBF-04"
+    ],
+    "score_now": {
+     "NBF": 1,
+     "CRC": 2
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-CRC-5002",
+   "clock": "62:31",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.35,
+    "watch_player_id": "NBF-15",
+    "claim": "Northbridge will create more chances; Ojo remains key."
+   },
+   "naive": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.28,
+    "watch_player_id": "NBF-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "62:31 to 72:13",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.12,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "CRC-06",
+     "NBF-12",
+     "NBF-16",
+     "NBF-15",
+     "NBF-04",
+     "NBF-07",
+     "NBF-08"
+    ],
+    "score_now": {
+     "NBF": 1,
+     "CRC": 2
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.878,
+    "watch": 1.0,
+    "overall": 0.959
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-CRC-5002",
+   "clock": "63:35",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.35,
+    "watch_player_id": "NBF-17",
+    "claim": "Northbridge likely to exploit Crowmoor's defensive vulnerabilities."
+   },
+   "naive": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.28,
+    "watch_player_id": "NBF-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "63:35 to 73:13",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.12,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "NBF-12",
+     "NBF-16",
+     "NBF-15",
+     "NBF-04",
+     "NBF-07",
+     "NBF-08"
+    ],
+    "score_now": {
+     "NBF": 1,
+     "CRC": 2
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.626
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-CRC-5002",
+   "clock": "90:38",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.3,
+    "watch_player_id": "NBF-16",
+    "claim": "Northbridge will dominate possession and create key chances."
+   },
+   "naive": {
+    "dominant_team_id": "NBF",
+    "goal_probability": 0.28,
+    "watch_player_id": "NBF-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "90:38 to 93:19",
+    "minutes": 3,
+    "truncated": true,
+    "xg_gained": {
+     "NBF": 0.0,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 0,
+    "players_involved": [],
+    "score_now": {
+     "NBF": 1,
+     "CRC": 2
+    }
+   },
+   "scores": {
+    "dominance": null,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.455
+   },
+   "naive_scores": {
+    "dominance": null,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.461
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-KPF-5003",
+   "clock": "08:46",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.35,
+    "watch_player_id": "KPF-16",
+    "claim": "Kestrel Park FC sustain pressure and create next chance."
+   },
+   "naive": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "08:46 to 18:07",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.03,
+     "KPF": 0.0
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "TGW-12",
+     "TGW-10"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "KPF": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.293
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-KPF-5003",
+   "clock": "33:59",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.3,
+    "watch_player_id": "KPF-13",
+    "claim": "Kestrel Park exploits midfield gaps for key opportunities."
+   },
+   "naive": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "33:59 to 43:03",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.05,
+     "KPF": 0.12
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "KPF-12",
+     "KPF-17",
+     "TGW-18",
+     "TGW-12",
+     "KPF-16"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "KPF": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-KPF-5003",
+   "clock": "45:42",
+   "moment": "half_time",
+   "forecast": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.3,
+    "watch_player_id": "KPF-13",
+    "claim": "Kestrel Park FC to create better chances next."
+   },
+   "naive": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "45:42 to 55:13",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.21,
+     "KPF": 0.09
+    },
+    "goals": [],
+    "shots": 7,
+    "players_involved": [
+     "TGW-18",
+     "TGW-16",
+     "KPF-10",
+     "KPF-16",
+     "KPF-11",
+     "TGW-13",
+     "TGW-03",
+     "KPF-08"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "KPF": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.303
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-KPF-5003",
+   "clock": "60:24",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.2,
+    "watch_player_id": "KPF-13",
+    "claim": "Kestrel Park exploits Tynegate's disruption, creating better chances."
+   },
+   "naive": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "60:24 to 70:00",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.13,
+     "KPF": 0.06
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "KPF-12",
+     "KPF-13",
+     "TGW-15",
+     "TGW-09",
+     "TGW-01",
+     "KPF-17",
+     "KPF-11"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "KPF": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.96,
+    "watch": 1.0,
+    "overall": 0.653
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-KPF-5003",
+   "clock": "67:23",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.2,
+    "watch_player_id": "KPF-13",
+    "claim": "Kestrel Park may exploit Tynegate's disruption to gain xG."
+   },
+   "naive": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-18",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "67:23 to 77:03",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.21,
+     "KPF": 0.04
+    },
+    "goals": [],
+    "shots": 4,
+    "players_involved": [
+     "KPF-17",
+     "KPF-11",
+     "TGW-06",
+     "TGW-12",
+     "TGW-15",
+     "TGW-09"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "KPF": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.96,
+    "watch": 0.0,
+    "overall": 0.32
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "THU-CRC-5004",
+   "clock": "31:29",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.35,
+    "watch_player_id": "THU-17",
+    "claim": "Thames United builds on momentum; Ferrant remains pivotal."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "31:29 to 41:12",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "THU": 0.1,
+     "CRC": 0.25
+    },
+    "goals": [],
+    "shots": 4,
+    "players_involved": [
+     "THU-13",
+     "THU-14",
+     "THU-09",
+     "THU-11",
+     "CRC-15",
+     "CRC-16"
+    ],
+    "score_now": {
+     "THU": 1,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.293
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": false
+  },
+  {
+   "match_id": "THU-CRC-5004",
+   "clock": "32:16",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.3,
+    "watch_player_id": "THU-13",
+    "claim": "Thames will maintain control, Halloway's fitness is pivotal."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "32:16 to 42:01",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "THU": 0.28,
+     "CRC": 0.38
+    },
+    "goals": [],
+    "shots": 6,
+    "players_involved": [
+     "THU-14",
+     "THU-09",
+     "THU-13",
+     "THU-11",
+     "CRC-15",
+     "CRC-16",
+     "THU-06",
+     "THU-15",
+     "CRC-12",
+     "CRC-09"
+    ],
+    "score_now": {
+     "THU": 1,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 1.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": false
+  },
+  {
+   "match_id": "THU-CRC-5004",
+   "clock": "39:51",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.3,
+    "watch_player_id": "CRC-15",
+    "claim": "Thames maintains control; Crowmoor seeks counters via Brackley."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "39:51 to 49:00",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "THU": 0.35,
+     "CRC": 0.13
+    },
+    "goals": [
+     {
+      "clock": "44:23",
+      "team_id": "THU",
+      "player_name": "Kai Ferrant"
+     }
+    ],
+    "shots": 4,
+    "players_involved": [
+     "THU-06",
+     "THU-15",
+     "CRC-12",
+     "CRC-09",
+     "THU-17",
+     "THU-09"
+    ],
+    "score_now": {
+     "THU": 2,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.51,
+    "watch": 0.0,
+    "overall": 0.503
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.482,
+    "watch": 1.0,
+    "overall": 0.494
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": false
+  },
+  {
+   "match_id": "THU-CRC-5004",
+   "clock": "44:23",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.3,
+    "watch_player_id": "THU-17",
+    "claim": "Thames maintains control; Ferrant remains a key threat."
+   },
+   "naive": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "44:23 to 54:05",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "THU": 0.02,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "THU-17"
+    ],
+    "score_now": {
+     "THU": 2,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 1.0,
+    "overall": 0.97
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "THU-CRC-5004",
+   "clock": "46:46",
+   "moment": "half_time",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.3,
+    "watch_player_id": null,
+    "claim": "Thames maintain control; Crowmoor struggle to create chances."
+   },
+   "naive": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "46:46 to 56:03",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "THU": 0.02,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "THU-17"
+    ],
+    "score_now": {
+     "THU": 2,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": null,
+    "overall": 0.955
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "THU-CRC-5004",
+   "clock": "54:33",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.3,
+    "watch_player_id": "THU-17",
+    "claim": "Thames maintain control; Ferrant remains pivotal if fit."
+   },
+   "naive": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "54:33 to 64:08",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "THU": 0.08,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "THU-17",
+     "THU-14",
+     "CRC-06",
+     "THU-15",
+     "THU-13"
+    ],
+    "score_now": {
+     "THU": 2,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 1.0,
+    "overall": 0.97
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "THU-CRC-5004",
+   "clock": "60:19",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.35,
+    "watch_player_id": "THU-13",
+    "claim": "Thames to exploit Crowmoor's defensive vulnerabilities for chances."
+   },
+   "naive": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "60:19 to 70:15",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "THU": 0.05,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "THU-15",
+     "THU-13",
+     "THU-06",
+     "THU-11"
+    ],
+    "score_now": {
+     "THU": 2,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.878,
+    "watch": 1.0,
+    "overall": 0.959
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "THU-CRC-5004",
+   "clock": "83:59",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.2,
+    "watch_player_id": "THU-15",
+    "claim": "Thames United maintains control; Crowmoor struggles to create chances."
+   },
+   "naive": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "83:59 to 93:12",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "THU": 0.03,
+     "CRC": 0.3
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "CRC-12",
+     "CRC-03",
+     "CRC-16",
+     "CRC-04",
+     "THU-11",
+     "THU-07"
+    ],
+    "score_now": {
+     "THU": 2,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.96,
+    "watch": 0.0,
+    "overall": 0.32
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "THU-CRC-5004",
+   "clock": "93:48",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.15,
+    "watch_player_id": null,
+    "claim": "Thames maintain control; Crowmoor's late push fades."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "93:48 to 93:59",
+    "minutes": 0,
+    "truncated": true,
+    "xg_gained": {
+     "THU": 0.0,
+     "CRC": 0.0
+    },
+    "goals": [],
+    "shots": 0,
+    "players_involved": [],
+    "score_now": {
+     "THU": 2,
+     "CRC": 0
+    }
+   },
+   "scores": {
+    "dominance": null,
+    "goal": 0.978,
+    "watch": null,
+    "overall": 0.978
+   },
+   "naive_scores": {
+    "dominance": null,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.461
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": false
+  },
+  {
+   "match_id": "ALV-MRV-5005",
+   "clock": "01:23",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.3,
+    "watch_player_id": "MRV-15",
+    "claim": "Rovers' counters will create more chances in the next phase."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "01:23 to 11:14",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "ALV": 0.13,
+     "MRV": 0.0
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "ALV-03",
+     "ALV-14",
+     "ALV-13",
+     "ALV-16",
+     "ALV-09"
+    ],
+    "score_now": {
+     "ALV": 0,
+     "MRV": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.303
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "ALV-MRV-5005",
+   "clock": "45:51",
+   "moment": "half_time",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.3,
+    "watch_player_id": "MRV-10",
+    "claim": "Mersey Rovers maintain control, likely creating more chances."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "45:51 to 55:05",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "ALV": 0.0,
+     "MRV": 0.09
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "MRV-09",
+     "MRV-12",
+     "MRV-15"
+    ],
+    "score_now": {
+     "ALV": 0,
+     "MRV": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "ALV-MRV-5005",
+   "clock": "60:35",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.3,
+    "watch_player_id": "MRV-10",
+    "claim": "Mersey Rovers maintain control but face Albion's pressing."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "60:35 to 70:09",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "ALV": 0.05,
+     "MRV": 0.0
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "ALV-07",
+     "ALV-09"
+    ],
+    "score_now": {
+     "ALV": 0,
+     "MRV": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.303
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "ALV-MRV-5005",
+   "clock": "75:59",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.3,
+    "watch_player_id": "MRV-10",
+    "claim": "Mersey Rovers sustain pressure; Amara Roussel impacts attack."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "75:59 to 85:15",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "ALV": 0.0,
+     "MRV": 0.04
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "MRV-16",
+     "MRV-08"
+    ],
+    "score_now": {
+     "ALV": 0,
+     "MRV": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "ALV-MRV-5005",
+   "clock": "85:25",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.3,
+    "watch_player_id": "MRV-10",
+    "claim": "Mersey Rovers capitalize on Albion Vale's midfield disruption."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "85:25 to 92:59",
+    "minutes": 7,
+    "truncated": true,
+    "xg_gained": {
+     "ALV": 0.1,
+     "MRV": 0.19
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "ALV-15",
+     "MRV-16",
+     "MRV-07",
+     "ALV-13",
+     "MRV-11"
+    ],
+    "score_now": {
+     "ALV": 0,
+     "MRV": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "ALV-MRV-5005",
+   "clock": "85:25",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.25,
+    "watch_player_id": "MRV-10",
+    "claim": "Mersey Rovers push for a late winner."
+   },
+   "naive": {
+    "dominant_team_id": "MRV",
+    "goal_probability": 0.28,
+    "watch_player_id": "MRV-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "85:25 to 92:59",
+    "minutes": 7,
+    "truncated": true,
+    "xg_gained": {
+     "ALV": 0.1,
+     "MRV": 0.19
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "MRV-16",
+     "MRV-07",
+     "ALV-15",
+     "ALV-13",
+     "MRV-11"
+    ],
+    "score_now": {
+     "ALV": 0,
+     "MRV": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.938,
+    "watch": 0.0,
+    "overall": 0.646
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "CRC-KPF-5006",
+   "clock": "03:20",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.3,
+    "watch_player_id": "CRC-16",
+    "claim": "Crowmoor will maintain control and create more chances."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-16",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "03:20 to 13:01",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "CRC": 0.3,
+     "KPF": 0.0
+    },
+    "goals": [],
+    "shots": 4,
+    "players_involved": [
+     "CRC-14",
+     "CRC-15",
+     "CRC-09",
+     "CRC-16"
+    ],
+    "score_now": {
+     "CRC": 1,
+     "KPF": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 1.0,
+    "overall": 0.97
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "CRC-KPF-5006",
+   "clock": "23:18",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.3,
+    "watch_player_id": "CRC-09",
+    "claim": "Crowmoor maintains control; Osei-Tutu remains pivotal."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-16",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "23:18 to 33:09",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "CRC": 0.0,
+     "KPF": 0.02
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "KPF-16",
+     "KPF-04"
+    ],
+    "score_now": {
+     "CRC": 1,
+     "KPF": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.303
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "CRC-KPF-5006",
+   "clock": "45:23",
+   "moment": "half_time",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.2,
+    "watch_player_id": null,
+    "claim": "Crowmoor retains control, but goal chances remain limited."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-16",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "45:23 to 55:01",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "CRC": 0.03,
+     "KPF": 0.0
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "CRC-15"
+    ],
+    "score_now": {
+     "CRC": 1,
+     "KPF": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.96,
+    "watch": null,
+    "overall": 0.98
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "CRC-KPF-5006",
+   "clock": "67:29",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.3,
+    "watch_player_id": "CRC-06",
+    "claim": "Crowmoor maintains dominance; injury could hinder Kestrel's counters."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-16",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "67:29 to 77:00",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "CRC": 0.14,
+     "KPF": 0.02
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "KPF-16",
+     "KPF-05",
+     "CRC-05",
+     "CRC-15"
+    ],
+    "score_now": {
+     "CRC": 1,
+     "KPF": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "CRC-KPF-5006",
+   "clock": "86:26",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.3,
+    "watch_player_id": "CRC-16",
+    "claim": "Crowmoor will press for a second goal."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-16",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "86:26 to 92:25",
+    "minutes": 6,
+    "truncated": true,
+    "xg_gained": {
+     "CRC": 0.15,
+     "KPF": 0.02
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "CRC-16",
+     "CRC-05",
+     "CRC-17",
+     "KPF-14"
+    ],
+    "score_now": {
+     "CRC": 1,
+     "KPF": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 1.0,
+    "overall": 0.97
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": true,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-THU-5007",
+   "clock": "23:34",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.3,
+    "watch_player_id": "THU-14",
+    "claim": "Thames United will create more chances, Kovanen key."
+   },
+   "naive": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "23:34 to 33:11",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.08,
+     "THU": 0.11
+    },
+    "goals": [],
+    "shots": 4,
+    "players_involved": [
+     "NBF-10",
+     "NBF-17",
+     "THU-15",
+     "NBF-15",
+     "THU-09",
+     "THU-03"
+    ],
+    "score_now": {
+     "NBF": 0,
+     "THU": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-THU-5007",
+   "clock": "45:35",
+   "moment": "half_time",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.3,
+    "watch_player_id": null,
+    "claim": "Thames United to continue creating better chances."
+   },
+   "naive": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "45:35 to 55:11",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.18,
+     "THU": 0.11
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "THU-11",
+     "THU-15",
+     "NBF-10",
+     "NBF-15",
+     "NBF-17",
+     "NBF-13"
+    ],
+    "score_now": {
+     "NBF": 0,
+     "THU": 0
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": null,
+    "overall": 0.455
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-THU-5007",
+   "clock": "61:59",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.3,
+    "watch_player_id": "THU-13",
+    "claim": "Thames exploit midfield disruption to create better chances."
+   },
+   "naive": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "61:59 to 71:08",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.19,
+     "THU": 0.21
+    },
+    "goals": [],
+    "shots": 4,
+    "players_involved": [
+     "NBF-11",
+     "NBF-08",
+     "NBF-15",
+     "THU-17",
+     "THU-11",
+     "THU-15"
+    ],
+    "score_now": {
+     "NBF": 0,
+     "THU": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "NBF-THU-5007",
+   "clock": "69:53",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.3,
+    "watch_player_id": "THU-15",
+    "claim": "Thames exploits Northbridge's disorganization to create chances."
+   },
+   "naive": {
+    "dominant_team_id": "THU",
+    "goal_probability": 0.28,
+    "watch_player_id": "THU-17",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "69:53 to 79:06",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "NBF": 0.0,
+     "THU": 0.14
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "THU-10",
+     "THU-11"
+    ],
+    "score_now": {
+     "NBF": 0,
+     "THU": 0
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "KPF-TGW-5008",
+   "clock": "07:16",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.35,
+    "watch_player_id": "TGW-10",
+    "claim": "Tynegate will continue to dominate possession and chances."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-09",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "07:16 to 17:13",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "KPF": 0.07,
+     "TGW": 0.1
+    },
+    "goals": [],
+    "shots": 4,
+    "players_involved": [
+     "TGW-09",
+     "TGW-16",
+     "KPF-13",
+     "KPF-17"
+    ],
+    "score_now": {
+     "KPF": 0,
+     "TGW": 1
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.626
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "KPF-TGW-5008",
+   "clock": "26:46",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.35,
+    "watch_player_id": "TGW-09",
+    "claim": "Tynegate likely to maintain dominance and create chances."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-09",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "26:46 to 36:15",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "KPF": 0.09,
+     "TGW": 0.03
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "TGW-16",
+     "TGW-12",
+     "KPF-12",
+     "KPF-17"
+    ],
+    "score_now": {
+     "KPF": 0,
+     "TGW": 2
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.293
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "KPF-TGW-5008",
+   "clock": "38:17",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "KPF",
+    "goal_probability": 0.35,
+    "watch_player_id": "KPF-11",
+    "claim": "Kestrel Park FC will sustain momentum and threaten."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-09",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "38:17 to 48:08",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "KPF": 0.0,
+     "TGW": 0.08
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "TGW-10",
+     "TGW-06",
+     "TGW-18",
+     "TGW-16"
+    ],
+    "score_now": {
+     "KPF": 1,
+     "TGW": 2
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.293
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": false,
+   "picked_xg_leader": false
+  },
+  {
+   "match_id": "KPF-TGW-5008",
+   "clock": "45:25",
+   "moment": "half_time",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.35,
+    "watch_player_id": "TGW-16",
+    "claim": "Tynegate continues control; Enzo Ojo remains key threat."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-09",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "45:25 to 55:08",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "KPF": 0.0,
+     "TGW": 0.33
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "TGW-18",
+     "TGW-16",
+     "TGW-12",
+     "TGW-09"
+    ],
+    "score_now": {
+     "KPF": 1,
+     "TGW": 2
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.878,
+    "watch": 1.0,
+    "overall": 0.959
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "KPF-TGW-5008",
+   "clock": "57:23",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.35,
+    "watch_player_id": "TGW-06",
+    "claim": "TGW will continue creating chances, KPF to counter."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-09",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "57:23 to 67:01",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "KPF": 0.16,
+     "TGW": 0.03
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "TGW-18",
+     "TGW-13",
+     "TGW-10",
+     "KPF-16",
+     "KPF-11",
+     "KPF-05"
+    ],
+    "score_now": {
+     "KPF": 1,
+     "TGW": 2
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.878,
+    "watch": 0.0,
+    "overall": 0.293
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "KPF-TGW-5008",
+   "clock": "61:47",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.3,
+    "watch_player_id": "TGW-16",
+    "claim": "Tynegate maintains control, but Kestrel may exploit transitions."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-09",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "61:47 to 71:10",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "KPF": 0.3,
+     "TGW": 0.0
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "KPF-16",
+     "KPF-11",
+     "KPF-05",
+     "KPF-09",
+     "TGW-18"
+    ],
+    "score_now": {
+     "KPF": 1,
+     "TGW": 2
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.303
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "KPF-TGW-5008",
+   "clock": "66:55",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.3,
+    "watch_player_id": "TGW-16",
+    "claim": "Tynegate to exploit Kestrel's midfield disruption for chances."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-09",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "66:55 to 76:08",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "KPF": 0.14,
+     "TGW": 0.0
+    },
+    "goals": [],
+    "shots": 1,
+    "players_involved": [
+     "KPF-11",
+     "KPF-09",
+     "TGW-18",
+     "KPF-16"
+    ],
+    "score_now": {
+     "KPF": 1,
+     "TGW": 2
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.303
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "KPF-TGW-5008",
+   "clock": "69:52",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.3,
+    "watch_player_id": "TGW-16",
+    "claim": "Tynegate maintains control but Kestrel seeks counter opportunities."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-09",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "69:52 to 79:14",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "KPF": 0.0,
+     "TGW": 0.0
+    },
+    "goals": [],
+    "shots": 0,
+    "players_involved": [
+     "KPF-11",
+     "KPF-16"
+    ],
+    "score_now": {
+     "KPF": 1,
+     "TGW": 2
+    }
+   },
+   "scores": {
+    "dominance": null,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.455
+   },
+   "naive_scores": {
+    "dominance": null,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.461
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "KPF-TGW-5008",
+   "clock": "75:23",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.3,
+    "watch_player_id": "TGW-16",
+    "claim": "Tynegate will dominate possession and create better chances."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-09",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "75:23 to 85:02",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "KPF": 0.02,
+     "TGW": 0.02
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "KPF-16",
+     "TGW-13",
+     "TGW-12",
+     "KPF-11",
+     "KPF-12"
+    ],
+    "score_now": {
+     "KPF": 1,
+     "TGW": 2
+    }
+   },
+   "scores": {
+    "dominance": null,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.455
+   },
+   "naive_scores": {
+    "dominance": null,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.461
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "KPF-TGW-5008",
+   "clock": "75:23",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.3,
+    "watch_player_id": "TGW-16",
+    "claim": "Tynegate maintains control; Enzo Ojo creates next chance."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-09",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "75:23 to 85:02",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "KPF": 0.02,
+     "TGW": 0.02
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "TGW-13",
+     "TGW-12",
+     "KPF-11",
+     "KPF-12"
+    ],
+    "score_now": {
+     "KPF": 1,
+     "TGW": 2
+    }
+   },
+   "scores": {
+    "dominance": null,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.455
+   },
+   "naive_scores": {
+    "dominance": null,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.461
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-CRC-5009",
+   "clock": "00:59",
+   "moment": "goal",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.35,
+    "watch_player_id": "CRC-15",
+    "claim": "Crowmoor's control will lead to further scoring opportunities."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "00:59 to 10:00",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.29,
+     "CRC": 0.12
+    },
+    "goals": [],
+    "shots": 6,
+    "players_involved": [
+     "CRC-16",
+     "CRC-09",
+     "CRC-10",
+     "CRC-15",
+     "TGW-06",
+     "TGW-18",
+     "TGW-13"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "CRC": 1
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.878,
+    "watch": 1.0,
+    "overall": 0.626
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-CRC-5009",
+   "clock": "05:59",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.3,
+    "watch_player_id": "TGW-06",
+    "claim": "Crowmoor controls possession; Tynegate seeks counter-attacks."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "05:59 to 15:01",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.04,
+     "CRC": 0.23
+    },
+    "goals": [],
+    "shots": 6,
+    "players_involved": [
+     "CRC-09",
+     "CRC-15",
+     "CRC-16",
+     "TGW-18",
+     "TGW-13",
+     "CRC-12",
+     "CRC-07",
+     "CRC-14"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "CRC": 1
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": false
+  },
+  {
+   "match_id": "TGW-CRC-5009",
+   "clock": "41:59",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "TGW-16",
+    "claim": "Crowmoor maintains control; Tynegate's Enzo Ojo becomes pivotal."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "41:59 to 51:09",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.29,
+     "CRC": 0.08
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "CRC-16",
+     "TGW-01",
+     "TGW-18",
+     "TGW-09",
+     "CRC-06",
+     "CRC-15"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "CRC": 1
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.307
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": false
+  },
+  {
+   "match_id": "TGW-CRC-5009",
+   "clock": "41:59",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.3,
+    "watch_player_id": "CRC-16",
+    "claim": "Crowmoor maintains control but Tynegate's pressure creates chances."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "41:59 to 51:09",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.29,
+     "CRC": 0.08
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "TGW-01",
+     "TGW-18",
+     "TGW-09",
+     "CRC-16",
+     "CRC-06",
+     "CRC-15"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "CRC": 1
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 1.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": false
+  },
+  {
+   "match_id": "TGW-CRC-5009",
+   "clock": "42:19",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.3,
+    "watch_player_id": "CRC-06",
+    "claim": "Crowmoor continues dominance; Tynegate struggles to regain control."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "42:19 to 52:04",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.29,
+     "CRC": 0.08
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "TGW-18",
+     "TGW-09",
+     "CRC-16",
+     "CRC-06",
+     "CRC-15"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "CRC": 1
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 1.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.974
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": false
+  },
+  {
+   "match_id": "TGW-CRC-5009",
+   "clock": "47:44",
+   "moment": "half_time",
+   "forecast": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.3,
+    "watch_player_id": "TGW-16",
+    "claim": "Tynegate will dominate early second-half chances."
+   },
+   "naive": {
+    "dominant_team_id": "TGW",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "47:44 to 57:02",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.04,
+     "CRC": 0.08
+    },
+    "goals": [],
+    "shots": 3,
+    "players_involved": [
+     "CRC-16",
+     "CRC-06",
+     "CRC-15",
+     "TGW-10",
+     "TGW-09"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "CRC": 1
+    }
+   },
+   "scores": {
+    "dominance": 0.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.303
+   },
+   "naive_scores": {
+    "dominance": 0.0,
+    "goal": 0.922,
+    "watch": 1.0,
+    "overall": 0.641
+   },
+   "picked_home": true,
+   "picked_possession_leader": false,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-CRC-5009",
+   "clock": "63:50",
+   "moment": "big_chance",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.3,
+    "watch_player_id": "CRC-16",
+    "claim": "Crowmoor sustains pressure; Viktor Chowdry remains key in attack."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "63:50 to 73:15",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.1,
+     "CRC": 0.13
+    },
+    "goals": [],
+    "shots": 5,
+    "players_involved": [
+     "TGW-13",
+     "TGW-09",
+     "CRC-17",
+     "CRC-09",
+     "CRC-12",
+     "CRC-07",
+     "TGW-15"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "CRC": 1
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  },
+  {
+   "match_id": "TGW-CRC-5009",
+   "clock": "75:32",
+   "moment": "injury_concern",
+   "forecast": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.3,
+    "watch_player_id": "CRC-14",
+    "claim": "Crowmoor maintains control but risks midfield gaps."
+   },
+   "naive": {
+    "dominant_team_id": "CRC",
+    "goal_probability": 0.28,
+    "watch_player_id": "CRC-15",
+    "claim": "naive: the xG leader keeps creating more; base-rate goal odds; the top shooter so far"
+   },
+   "facts": {
+    "window": "75:32 to 85:15",
+    "minutes": 10,
+    "truncated": false,
+    "xg_gained": {
+     "TGW": 0.0,
+     "CRC": 0.14
+    },
+    "goals": [],
+    "shots": 2,
+    "players_involved": [
+     "CRC-03",
+     "CRC-09",
+     "CRC-12"
+    ],
+    "score_now": {
+     "TGW": 0,
+     "CRC": 1
+    }
+   },
+   "scores": {
+    "dominance": 1.0,
+    "goal": 0.91,
+    "watch": 0.0,
+    "overall": 0.637
+   },
+   "naive_scores": {
+    "dominance": 1.0,
+    "goal": 0.922,
+    "watch": 0.0,
+    "overall": 0.641
+   },
+   "picked_home": false,
+   "picked_possession_leader": true,
+   "picked_xg_leader": true
+  }
+ ]
+}

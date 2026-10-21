@@ -25,7 +25,7 @@ from matchmind.agents.tracing import MomentTrace, current_trace
 
 log = logging.getLogger("matchmind.agents.judge")
 
-BASE_GOAL_RATE_10MIN = 0.28  # synthetic league: about 2.5 goals per 90' → P(any goal in 10') ≈ 0.28
+BASE_GOAL_RATE_10MIN = 0.20  # measured over 40 simulated matches: 2.1 goals per match, P(any goal in a 10' window) = 0.197
 INVOLVEMENT_TYPES = {"shot", "goal", "injury_concern"}
 
 JUDGE_INSTRUCTIONS = """You are the Judge agent of MatchMind. The Analyst made a forecast for the next 10 minutes
