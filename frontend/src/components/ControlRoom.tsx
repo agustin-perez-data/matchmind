@@ -82,8 +82,20 @@ function PipelineMap({ lit }: { lit: Set<string> }) {
   const edges: [string, string][] = [['stream', 'interpreter'], ['interpreter', 'gate'], ['gate', 'Analyst'], ['gate', 'Narrator'], ['Analyst', 'Director'], ['Narrator', 'Director'], ['Director', 'seat'], ['interpreter', 'risk'], ['risk', 'Coach'], ['Coach', 'Engine'], ['Engine', 'whatif'], ['Analyst', 'ledger'], ['ledger', 'Judge'], ['Judge', 'credibility']]
   const pos = Object.fromEntries(nodes.map((n) => [n.id, n]))
   const W = (n: (typeof nodes)[number]) => n.w ?? 120
+  // the brief's five stages, as bands over the map: every node sits in the stage it serves
+  const STAGES: { label: string; x0: number; x1: number }[] = [
+    { label: '1 Ingest', x0: 0, x1: 140 }, { label: '2 Interpret', x0: 140, x1: 440 }, { label: '3 Explain', x0: 440, x1: 630 },
+    { label: '5 Personalize', x0: 630, x1: 770 }, { label: '4 Render', x0: 770, x1: 960 },
+  ]
+  const TOP = 24
   return (
-    <svg viewBox="0 0 960 140" className="mt-3 w-full" role="img" aria-label="Agent pipeline: interpreter, key-moment gate, analyst and narrator in parallel, director; risk monitor, coach, engine; forecast ledger and judge">
+    <svg viewBox={`0 -${TOP} 960 ${140 + TOP}`} className="mt-3 w-full" role="img" aria-label="Agent pipeline over the five stages of the brief: ingest, interpret, explain, render, personalize">
+      {STAGES.map((s) => (
+        <g key={s.label}>
+          <line x1={s.x0} x2={s.x0} y1={-TOP} y2={140} stroke="#3a4560" strokeWidth={1} strokeDasharray="2 4" />
+          <text x={s.x0 + 6} y={-TOP + 12} fontSize={10} fontFamily="Barlow Condensed" fontWeight={800} fill="var(--color-muted)" letterSpacing={1.2}>{s.label.toUpperCase()}</text>
+        </g>
+      ))}
       {edges.map(([a, b]) => {
         const A = pos[a], B = pos[b]
         const on = lit.has(a) && lit.has(b)

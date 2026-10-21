@@ -21,8 +21,11 @@ Monitor** grounded in sports science (ACWR).
 | 1. Ingest | Synthetic match engine + FastAPI/WebSocket live replay (configurable speed) | ✅ |
 | 2. Interpret | Interpreter agent: team stats, xG race, momentum, per-player ACWR workload | ✅ |
 | 3. Explain | Analyst agent (gpt-4o, Agent Framework): *why* a moment matters, grounded in the Interpreter's numbers, plus a 10-minute forecast that the Judge grades | ✅ |
-| 4. Render | Narrator agent (English analytical, casual, play-by-play, *relator rioplatense* 🇦🇷) + live 2D pitch & overlays (React) | ✅ agent / 🔜 UI |
-| 5. Personalize | Director agent: decides per viewer (Analyst / Casual / Commentator / Player-Focus, language) which cards to show and how loudly | ✅ |
+| 4. Render | Narrator agent (English analytical, casual, play-by-play, *relator rioplatense* 🇦🇷) + the broadcast UI (React): four seats, shot-map pitch, lower thirds, what-if timelines, stadium sound | ✅ |
+| 5. Personalize | Director agent: decides per viewer (Analyst / Casual / Commentator / Player-Focus, language) which cards to show and how loudly; the Control room shows the same moment as two viewers got it | ✅ |
+
+The Control room's pipeline map draws every component inside the stage it
+serves, so the five stages are visible in the product, not only in this table.
 
 ## Architecture (target)
 
