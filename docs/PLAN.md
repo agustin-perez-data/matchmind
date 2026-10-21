@@ -186,6 +186,14 @@ Foundry, Best Azure Cloud Native Integration.
   segmented, Agents/Coach switches, Follow (fan seat only), status, Stop.
   The fixture select left the bar: a fixture is chosen on the entry page.
   Analyst headlines are normalised to one full stop (`sentence()`).
+  **Oct 22, desk trimmed + Follow block**: once seated the language cannot
+  change (it is a decision taken on the entry page); the Agents / Coach
+  switches left the UI — they were dev controls (replay without LLM calls)
+  and now live only as URL params `agents=0&coach=0`. "Follow a player" is
+  a proper block on the fan seat (`FollowBlock.tsx`): starters and anyone on
+  the pitch as chips per team, the followed one in amber with live sprints /
+  distance / top speed and the Director's personalised note; clicking a chip
+  re-sends the profile as `player_focus` over the open socket.
   Deploy plan agreed in principle, NOT yet authorised: ACR Basic + Container
   Apps scale-to-zero (min 1 replica only before submission) + Static Web Apps
   Free, ~USD 20 total through Nov 10.

@@ -41,8 +41,8 @@ export default function App() {
   const [speed, setSpeed] = useState(initial.speed)
   const [language, setLanguage] = useState<Language>(initial.language)
   const [favorite, setFavorite] = useState<string | null>(initial.player)
-  const [agents, setAgents] = useState(initial.agents)
-  const [coach, setCoach] = useState(initial.coach)
+  // agents / coach come only from the URL (dev switches: ?agents=0&coach=0 replays without LLM calls)
+  const { agents, coach } = initial
   const [seat, setSeat] = useState<Seat | null>(initial.seat)
   const [selectedBranch, setSelectedBranch] = useState<BranchSummary | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -100,10 +100,6 @@ export default function App() {
   }, [stop])
 
   const onSpeed = useCallback((v: number) => { setSpeed(v); writeUrl({ speed: v }, true); send({ speed: v }) }, [send])
-  const onLanguage = useCallback((l: Language) => {
-    setLanguage(l); writeUrl({ lang: l }, true)
-    if (seat) send({ profile: profileForSeat(seat, l, favorite) })
-  }, [send, seat, favorite])
   const onFavorite = useCallback((id: string | null) => {
     setFavorite(id); writeUrl({ player: id }, true)
     if (seat) send({ profile: profileForSeat(seat, language, id) })
@@ -119,14 +115,7 @@ export default function App() {
   return (
     <div className="stage flex min-h-full flex-col" style={teamVars}>
       {inMatch && seat && (
-        <ControlBar
-          speed={speed} onSpeed={onSpeed} language={language} onLanguage={onLanguage}
-          favoritePlayerId={favorite} onFavorite={onFavorite} seat={seat} onSeat={switchSeat}
-          agents={agents} onAgents={(v) => { setAgents(v); writeUrl({ agents: v ? null : '0' }, true); begin(seat, matchId, { agents: v }) }}
-          coach={coach} onCoach={(v) => { setCoach(v); writeUrl({ coach: v ? null : '0' }, true); begin(seat, matchId, { coach: v }) }}
-          status={state.status} onLeave={leave}
-          players={meta ? Object.values(meta.teams).flatMap((t) => t.players) : []}
-        />
+        <ControlBar speed={speed} onSpeed={onSpeed} seat={seat} onSeat={switchSeat} status={state.status} onLeave={leave} />
       )}
       {loadError && <p className="mx-6 mt-3 bg-ink px-4 py-3 text-bad">{loadError}</p>}
       {!inMatch && !loadError && (
@@ -137,7 +126,7 @@ export default function App() {
       {inMatch && seat && state.status === 'connecting' && <p className="display px-6 py-10 text-2xl font-bold uppercase tracking-wider text-muted">Connecting to the studio</p>}
       {inMatch && seat && meta && (
         <MatchStage seat={seat} meta={meta} state={state} branches={branches} latestCoach={latestCoach} lastGoal={lastGoal}
-          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} />
+          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} />
       )}
     </div>
   )

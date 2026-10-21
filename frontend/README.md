@@ -10,7 +10,8 @@ then one match stage with three compositions:
   Coach proposals, a small pitch.
 
 The URL is the state (`/?seat=bench&lang=es&speed=60&match=THU-NBF-40`; the
-language defaults to English, `lang=es` picks rioplatense Spanish). The
+language defaults to English, `lang=es` picks rioplatense Spanish; `agents=0`
+and `coach=0` are dev switches that replay without LLM calls). The
 seat buttons in the control bar switch seats mid-match: the stream stays open
 and the viewer profile sent to the agents changes, so the Director and the
 Narrator adapt on the next key moment.

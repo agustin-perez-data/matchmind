@@ -8,8 +8,11 @@ import { MomentsRail } from './MomentsRail'
 import { CoachBlock, RiskBlock, StatsBlock } from './SidePanels'
 import { WhatIfBand } from './WhatIfBand'
 import { ControlRoom } from './ControlRoom'
+import { FollowBlock } from './FollowBlock'
 
 type Props = {
+  favoritePlayerId: string | null
+  onFavorite: (id: string | null) => void
   seat: Seat
   meta: Meta
   state: StreamState
@@ -21,7 +24,7 @@ type Props = {
 }
 
 /** One match, three compositions: what each seat sees. */
-export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch }: Props) {
+export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite }: Props) {
   const keyEvent = state.keyEvents.find((e) => e.type !== 'kickoff') ?? null
   const pitch = (size: 'lg' | 'sm') => (
     <PitchStage meta={meta} ball={state.ball} shots={state.shots} lastEvent={state.lastEvent} snapshot={state.snapshot}
@@ -39,7 +42,10 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
         <main key="fan" className="stagger mx-auto grid w-full max-w-6xl gap-3 px-3 pb-6 pt-4 sm:px-6">
           <div className="enter" style={{ ['--i' as string]: 1 }}>{pitch('lg')}</div>
           <div className="enter" style={{ ['--i' as string]: 2 }}><Momentum meta={meta} snapshot={state.snapshot} /></div>
-          <div className="enter" style={{ ['--i' as string]: 3 }}>{rail}</div>
+          <div className="enter" style={{ ['--i' as string]: 3 }}>
+            <FollowBlock meta={meta} snapshot={state.snapshot} latest={state.feed.find((f) => f.msg.kind === 'insight') ?? null} favoritePlayerId={favoritePlayerId} onFavorite={onFavorite} />
+          </div>
+          <div className="enter" style={{ ['--i' as string]: 4 }}>{rail}</div>
         </main>
       </>
     )
