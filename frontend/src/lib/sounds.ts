@@ -103,29 +103,47 @@ class Stadium {
     lfo.stop(t0 + dur + 0.05)
   }
 
-  /** A crowd roar: a choir of shouting voices (detuned saws through "ah" formants) over a thin noise bed,
-   *  swelling fast and fading slow, with a second smaller wave as the celebration settles. */
+  /** A crowd roar, shaped after a reference stadium recording: half a second of expectation, a
+   *  crescendo to the peak, a short sustain and a fade. Voices are detuned saws with a shout contour,
+   *  amplitude flutter and vibrato, through "ah" formants centred near 1 kHz; claps and a thin noise
+   *  bed give it texture. Nothing below ~450 Hz: a crowd on a broadcast has no bass. */
   roar() {
     const r = this.ready()
     if (!r) return
     const { ctx, out } = r
     const t0 = ctx.currentTime + 0.02
-    const total = 7
+    const total = 4.6
     const env = ctx.createGain()
     env.gain.setValueAtTime(0, t0)
-    env.gain.linearRampToValueAtTime(1, t0 + 0.3)
-    env.gain.setValueAtTime(1, t0 + 2.0)
-    env.gain.linearRampToValueAtTime(0.5, t0 + 4.2)
+    env.gain.linearRampToValueAtTime(0.28, t0 + 0.15) // the first voices
+    env.gain.setValueAtTime(0.28, t0 + 0.45)
+    env.gain.linearRampToValueAtTime(1, t0 + 1.0) // everyone joins
+    env.gain.setValueAtTime(1, t0 + 2.3)
+    env.gain.linearRampToValueAtTime(0.6, t0 + 3.2)
     env.gain.exponentialRampToValueAtTime(0.001, t0 + total)
-    env.connect(out)
+    const hp = ctx.createBiquadFilter()
+    hp.type = 'highpass'
+    hp.frequency.value = 480
+    hp.Q.value = 0.7
+    hp.connect(env).connect(out)
 
-    // the vowel: three formant bands of an open "ah", summed, then rolled off
+    // the vowel of a shouting crowd: three bands, the strongest around 1.1 kHz
     const formants = ctx.createGain()
     const lp = ctx.createBiquadFilter()
     lp.type = 'lowpass'
-    lp.frequency.value = 4200
-    formants.connect(lp).connect(env)
-    const bands: BiquadFilterNode[] = [[700, 4, 1], [1150, 5, 0.9], [2600, 6, 0.5]].map(([f, q, g]) => {
+    lp.frequency.value = 3800
+    const surge = ctx.createGain() // waves of shouting: slow random modulation of the whole mass
+    surge.gain.value = 0.8
+    const surgeSrc = this.noise(total)
+    const surgeLp = ctx.createBiquadFilter()
+    surgeLp.type = 'lowpass'
+    surgeLp.frequency.value = 9
+    const surgeDepth = ctx.createGain()
+    surgeDepth.gain.value = 1.2
+    surgeSrc.connect(surgeLp).connect(surgeDepth).connect(surge.gain)
+    surgeSrc.start(t0)
+    formants.connect(lp).connect(surge).connect(hp)
+    const bands = [[820, 4, 0.55], [1150, 4, 1], [1550, 5, 0.8], [2400, 7, 0.3]].map(([f, q, g]) => {
       const bp = ctx.createBiquadFilter()
       bp.type = 'bandpass'
       bp.frequency.value = f
@@ -136,45 +154,72 @@ class Stadium {
       return bp
     })
     const voicesIn = ctx.createGain()
-    const VOICES = 32
-    voicesIn.gain.value = 1.8 / Math.sqrt(VOICES)
+    const VOICES = 36
+    voicesIn.gain.value = 2.0 / Math.sqrt(VOICES)
     for (const bp of bands) voicesIn.connect(bp)
 
     for (let i = 0; i < VOICES; i++) {
-      const at = t0 + Math.random() * 0.25 // nobody shouts at exactly the same instant
-      const base = 150 + Math.random() * 200 // from deep to high shouts
+      // the first few shout at once, the rest pile in during the crescendo
+      const at = t0 + (i < 6 ? Math.random() * 0.15 : 0.3 + Math.random() * 0.8)
+      const base = 210 + Math.random() * 230 // men, women and kids shouting
       const o = ctx.createOscillator()
       o.type = 'sawtooth'
-      o.frequency.setValueAtTime(base * 0.92, at)
-      o.frequency.exponentialRampToValueAtTime(base * 1.08, at + 0.25) // the shout rises
-      o.frequency.exponentialRampToValueAtTime(base * 0.85, at + 3 + Math.random() * 1.5) // then sags as breath runs out
+      o.frequency.setValueAtTime(base * 0.9, at)
+      o.frequency.exponentialRampToValueAtTime(base * 1.1, at + 0.2)
+      o.frequency.exponentialRampToValueAtTime(base * 0.88, at + 2 + Math.random() * 1.2)
       const vib = ctx.createOscillator()
-      vib.frequency.value = 4 + Math.random() * 3
+      vib.frequency.value = 4.5 + Math.random() * 3
       const vibDepth = ctx.createGain()
-      vibDepth.gain.value = base * 0.03
+      vibDepth.gain.value = base * 0.035
       vib.connect(vibDepth).connect(o.frequency)
+      // flutter: each voice breathes at its own pace, so the mass of voices shimmers
+      const flutter = ctx.createOscillator()
+      flutter.frequency.value = 2 + Math.random() * 6
+      const flutterDepth = ctx.createGain()
+      flutterDepth.gain.value = 0.35
       const g = ctx.createGain()
-      const hold = 2.2 + Math.random() * 2.0
+      const hold = 1.0 + Math.random() * 1.6
       g.gain.setValueAtTime(0, at)
-      g.gain.linearRampToValueAtTime(1, at + 0.05 + Math.random() * 0.08)
-      g.gain.setValueAtTime(1, at + hold)
-      g.gain.linearRampToValueAtTime(0, at + hold + 1.2 + Math.random() * 1.5)
+      g.gain.linearRampToValueAtTime(0.65, at + 0.04 + Math.random() * 0.08)
+      g.gain.setValueAtTime(0.65, at + hold)
+      g.gain.linearRampToValueAtTime(0, at + hold + 0.6 + Math.random() * 1.2)
+      flutter.connect(flutterDepth).connect(g.gain)
       o.connect(g).connect(voicesIn)
       o.start(at)
       vib.start(at)
+      flutter.start(at)
       o.stop(t0 + total)
       vib.stop(t0 + total)
+      flutter.stop(t0 + total)
+    }
+
+    // claps and whistles from the stands: short bright bursts, denser at the peak
+    const clapBus = ctx.createGain()
+    clapBus.gain.value = 0.7
+    const clapBp = ctx.createBiquadFilter()
+    clapBp.type = 'bandpass'
+    clapBp.frequency.value = 2600
+    clapBp.Q.value = 1.2
+    clapBus.connect(clapBp).connect(hp)
+    for (let t = 0.3; t < total - 0.6; t += 0.03 + Math.random() * 0.09) {
+      const at = t0 + t
+      const burst = this.noise(0.03)
+      const g = ctx.createGain()
+      g.gain.setValueAtTime(0.2 + Math.random() * 0.5, at)
+      g.gain.exponentialRampToValueAtTime(0.001, at + 0.015 + Math.random() * 0.025)
+      burst.connect(g).connect(clapBus)
+      burst.start(at)
     }
 
     // the hiss of thousands more, far away
     const bed = this.noise(total)
-    const bp = ctx.createBiquadFilter()
-    bp.type = 'bandpass'
-    bp.frequency.value = 1100
-    bp.Q.value = 0.6
+    const bedBp = ctx.createBiquadFilter()
+    bedBp.type = 'bandpass'
+    bedBp.frequency.value = 1300
+    bedBp.Q.value = 0.8
     const bedGain = ctx.createGain()
-    bedGain.gain.value = 0.4
-    bed.connect(bp).connect(bedGain).connect(env)
+    bedGain.gain.value = 0.3
+    bed.connect(bedBp).connect(bedGain).connect(hp)
     bed.start(t0)
   }
 
