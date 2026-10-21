@@ -1,5 +1,6 @@
 import type { MatchRow } from '../lib/api'
 import { SEAT_ORDER, SEATS, type Seat } from '../lib/seats'
+import { Crest } from './Crest'
 
 type Props = { onPick: (seat: Seat) => void; disabled: boolean; matches: MatchRow[]; matchId: string; onMatch: (id: string) => void }
 
@@ -17,14 +18,26 @@ export function SeatPicker({ onPick, disabled, matches, matchId, onMatch }: Prop
       <p className="mt-4 max-w-prose text-base text-fg-2">
         <span className="text-teal">For the bench:</span> injury-risk warnings about 25 minutes ahead, from workload any club already measures, graded live against the knocks that happen. Decision support, not medical advice.
       </p>
-      <div className="mt-10 flex flex-wrap items-end justify-between gap-3">
-        <p className="display text-xl font-extrabold uppercase tracking-wider text-muted">Pick your seat</p>
-        <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted">Match
-          <select value={matchId} onChange={(e) => onMatch(e.target.value)}>
-            {matches.map((m) => <option key={m.match_id} value={m.match_id}>{m.home} vs {m.away}</option>)}
-          </select>
-        </label>
+      <p className="display mt-10 text-xl font-extrabold uppercase tracking-wider text-muted">Matchday 9, pick a fixture</p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4" role="radiogroup" aria-label="fixture">
+        {[...matches].sort((a, b) => Number(!a.match_id.startsWith('THU')) - Number(!b.match_id.startsWith('THU'))).map((m) => {
+          // the Thames derby is the headline fixture; the rest follow in catalogue order
+          const on = m.match_id === matchId
+          return (
+            <button key={m.match_id} type="button" role="radio" aria-checked={on} onClick={() => onMatch(m.match_id)}
+              className={`blk flex items-center gap-3 px-3 py-2 text-left transition-[background,border-color] duration-150 ${on ? 'bg-ink-2' : 'hover:bg-ink-2/60'}`}
+              style={{ borderTopColor: on ? '#ffd166' : 'rgba(255,255,255,0.25)' }}>
+              <Crest team={m.home_team} size={36} />
+              <span className="min-w-0 flex-1">
+                <span className="display block truncate text-lg font-extrabold uppercase leading-tight">{m.home_team.short_name} <span className="text-muted">v</span> {m.away_team.short_name}</span>
+                <span className="block truncate text-xs text-muted">{m.home_team.name} hosts {m.away_team.name}</span>
+              </span>
+              <Crest team={m.away_team} size={36} />
+            </button>
+          )
+        })}
       </div>
+      <p className="display mt-8 text-xl font-extrabold uppercase tracking-wider text-muted">Pick your seat</p>
       <div className="stagger mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {SEAT_ORDER.map((seat, i) => {
           const s = SEATS[seat]

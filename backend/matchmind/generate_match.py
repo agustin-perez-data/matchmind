@@ -93,6 +93,9 @@ def generate(
                 "name": team.name,
                 "short_name": team.short_name,
                 "primary_color": team.primary_color,
+                "secondary_color": team.secondary_color,
+                "pattern": team.pattern,
+                "city": team.city,
                 "style": team.style,
                 "players": [_public_player(p, starters) for p in team.players],
             }

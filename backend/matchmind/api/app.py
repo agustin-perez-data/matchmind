@@ -176,14 +176,18 @@ def create_app(
     @app.get("/matches")
     def list_matches() -> list[dict]:
         out = []
+        keys = ("team_id", "name", "short_name", "primary_color", "secondary_color", "pattern", "city")
         for mid in catalog.ids():
             m = catalog.meta(mid) or {}
+            home, away = m.get("teams", {}).get(m.get("home_id"), {}), m.get("teams", {}).get(m.get("away_id"), {})
             out.append({
                 "match_id": mid,
                 "home_id": m.get("home_id"),
                 "away_id": m.get("away_id"),
-                "home": m.get("teams", {}).get(m.get("home_id"), {}).get("name"),
-                "away": m.get("teams", {}).get(m.get("away_id"), {}).get("name"),
+                "home": home.get("name"),
+                "away": away.get("name"),
+                "home_team": {k: home.get(k) for k in keys},
+                "away_team": {k: away.get(k) for k in keys},
                 "score": m.get("score"),
                 "n_events": m.get("n_events"),
             })

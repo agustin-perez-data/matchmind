@@ -50,6 +50,9 @@ class Team:
     overall: float  # 0-1 squad strength
     press_intensity: float  # 0-1 how aggressively the team presses
     style: str  # "possession" | "direct" | "balanced"
+    secondary_color: str = "#ffffff"
+    pattern: str = "solid"  # kit pattern for the crest: solid | halves | stripes | hoops | sash | sleeves
+    city: str = ""  # fictional region, for flavour only
     players: list = field(default_factory=list)
 
     def on_pitch(self) -> list:

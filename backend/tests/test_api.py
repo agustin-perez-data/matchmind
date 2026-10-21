@@ -119,6 +119,8 @@ def test_lists_available_matches(client, meta):
     ids = [m["match_id"] for m in r.json()]
     assert ids == [meta["match_id"]]
     assert r.json()[0]["score"] == meta["score"]
+    assert r.json()[0]["home_team"]["primary_color"] == meta["teams"][meta["home_id"]]["primary_color"]
+    assert r.json()[0]["away_team"]["pattern"] in ("solid", "halves", "stripes", "hoops", "sash", "sleeves")
 
 
 def test_returns_match_meta_without_latent_state(client, meta):

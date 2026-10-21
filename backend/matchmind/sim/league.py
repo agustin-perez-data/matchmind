@@ -11,17 +11,20 @@ import random
 
 from matchmind.sim.models import Player, Team
 
-# 8 fictional clubs loosely covering the strength spectrum of a top league
+# 8 fictional clubs covering the strength spectrum of a top league. Their identities
+# (colours, regions, playing styles) deliberately echo the archetypes of English football,
+# but every name, kit pattern and crest here is invented: no real club name, nickname,
+# badge motif or trademark is used, as the hackathon rules require.
 CLUBS = [
-    # (team_id, name, short, color, overall, press, style)
-    ("THU", "Thames United", "Thames", "#8B0000", 0.86, 0.75, "possession"),
-    ("NBF", "Northbridge FC", "Northbridge", "#1E3A8A", 0.84, 0.82, "balanced"),
-    ("IRA", "Ironfield Athletic", "Ironfield", "#B45309", 0.78, 0.68, "direct"),
-    ("MRV", "Mersey Rovers", "Rovers", "#065F46", 0.76, 0.60, "balanced"),
-    ("CRC", "Crowmoor City", "Crowmoor", "#6D28D9", 0.72, 0.55, "possession"),
-    ("ALV", "Albion Vale", "Albion", "#0E7490", 0.68, 0.50, "direct"),
-    ("SGW", "Southgate Wanderers", "Wanderers", "#9D174D", 0.64, 0.45, "balanced"),
-    ("KPF", "Kestrel Park FC", "Kestrel", "#374151", 0.60, 0.40, "direct"),
+    # (team_id, name, short, primary, secondary, pattern, city, overall, press, style)
+    ("THU", "Thames United", "Thames", "#D0021B", "#FFFFFF", "sleeves", "North London", 0.86, 0.75, "possession"),
+    ("NBF", "Northbridge FC", "Northbridge", "#1E3A8A", "#FFFFFF", "solid", "West London", 0.84, 0.82, "balanced"),
+    ("IRA", "Ironfield Athletic", "Ironfield", "#6CABDD", "#1C2C5B", "solid", "Manchester", 0.88, 0.80, "possession"),
+    ("MRV", "Mersey Rovers", "Rovers", "#C8102E", "#F6EB61", "solid", "Merseyside", 0.87, 0.90, "direct"),
+    ("CRC", "Crowmoor Town", "Crowmoor", "#132257", "#FFFFFF", "halves", "North London", 0.80, 0.60, "possession"),
+    ("ALV", "Albion Vale", "Albion", "#670E36", "#95BFE5", "sleeves", "Midlands", 0.74, 0.55, "direct"),
+    ("TGW", "Tynegate Wanderers", "Tynegate", "#241F20", "#FFFFFF", "stripes", "North East", 0.72, 0.50, "balanced"),
+    ("KPF", "Kestrel Park FC", "Kestrel", "#FDB913", "#231F20", "solid", "Black Country", 0.66, 0.45, "direct"),
 ]
 
 # International mix typical of a top-flight squad; surnames are invented
@@ -93,12 +96,15 @@ def _load_history(rng: random.Random, congested: bool) -> list:
 
 
 def build_team(spec: tuple, rng: random.Random) -> Team:
-    team_id, name, short, color, overall, press, style = spec
+    team_id, name, short, color, secondary, pattern, city, overall, press, style = spec
     team = Team(
         team_id=team_id,
         name=name,
         short_name=short,
         primary_color=color,
+        secondary_color=secondary,
+        pattern=pattern,
+        city=city,
         overall=overall,
         press_intensity=press,
         style=style,

@@ -1,4 +1,4 @@
-import type { BranchSummary, MatchEvent, Meta } from './types'
+import type { BranchSummary, MatchEvent, Meta, Team } from './types'
 
 // Empty in development (Vite proxies to :8000); the Container Apps URL in production.
 export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, '') ?? ''
@@ -15,7 +15,8 @@ async function getJson<T>(path: string): Promise<T> {
   return r.json() as Promise<T>
 }
 
-export type MatchRow = { match_id: string; home: string; away: string; score: Record<string, number> }
+export type CatalogTeam = { team_id: string; name: string; short_name: string; primary_color: string; secondary_color: string; pattern: Team['pattern']; city: string }
+export type MatchRow = { match_id: string; home_id: string; away_id: string; home: string; away: string; home_team: CatalogTeam; away_team: CatalogTeam; score: Record<string, number> }
 
 export const listMatches = () => getJson<MatchRow[]>('/matches')
 export const getMeta = (id: string) => getJson<Meta>(`/matches/${id}/meta`)

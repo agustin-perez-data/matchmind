@@ -58,7 +58,8 @@ export default function App() {
     listMatches()
       .then((rows) => {
         setMatches(rows)
-        const id = initial.match && rows.some((r) => r.match_id === initial.match) ? initial.match : rows[0]?.match_id
+        const headline = rows.find((r) => r.match_id.startsWith('THU'))?.match_id ?? rows[0]?.match_id
+        const id = initial.match && rows.some((r) => r.match_id === initial.match) ? initial.match : headline
         if (id) setMatchId(id)
         if (id && initial.seat) begin(initial.seat, id)
       })

@@ -13,6 +13,9 @@ export type Team = {
   name: string
   short_name: string
   primary_color: string
+  secondary_color?: string
+  pattern?: 'solid' | 'halves' | 'stripes' | 'hoops' | 'sash' | 'sleeves'
+  city?: string
   style: string
   players: Player[]
 }

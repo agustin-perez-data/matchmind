@@ -161,6 +161,19 @@ Foundry, Best Azure Cloud Native Integration.
   decisions. Entry page carries the real-world impact line (bench warnings
   ~25' ahead, graded live). Verified live: Analyst calls tools on its own,
   fan-out ~2.4-4 s, Director ~0.8-1.3 s.
+  **Oct 22, matchday + crests**: league redefined with indirect archetypes
+  (colours/regions/styles only; no real names, nicknames or badge motifs):
+  THU Thames United (red, white sleeves, North London), NBF Northbridge
+  (royal blue, West London), IRA Ironfield Athletic (sky blue, Manchester,
+  strongest), MRV Mersey Rovers (red, Merseyside, high press), CRC Crowmoor
+  Town (navy/white halves, North London), ALV Albion Vale (claret/sky
+  sleeves, Midlands), TGW Tynegate Wanderers (black/white stripes, North
+  East), KPF Kestrel Park (gold/black, Black Country). Team meta carries
+  `secondary_color`, `pattern`, `city`; `/matches` returns `home_team` /
+  `away_team` for crests (`Crest.tsx`, geometric shield + initials; light
+  colours get dark text via `onColor`). Data = Matchday 9: THU-NBF-40 (1-2,
+  headline), IRA-MRV-21 (2-2), CRC-ALV-47 (3-2), TGW-KPF-46 (2-1, 6 knocks).
+  THU-NBF-42 stays only as the in-memory test fixture.
   Deploy plan agreed in principle, NOT yet authorised: ACR Basic + Container
   Apps scale-to-zero (min 1 replica only before submission) + Static Web Apps
   Free, ~USD 20 total through Nov 10.
