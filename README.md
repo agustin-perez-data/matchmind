@@ -112,6 +112,24 @@ and is exposed to agents and MCP clients as `get_analyst_credibility`. Windows
 close on the exact minute mark even when an insight arrives late at replay
 speed, and nothing is forecast once the final whistle has gone.
 
+Because the grading is code, the Analyst can be measured offline and improved
+on evidence (`python -m matchmind.agents.evaluate_forecasts --matches 10`, same
+seeds every run, the real Analyst on Foundry, ~66 forecasts):
+
+| Analyst version | Overall | Who dominates | Goal odds | Player to watch |
+|---|---|---|---|---|
+| Naive baseline (xG leader keeps dominating, base rate, top shooter) | 0.64 | 0.68 | 0.94 | 0.32 |
+| v1: season narrative only | 0.60 | 0.60 | 0.90 | 0.27 |
+| v2: + last-10-minute window, game state, top shooters | 0.61 | 0.56 | 0.92 | 0.34 |
+| v2 + the Judge's verdicts fed back (closed loop) | 0.64 | 0.58 | 0.92 | 0.39 |
+| v3: + "dominance is xG, default to the xG leader" | **0.66** | 0.64 | 0.92 | **0.41** |
+
+Honest reading: ten minutes of football are noisy, the naive rule is hard to
+beat on "who dominates", and the Analyst only edges ahead overall after it was
+given the recent window, its own graded record and a rule against reading
+possession as dominance. The loop is real but small (+0.03 overall in the
+ablation). The numbers are in `backend/eval/`.
+
 ## Agents
 
 | Agent | Model | Job |

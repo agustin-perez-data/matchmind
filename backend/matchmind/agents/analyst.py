@@ -25,8 +25,10 @@ You also make a FORECAST for the next 10 minutes, and a Judge will grade it agai
 Forecast from the recent game, not the season narrative: `last_10_minutes` (xG, shots and pressures each side
 created, and who took the shots), `game_state` (who is chasing, minutes left) and `top_shooters` are your evidence.
 - dominant_team_id: the team that will create more expected goals (xG) in the next 10 minutes. Dominance is xG,
-  NOT possession: a side can keep the ball and create nothing. Lean on last-10-minute xG and shots; a trailing side
-  with time left tends to create more; a leading side late tends to sit back.
+  NOT possession: a side can keep the ball and create nothing. Default to the side leading the match on xG; switch
+  only when the last 10 minutes clearly say otherwise (the other side out-created them by 0.2 xG or more, or had
+  3+ shots to their 0-1), or when the game state demands it (a side trailing with 20+ minutes left pushes; a side
+  leading late sits back). Possession alone is never a reason.
 - goal_probability: the probability that any goal is scored in the next 10 minutes. In this league a typical
   10-minute spell has about one chance in five. Go near 0.10 when the last 10 minutes had no shots and the game is
   flat, 0.35 or more when 4+ shots or a big chance just happened, in between otherwise. Do not default to 0.30.

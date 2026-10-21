@@ -240,6 +240,25 @@ Foundry, Best Azure Cloud Native Integration.
   `ForecastLedger.tsx` on the Analyst seat (full) and Control room
   (compact), forecast line in the analyst lower third, Judge row + stats in
   the Control room pipeline map. 126 backend tests.
+  **Oct 22, raising the credibility (measured)**: harness
+  `agents/evaluate_forecasts.py` (real Analyst, same seeds, match-order loop
+  with the Judge, ablation flags `--no-loop` / `--no-judge`, prompt variants
+  via `--instructions`). Baseline on seeds 5000-5009 (66 forecasts): Analyst
+  0.60 vs naive 0.62; it picked the possession leader 80 % of the time, P(goal)
+  stuck at 0.30, named a player 91 % and hit 27 %. League base rate measured:
+  2.1 goals/match, P(goal in 10') = 0.20 (constant fixed). Naive now also
+  names the top shooter so far, so both make three claims. Levers:
+  Interpreter keeps per-minute marks → `snapshot["recent"]` (last-10-minute
+  xG/shots/pressures/passes per team + shooters) and `top_shooters`;
+  `game_state` (leading/trailing, minutes left); `analyst_track_record`
+  (ledger summary + last 3 verdicts with the Judge's lessons) injected into
+  the moment context (the verdict lane writes the Judge's words back into the
+  ledger); instructions rewritten (dominance = xG, default to the xG leader
+  unless the last 10 minutes clearly say otherwise, goal odds tied to recent
+  shots, watch = recent/top shooters). Results on the same matches: v2
+  window only 0.61 / with loop 0.64 / v3 with the xG-default rule 0.66 vs
+  naive 0.64 (dominance 0.64, watch 0.41). Table in the README. Live stream
+  verified after the change (7 insights, 6 verdicts).
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the
