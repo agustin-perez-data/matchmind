@@ -95,7 +95,10 @@ def main() -> None:
         model = RiskModel(acwr=acwr, minutes=minutes, effort=effort, sprint_density=sprint)
         m = evaluate_matches(args.matches, args.seed0, model=model, threshold=args.threshold)["model"]
         rows.append((m["top3_rate"], -m["mean_rank_pct"], acwr, minutes, effort, sprint, m))
+        print(f"  done acwr={acwr} minutes={minutes} effort={effort} sprint={sprint}: top3={m['top3_rate']:.3f} "
+              f"rank%={m['mean_rank_pct']:.1f} R={m['recall']:.3f} alerts/match={m['alerts_per_match']}", flush=True)
     rows.sort(key=lambda r: (-r[0], -r[1]))
+    print("\nBEST (by top-3 rate, then mean rank %):")
     for top3, neg_rank, acwr, minutes, effort, sprint, m in rows[:12]:
         print(f"top3={top3:.3f} (random {m['top3_random_rate']:.3f}) rank%={-neg_rank:5.1f}  "
               f"acwr={acwr} minutes={minutes} effort={effort} sprint={sprint}  "

@@ -11,21 +11,37 @@
   header label { font-size: 13px; color: #aab3d0; }
   select, input, button { background: #1b2447; color: #fff; border: 1px solid #3a4780; border-radius: 6px; padding: 6px 8px; font-size: 14px; }
   button { cursor: pointer; background: #2d6cdf; border-color: #2d6cdf; }
-  #score { font-size: 28px; font-weight: 700; margin-left: auto; letter-spacing: 1px; }
+  #score { font-size: 26px; font-weight: 700; margin-left: auto; letter-spacing: 1px; }
   #clock { font-size: 14px; color: #aab3d0; margin-left: 8px; }
-  main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 18px; }
-  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
-  section { background: #121a33; border: 1px solid #27315a; border-radius: 10px; padding: 12px 14px; min-height: 60vh; overflow: auto; max-height: 80vh; }
-  h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8fa0d8; }
+  #stats { font-size: 13px; color: #aab3d0; padding: 8px 18px 0; }
+  main { display: grid; grid-template-columns: 1.2fr 1fr 0.8fr; gap: 14px; padding: 14px 18px; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  section { background: #121a33; border: 1px solid #27315a; border-radius: 10px; padding: 12px 14px; overflow: auto; max-height: 82vh; }
+  h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #8fa0d8; }
+  h3 { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #6f7fb8; }
   .ev { font-size: 13px; padding: 3px 0; border-bottom: 1px solid #1c2548; color: #c3cae0; }
   .ev.goal { color: #ffd166; font-weight: 700; font-size: 15px; }
   .card { border-left: 4px solid #2d6cdf; background: #0f1630; padding: 10px 12px; margin-bottom: 12px; border-radius: 6px; }
   .card.p5 { border-color: #ffd166; }
+  .card.coach { border-color: #2dd4bf; }
+  .card.alert { border-color: #f97316; }
   .card .when { font-size: 12px; color: #8fa0d8; }
   .card .narr { font-size: 17px; margin: 6px 0; }
   .card .why { font-size: 13px; color: #c3cae0; }
   .card .dir { font-size: 12px; color: #8fa0d8; margin-top: 6px; }
-  #stats { font-size: 13px; color: #aab3d0; padding: 0 18px 12px; }
+  .bar { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 4px 0; }
+  .bar .name { width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar .track { flex: 1; display: block; height: 8px; background: #1c2548; border-radius: 4px; overflow: hidden; }
+  .bar .fill { display: block; height: 100%; background: linear-gradient(90deg, #2dd4bf, #f97316, #ef4444); }
+  .bar .val { width: 40px; text-align: right; color: #aab3d0; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: right; padding: 3px 4px; border-bottom: 1px solid #1c2548; }
+  th:first-child, td:first-child { text-align: left; color: #aab3d0; }
+  .cmp { display: grid; grid-template-columns: auto 1fr 1fr; gap: 2px 10px; font-size: 13px; margin-top: 6px; }
+  .cmp .h { color: #8fa0d8; font-size: 11px; text-transform: uppercase; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; background: #27315a; margin-left: 6px; }
+  .pill.high { background: #7f1d1d; } .pill.elevated { background: #7c2d12; }
 </style>
 </head>
 <body>
@@ -42,33 +58,50 @@
   </label>
   <label>Language <select id="lang"><option value="es">es</option><option value="en">en</option></select></label>
   <label>Player <input id="player" placeholder="THU-15" style="width:80px"></label>
+  <label><input id="agents" type="checkbox" checked> agents</label>
+  <label><input id="coach" type="checkbox" checked> coach</label>
   <button id="start">Start</button>
   <span id="score">0 - 0</span><span id="clock">00:00</span>
 </header>
 <div id="stats"></div>
 <main>
-  <section><h2>Agents (Narrator · Analyst · Director)</h2><div id="insights"></div></section>
+  <section><h2>Agents (Narrator · Analyst · Director · Coach)</h2><div id="insights"></div></section>
+  <section>
+    <h2>Load &amp; Risk Monitor</h2>
+    <h3>Highest hazard on the pitch</h3><div id="hazards"><div class="ev">waiting for the first physical samples…</div></div>
+    <h3>Active risk windows (next 15')</h3><div id="windows"><div class="ev">none</div></div>
+    <h3>Scorecard vs ground truth</h3><div id="scorecard"><div class="ev">no injury concerns yet</div></div>
+    <h3>Alerts &amp; concerns</h3><div id="alerts"></div>
+  </section>
   <section><h2>Event feed</h2><div id="events"></div></section>
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
 let ws = null, names = {};
 
+// URL params prefill the controls, e.g. /live?speed=120&mode=casual&lang=en&agents=0&autostart=1
+const params = new URLSearchParams(location.search);
+for (const id of ["speed", "mode", "lang", "player"]) if (params.has(id)) $(id).value = params.get(id);
+for (const id of ["agents", "coach"]) if (params.has(id)) $(id).checked = params.get(id) !== "0";
+
 fetch("/matches").then(r => r.json()).then(ms => {
   for (const m of ms) { const o = document.createElement("option"); o.value = m.match_id; o.textContent = `${m.home} vs ${m.away}`; $("match").appendChild(o); }
+  if (params.has("match")) $("match").value = params.get("match");
+  if (params.get("autostart") === "1") $("start").click();
 });
 
-function teamName(id) { return names[id] || id; }
+const teamName = (id) => names[id] || id;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 
 function renderStats(s) {
   const h = s.home_id, a = s.away_id, th = s.teams[h], ta = s.teams[a];
   $("score").textContent = `${teamName(h)} ${s.score[h]} - ${s.score[a]} ${teamName(a)}`;
   $("clock").textContent = s.clock;
-  $("stats").textContent = `xG ${th.xg} - ${ta.xg} · possession ${th.possession_pct}% - ${ta.possession_pct}% · shots ${th.shots} - ${ta.shots} · momentum ${s.momentum > 0 ? "+" : ""}${s.momentum} (+ = home) · risk alerts ${s.risk_alerts.length}`;
+  $("stats").textContent = `xG ${th.xg} - ${ta.xg} · possession ${th.possession_pct}% - ${ta.possession_pct}% · shots ${th.shots} - ${ta.shots} · momentum ${s.momentum > 0 ? "+" : ""}${s.momentum} (+ = home) · ACWR alerts ${s.risk_alerts.length}`;
 }
 
 function addEvent(e) {
-  if (!["goal", "shot", "card", "injury_concern", "substitution", "half_time", "full_time", "kickoff", "second_half_kickoff"].includes(e.type)) return;
+  if (!["goal", "shot", "card", "injury_concern", "substitution", "tactical_change", "half_time", "full_time", "kickoff", "second_half_kickoff"].includes(e.type)) return;
   const d = document.createElement("div");
   d.className = "ev " + e.type;
   d.textContent = `${e.clock}  ${e.type.toUpperCase()}  ${e.team_id || ""}  ${e.player_name || ""} ${e.outcome ? "(" + e.outcome + (e.xg ? ", xG " + e.xg : "") + ")" : ""} ${e.detail || ""}`;
@@ -80,27 +113,89 @@ function addInsight(x) {
   const d = document.createElement("div");
   const pr = v.decision ? v.decision.priority : 3;
   d.className = "card p" + pr;
-  d.innerHTML = `<div class="when">${x.clock} · ${x.moment.summary} · ${x.latency_ms} ms</div>`
-    + (v.decision ? `<div class="narr"><b>${v.decision.headline}</b></div>` : "")
-    + (v.narration ? `<div class="narr">🎙️ ${v.narration.text}</div>` : "")
-    + (x.analyst ? `<div class="why">🧠 <b>${x.analyst.headline}</b> — ${x.analyst.why_it_matters} <i>(${x.analyst.key_stat})</i></div>` : "")
-    + (v.decision ? `<div class="dir">🎬 show: ${v.decision.show.join(", ")} · priority ${pr}${v.decision.personalized_note ? " · " + v.decision.personalized_note : ""}</div>` : "")
-    + (x.errors && x.errors.length ? `<div class="dir">⚠️ ${x.errors.join("; ")}</div>` : "");
+  d.innerHTML = `<div class="when">${esc(x.clock)} · ${esc(x.moment.summary)} · ${x.latency_ms} ms</div>`
+    + (v.decision ? `<div class="narr"><b>${esc(v.decision.headline)}</b></div>` : "")
+    + (v.narration ? `<div class="narr">🎙️ ${esc(v.narration.text)}</div>` : "")
+    + (x.analyst ? `<div class="why">🧠 <b>${esc(x.analyst.headline)}</b> — ${esc(x.analyst.why_it_matters)} <i>(${esc(x.analyst.key_stat)})</i></div>` : "")
+    + (v.decision ? `<div class="dir">🎬 show: ${v.decision.show.join(", ")} · priority ${pr}${v.decision.personalized_note ? " · " + esc(v.decision.personalized_note) : ""}</div>` : "")
+    + (x.errors && x.errors.length ? `<div class="dir">⚠️ ${esc(x.errors.join("; "))}</div>` : "");
   $("insights").prepend(d);
+}
+
+function addCoach(x) {
+  const p = x.proposal, b = x.branch, d = document.createElement("div");
+  d.className = "card coach";
+  let html = `<div class="when">${esc(x.clock)} · COACH · trigger: ${esc(x.trigger)} · ${esc(x.player?.name)} · ${x.latency_ms} ms</div>`;
+  if (p) {
+    const what = p.action === "substitution" ? `substitution: ${esc(p.player_off_id)} off → ${esc(p.player_on_id || "same-position bench")} at ${p.minute}'`
+      : p.action === "tactic" ? `tactic: press ${p.press_intensity ?? "-"} / style ${p.style ?? "-"} at ${p.minute}'` : "hold (no change)";
+    html += `<div class="narr">🧑‍🏫 <b>${what}</b> <span class="pill">urgency ${p.urgency}</span></div><div class="why">${esc(p.rationale)}</div>`;
+  }
+  if (b) {
+    const h = names.home_id, a = names.away_id;
+    const fmt = (s) => `${s.score[h]}-${s.score[a]}`;
+    html += `<div class="cmp"><span class="h"></span><span class="h">actual</span><span class="h">what-if (${esc(b.status)})</span>`
+      + `<span>score</span><span>${fmt(b.actual)}</span><span><b>${fmt(b.branch)}</b></span>`
+      + `<span>xG</span><span>${b.actual.xg[h]} - ${b.actual.xg[a]}</span><span>${b.branch.xg[h]} - ${b.branch.xg[a]}</span>`
+      + `<span>injury concerns</span><span>${b.actual.injury_concerns_total}</span><span>${b.branch.injury_concerns_total}</span>`
+      + (b.player_off ? `<span>${esc(b.player_off.name)} minutes</span><span>${b.player_off.minutes_actual}</span><span>${b.player_off.minutes_branch}</span>` : "")
+      + `</div><div class="dir">branch ${esc(b.branch_id)} · diverges at ${b.divergence_minute}'</div>`;
+  }
+  if (x.errors && x.errors.length) html += `<div class="dir">⚠️ ${esc(x.errors.join("; "))}</div>`;
+  d.innerHTML = html;
+  $("insights").prepend(d);
+}
+
+function renderRisk(r) {
+  $("hazards").innerHTML = r.hazards_top.map(h =>
+    `<div class="bar"><span class="name">${esc(h.name)} <span style="color:#6f7fb8">${esc(h.team_id)}</span></span><span class="track"><span class="fill" style="width:${Math.round(h.hazard * 100)}%"></span></span><span class="val">${h.hazard.toFixed(2)}</span></div>`).join("") || '<div class="ev">—</div>';
+  $("windows").innerHTML = r.active_windows.map(w =>
+    `<div class="ev">${esc(w.name)} (${esc(w.team_id)}) <span class="pill ${w.level}">${w.level}</span> since ${w.open_minute}' · hazard ${w.hazard} · ACWR ${w.acwr_live}</div>`).join("") || '<div class="ev">none</div>';
+  const m = r.scorecard.model, b = r.scorecard.baseline;
+  const pct = (x) => (x * 100).toFixed(0) + "%";
+  $("scorecard").innerHTML = `<table><tr><th></th><th>model</th><th>baseline</th></tr>`
+    + `<tr><td>alerts</td><td>${m.alerts}</td><td>${b.alerts}</td></tr>`
+    + `<tr><td>concerns covered</td><td>${m.covered}/${m.concerns} (${pct(m.recall)})</td><td>${b.covered}/${b.concerns} (${pct(b.recall)})</td></tr>`
+    + `<tr><td>precision</td><td>${pct(m.precision)}</td><td>${pct(b.precision)}</td></tr>`
+    + `<tr><td>lead time</td><td>${m.mean_lead_minutes ?? "-"}'</td><td>${b.mean_lead_minutes ?? "-"}'</td></tr>`
+    + `<tr><td>top-3 hit rate</td><td>${pct(m.top3_rate)} <span style="color:#6f7fb8">(random ${pct(m.top3_random_rate)})</span></td><td>${pct(b.top3_rate)}</td></tr>`
+    + `</table><div class="dir">${esc(r.scorecard.baseline_rule)}</div>`;
+}
+
+function addAlert(a) {
+  const d = document.createElement("div");
+  d.className = "card alert";
+  d.innerHTML = `<div class="when">${esc(a.clock)} · RISK WINDOW <span class="pill ${a.level}">${a.level}</span></div><div class="why">${esc(a.name)} (${esc(a.team_id)}, ${esc(a.position)}) · hazard ${a.hazard} · ${a.minutes_played}' · ACWR ${a.acwr_live} · effort ${a.effort_ratio_recent ?? "-"}</div>`;
+  $("alerts").prepend(d);
+}
+
+function addConcern(e, covered) {
+  const d = document.createElement("div");
+  d.className = "ev";
+  d.innerHTML = `${esc(e.clock)} 🩹 <b>${esc(e.player_name)}</b> ${esc(e.detail)}`;
+  $("alerts").prepend(d);
 }
 
 $("start").onclick = () => {
   if (ws) ws.close();
-  $("events").innerHTML = ""; $("insights").innerHTML = "";
-  const q = new URLSearchParams({ speed: $("speed").value, mode: $("mode").value, lang: $("lang").value });
+  for (const id of ["events", "insights", "alerts"]) $(id).innerHTML = "";
+  const q = new URLSearchParams({ speed: $("speed").value, mode: $("mode").value, lang: $("lang").value,
+    agents: $("agents").checked ? "1" : "0", coach: $("coach").checked ? "1" : "0" });
   if ($("player").value) q.set("player", $("player").value);
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws/matches/${$("match").value}?${q}`);
   ws.onmessage = (m) => {
     const x = JSON.parse(m.data);
-    if (x.kind === "meta") { names = Object.fromEntries(Object.entries(x.meta.teams).map(([k, t]) => [k, t.short_name])); if (!x.agents) addInsight({clock: "--", moment: {summary: "LLM agents are OFF (no Foundry credentials)"}, latency_ms: 0, viewers: {x: {}}, errors: []}); }
-    if (x.kind === "event") { addEvent(x.event); if (x.state) renderStats(x.state); }
+    if (x.kind === "meta") {
+      names = Object.fromEntries(Object.entries(x.meta.teams).map(([k, t]) => [k, t.short_name]));
+      names.home_id = x.meta.home_id; names.away_id = x.meta.away_id;
+      if (!x.agents) addInsight({clock: "--", moment: {summary: "LLM agents are OFF"}, latency_ms: 0, viewers: {x: {}}, errors: []});
+    }
+    if (x.kind === "event") { addEvent(x.event); if (x.event.type === "injury_concern") addConcern(x.event); if (x.state) renderStats(x.state); }
     if (x.kind === "insight") addInsight(x);
+    if (x.kind === "coach") addCoach(x);
+    if (x.kind === "risk") renderRisk(x);
+    if (x.kind === "risk_alert") addAlert(x);
     if (x.kind === "end") { renderStats(x.state); const d = document.createElement("div"); d.className = "ev goal"; d.textContent = "— stream finished —"; $("events").prepend(d); }
   };
   ws.onerror = () => alert("WebSocket error: is the server running?");
