@@ -89,7 +89,12 @@ Offline evaluation over 40 simulated matches (`python -m matchmind.risk.evaluate
 
 Honest reading: the monitor ranks risk far better than chance or a minutes
 heuristic, but most windows still pass without a knock. That is what the
-scorecard is for.
+scorecard is for. The hazard is a ranking score, not a probability: over 40
+matches and 604 windows, those opened above 0.9 saw a knock 27 % of the time,
+those below 0.8 almost never (`python -m matchmind.risk.evaluate
+--calibration`). The bench seat draws that curve, with the current match's
+windows on top, and hands the staff a post-match report (knocks and warning
+times, Coach proposals with their branches, Analyst credibility) as JSON.
 
 **Ground truth, stated openly.** The simulator's per-minute knock hazard is
 convex in latent fatigue, spikes when the pre-match ACWR exceeds 1.3, and is

@@ -146,3 +146,34 @@ def test_each_concern_is_recorded_with_coverage(monitored, events):
     recorded = monitor.summary()["concerns"]
     assert [c["player_id"] for c in recorded] == [e["player_id"] for e in events if e["type"] == "injury_concern"]
     assert all(set(c) >= {"player_id", "minute", "covered", "lead_minutes", "baseline_covered"} for c in recorded)
+
+
+def test_calibration_bins_windows_by_opening_hazard_and_counts_hits():
+    from matchmind.risk.evaluate import calibration
+
+    report = calibration(n=3, seed0=1000)
+    assert report["matches"] == 3 and [b["lo"] for b in report["bins"]] == [0.5, 0.6, 0.7, 0.8, 0.9]
+    assert report["bins"][-1]["hi"] == 1.0
+    for who in ("model", "baseline"):
+        total = sum(b[who]["n"] for b in report["bins"])
+        assert total == report[who]["windows"] and sum(b[who]["hits"] for b in report["bins"]) == report[who]["hits"]
+        for b in report["bins"]:
+            s = b[who]
+            if s["n"]:
+                assert b["lo"] <= s["mean_hazard"] < b["hi"] + 1e-9 and 0 <= s["hit_rate"] <= 1 and s["hits"] <= s["n"]
+            else:
+                assert s["hit_rate"] is None and s["mean_hazard"] is None
+    assert report["model"]["windows"] > 0
+
+
+def test_track_windows_keep_hits_for_calibration(meta, events):
+    from matchmind.interpreter.state import MatchState
+    from matchmind.risk.monitor import RiskMonitor
+
+    state, monitor = MatchState(meta), RiskMonitor(meta)
+    for e in events:
+        state.apply(e)
+        monitor.observe(e, state.snapshot())
+    windows = monitor.model_track.windows()
+    assert windows and all({"player_id", "open_minute", "hazard", "level", "hit"} <= set(w) for w in windows)
+    assert sum(1 for w in windows if w["hit"]) == monitor.model_track.scorecard()["true_alerts"]

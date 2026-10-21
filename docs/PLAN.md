@@ -284,6 +284,17 @@ Foundry, Best Azure Cloud Native Integration.
   profile plus `analyst:<lang>` and renders `TwoViewers.tsx`: per viewer the
   Director headline, the four cards shown/struck through, priority, the
   Narrator line and any personal note. Verified live on IRA-MRV-21.
+  **Oct 22, five stages labelled (item 4) + reliability and bench report
+  (item 5)**: the Control room pipeline map carries stage bands (Ingest,
+  Interpret, Explain, Personalize, Render); README table updated.
+  `risk/evaluate.py --calibration --out eval/risk_calibration.json` bins
+  windows by opening hazard vs observed knock rate (40 matches, 604 windows:
+  0 % below 0.8, 1.5 % at 0.8-0.9, 27 % above 0.9; overall 8 %); the hazard
+  is presented as a ranking score, not a probability. A copy ships in
+  `frontend/src/data/` and `ReliabilityBlock.tsx` draws it on the bench seat
+  with this match's windows as amber bars. `BenchReport.tsx` appears at full
+  time on the bench seat: knocks with warning times, Coach proposals with
+  branch outcomes, Analyst credibility, Download JSON.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

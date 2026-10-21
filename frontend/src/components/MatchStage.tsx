@@ -11,6 +11,8 @@ import { ControlRoom } from './ControlRoom'
 import { FollowBlock } from './FollowBlock'
 import { ForecastLedger } from './ForecastLedger'
 import { TwoViewers } from './TwoViewers'
+import { ReliabilityBlock } from './ReliabilityBlock'
+import { BenchReport } from './BenchReport'
 
 type Props = {
   favoritePlayerId: string | null
@@ -103,11 +105,13 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
       <main key="bench" className="grid gap-3 px-3 pb-6 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_470px]">
         <div className="stagger flex min-w-0 flex-col gap-3">
           <div className="enter" style={{ ['--i' as string]: 2 }}><RiskBlock meta={meta} risk={state.risk} alerts={state.alerts} expanded /></div>
-          <div className="enter" style={{ ['--i' as string]: 3 }}>{rail}</div>
+          <div className="enter" style={{ ['--i' as string]: 3 }}><BenchReport meta={meta} snapshot={state.snapshot} risk={state.risk} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} ended={ended} /></div>
+          <div className="enter" style={{ ['--i' as string]: 4 }}>{rail}</div>
         </div>
         <aside className="stagger flex min-w-0 flex-col gap-3">
           <div className="enter" style={{ ['--i' as string]: 2 }}><CoachBlock meta={meta} coach={latestCoach} onShowBranch={onSelectBranch} snapshot={state.snapshot} ended={ended} /></div>
-          <div className="enter" style={{ ['--i' as string]: 3 }}>{pitch('sm')}</div>
+          <div className="enter" style={{ ['--i' as string]: 3 }}><ReliabilityBlock risk={state.risk} alerts={state.alerts} /></div>
+          <div className="enter" style={{ ['--i' as string]: 4 }}>{pitch('sm')}</div>
         </aside>
       </main>
     </>

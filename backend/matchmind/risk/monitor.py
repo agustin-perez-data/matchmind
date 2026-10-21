@@ -131,6 +131,11 @@ class Track:
         self._expire(minute)
         return [{k: v for k, v in w.items() if k != "hit"} for w in self._windows.values()]
 
+    def windows(self) -> list[dict]:
+        """Every window opened so far, with its hazard at opening and whether a knock followed (calibration data)."""
+        return [{"player_id": w["player_id"], "open_minute": w["open_minute"], "hazard": w["hazard"], "level": w["level"], "hit": w["hit"]}
+                for w in self._alerts]
+
     def hazards(self, minute: int) -> dict[str, float]:
         return {pid: h for pid, (m, h) in self._last.items() if minute - m <= self.ranking_window}
 
