@@ -48,22 +48,42 @@ def chat_client(tier: str = "fast"):
 def build_coach(match_tools) -> "CoachPipeline":
     """Coach agent (smart tier) + deterministic branch simulation through MatchTools."""
     from matchmind.agents.coach import COACH_INSTRUCTIONS, CoachAgent, CoachPipeline
+    from matchmind.agents.schemas import CoachProposal
+    from matchmind.agents.tracing import TRACE_MIDDLEWARE
 
     agent = chat_client("smart").as_agent(
         name="Coach", instructions=COACH_INSTRUCTIONS,
         tools=[match_tools.get_player_workload, match_tools.get_risk_windows],
-        default_options={"temperature": 0.3},
+        default_options={"temperature": 0.3, "response_format": CoachProposal},
+        middleware=TRACE_MIDDLEWARE,
     )
     return CoachPipeline(CoachAgent(agent), match_tools)
 
 
-def build_pipeline(tools: list | None = None) -> MomentPipeline:
-    """The three LLM agents on Foundry. `tools` are given to the Analyst only."""
+def build_pipeline(tools: list | None = None):
+    """The three LLM agents on Foundry, orchestrated with Agent Framework workflows.
+
+    `tools` are given to the Analyst only. Set MATCHMIND_ORCHESTRATION=gather to use the
+    plain asyncio pipeline instead of the ConcurrentBuilder fan-out.
+    """
+    from matchmind.agents.orchestration import FrameworkMomentPipeline
+    from matchmind.agents.schemas import AnalystInsight, DirectorDecision, Narration
+    from matchmind.agents.tracing import TRACE_MIDDLEWARE
+
     smart, fast = chat_client("smart"), chat_client("fast")
     analyst = smart.as_agent(
         name="Analyst", instructions=ANALYST_INSTRUCTIONS, tools=tools or None,
-        default_options={"temperature": 0.4},
+        default_options={"temperature": 0.4, "response_format": AnalystInsight}, middleware=TRACE_MIDDLEWARE,
     )
-    narrator = fast.as_agent(name="Narrator", instructions=NARRATOR_INSTRUCTIONS, default_options={"temperature": 0.8})
-    director = fast.as_agent(name="Director", instructions=DIRECTOR_INSTRUCTIONS, default_options={"temperature": 0.2})
-    return MomentPipeline(AnalystAgent(analyst), NarratorAgent(narrator), DirectorAgent(director))
+    narrator = fast.as_agent(
+        name="Narrator", instructions=NARRATOR_INSTRUCTIONS,
+        default_options={"temperature": 0.8, "response_format": Narration}, middleware=TRACE_MIDDLEWARE,
+    )
+    director = fast.as_agent(
+        name="Director", instructions=DIRECTOR_INSTRUCTIONS,
+        default_options={"temperature": 0.2, "response_format": DirectorDecision}, middleware=TRACE_MIDDLEWARE,
+    )
+    agents = (AnalystAgent(analyst), NarratorAgent(narrator), DirectorAgent(director))
+    if os.environ.get("MATCHMIND_ORCHESTRATION", "framework").lower() == "gather":
+        return MomentPipeline(*agents)
+    return FrameworkMomentPipeline(*agents)

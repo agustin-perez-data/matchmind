@@ -14,6 +14,9 @@ export function SeatPicker({ onPick, disabled, matches, matchId, onMatch }: Prop
         predicts who gets hurt from workload alone and is scored against what actually happens; a Coach proposes a change and the
         engine shows the match that would have followed.
       </p>
+      <p className="mt-4 max-w-prose text-base text-fg-2">
+        <span className="text-teal">For the bench:</span> injury-risk warnings about 25 minutes ahead, from workload any club already measures, graded live against the knocks that happen. Decision support, not medical advice.
+      </p>
       <div className="mt-10 flex flex-wrap items-end justify-between gap-3">
         <p className="display text-xl font-extrabold uppercase tracking-wider text-muted">Pick your seat</p>
         <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted">Match
@@ -22,7 +25,7 @@ export function SeatPicker({ onPick, disabled, matches, matchId, onMatch }: Prop
           </select>
         </label>
       </div>
-      <div className="stagger mt-3 grid gap-3 md:grid-cols-3">
+      <div className="stagger mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {SEAT_ORDER.map((seat, i) => {
           const s = SEATS[seat]
           return (

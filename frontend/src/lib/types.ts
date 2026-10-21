@@ -128,8 +128,29 @@ export type DirectorDecision = {
   personalized_note: string | null
 }
 
+export type TraceEvent = {
+  t: number
+  kind: 'stage' | 'stage_end' | 'agent_start' | 'agent_end' | 'agent_error' | 'tool_call' | 'tool_result' | 'tool_error' | 'fallback'
+  agent: string | null
+  stage?: string
+  tool?: string
+  args?: Record<string, unknown>
+  latency_ms?: number
+  tokens?: { input: number | null; output: number | null } | null
+  error?: string
+  reason?: string
+  participants?: string[]
+  trigger?: string
+  action?: string
+  minute?: number
+  branch_id?: string
+  status?: string
+}
+
 export type InsightMsg = {
   kind: 'insight'
+  trace?: TraceEvent[]
+  orchestration?: string
   event_id: number
   clock: string
   score: Record<string, number>
@@ -184,6 +205,7 @@ export type BranchSummary = {
 
 export type CoachMsg = {
   kind: 'coach'
+  trace?: TraceEvent[]
   trigger: 'risk_alert' | 'injury_concern'
   trigger_detail?: Record<string, unknown>
   clock: string

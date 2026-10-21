@@ -22,6 +22,14 @@ Explain why THIS moment matters to someone watching, like a sharp TV analyst:
 - Use the get_player_workload / get_match_state tools only if the context lacks a number you need."""
 
 
+def analyst_prompt(context: dict) -> str:
+    return (
+        "Key moment context (JSON):\n"
+        + json.dumps(context, ensure_ascii=False)
+        + "\n\nExplain why this moment matters and what it tells us about the game."
+    )
+
+
 class AnalystAgent:
     """Thin wrapper around an Agent Framework agent returning AnalystInsight."""
 
@@ -29,12 +37,7 @@ class AnalystAgent:
         self.agent = agent
 
     async def explain(self, context: dict) -> AnalystInsight:
-        prompt = (
-            "Key moment context (JSON):\n"
-            + json.dumps(context, ensure_ascii=False)
-            + "\n\nExplain why this moment matters and what it tells us about the game."
-        )
-        response = await self.agent.run(prompt, options={"response_format": AnalystInsight})
+        response = await self.agent.run(analyst_prompt(context), options={"response_format": AnalystInsight})
         if response.value is None:
             raise ValueError(f"Analyst returned no structured output: {getattr(response, 'text', '')[:200]!r}")
         return response.value

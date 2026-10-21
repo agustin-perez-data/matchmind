@@ -1,9 +1,16 @@
 import type { ViewerProfile } from './types'
 
 /** Where you sit decides what the broadcast shows you and how the agents talk to you. */
-export type Seat = 'fan' | 'analyst' | 'bench'
+export type Seat = 'fan' | 'analyst' | 'bench' | 'control'
 
 export const SEATS: Record<Seat, { label: string; tagline: string; bullets: string[]; mode: ViewerProfile['mode']; rule: string }> = {
+  control: {
+    label: 'Control room',
+    tagline: 'Watch the agents work.',
+    bullets: ['Every key moment as a swimlane: Analyst and Narrator in parallel, Director after', 'Tool calls, latencies and the orchestration behind them', 'What the Director showed and hid, and why'],
+    mode: 'commentator',
+    rule: '#c084fc',
+  },
   fan: {
     label: 'Fan',
     tagline: 'Live commentary, the ball, the goals.',
@@ -27,10 +34,10 @@ export const SEATS: Record<Seat, { label: string; tagline: string; bullets: stri
   },
 }
 
-export const SEAT_ORDER: Seat[] = ['fan', 'analyst', 'bench']
+export const SEAT_ORDER: Seat[] = ['fan', 'analyst', 'bench', 'control']
 
 export function parseSeat(value: string | null): Seat | null {
-  return value === 'fan' || value === 'analyst' || value === 'bench' ? value : null
+  return value === 'fan' || value === 'analyst' || value === 'bench' || value === 'control' ? value : null
 }
 
 export function profileForSeat(seat: Seat, language: ViewerProfile['language'], favoritePlayerId: string | null): ViewerProfile {

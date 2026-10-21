@@ -81,6 +81,10 @@ async def main_async(args: argparse.Namespace) -> int:
                       + (f" note={d['personalized_note']!r}" if d.get("personalized_note") else ""))
         for err in result["errors"]:
             print(f"  ERROR {err}")
+        print(f"  ORCHESTRATION {result.get('orchestration', 'direct')}")
+        for ev in result.get("trace", []):
+            extra = {k: v for k, v in ev.items() if k not in ("t", "kind", "agent")}
+            print(f"    {ev['t']:>6} ms  {ev['kind']:<11} {ev.get('agent') or '':<9} {extra}")
     return 0
 
 

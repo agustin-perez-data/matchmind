@@ -35,17 +35,24 @@ def _favorite(context: dict, profile: ViewerProfile) -> dict | None:
     return {"player_id": profile.favorite_player_id, "involved_in_this_moment": False}
 
 
+def narrator_brief(context: dict, profile: ViewerProfile) -> str:
+    """The viewer-specific part of the Narrator's prompt (shared with the concurrent orchestration)."""
+    style = STYLE_GUIDES[(profile.mode, profile.language)]
+    return (
+        f"Viewer profile: mode={profile.mode}, language={profile.language}, "
+        f"favorite_player={json.dumps(_favorite(context, profile), ensure_ascii=False)}\n"
+        f"Style guide: {style}\n"
+    )
+
+
 class NarratorAgent:
     def __init__(self, agent):
         self.agent = agent
 
     async def narrate(self, context: dict, profile: ViewerProfile) -> Narration:
-        style = STYLE_GUIDES[(profile.mode, profile.language)]
         prompt = (
-            f"Viewer profile: mode={profile.mode}, language={profile.language}, "
-            f"favorite_player={json.dumps(_favorite(context, profile), ensure_ascii=False)}\n"
-            f"Style guide: {style}\n\n"
-            "Key moment context (JSON):\n"
+            narrator_brief(context, profile)
+            + "\nKey moment context (JSON):\n"
             + json.dumps(context, ensure_ascii=False)
             + "\n\nWrite the commentary line now."
         )

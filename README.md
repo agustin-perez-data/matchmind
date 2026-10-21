@@ -114,6 +114,26 @@ latency stay predictable (~3-6 s per moment). Try them from the CLI:
 .venv/Scripts/python -m matchmind.agents.demo --limit 3 --mode analyst --mode commentator:es --mode player_focus:en:THU-15
 ```
 
+## Who would use this
+
+- **Performance and medical staff**: the Risk Monitor turns the workload they
+  already track (GPS distance, sprints, 28-day load, ACWR) into warnings with
+  a lead time, and keeps an honest scorecard of how often it was right. Nothing
+  in the method depends on the data being synthetic.
+- **The coaching bench**: the Coach agent proposes a substitution or a tactical
+  change on a high-risk window, and the engine shows the counterfactual before
+  the decision is made.
+- **Broadcasters and fans**: the same match personalised by seat and language,
+  with every agent decision traceable in the Control room.
+
+## Orchestration
+
+Key moments run as a Microsoft Agent Framework workflow: `ConcurrentBuilder`
+fans the moment out to the Analyst and the Narrator, the Director takes their
+structured outputs. Middleware records every agent run and tool call into a
+trace that the Control room seat renders as swimlanes. If the workflow fails,
+the moment is served through direct calls and the trace says so.
+
 ## Responsible AI note
 
 The Load & Risk Monitor is **decision support, not medical advice**. It flags

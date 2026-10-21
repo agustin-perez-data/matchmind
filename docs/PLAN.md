@@ -149,6 +149,18 @@ Foundry, Best Azure Cloud Native Integration.
   (`_possession_chain` carries `y`; shots use the ball's `y`), test in
   `test_engine.py`. Data now holds two demo matches: THU-NBF-40 (1-2, 4 knocks,
   late goal; the default in the catalogue) and THU-NBF-42 (test fixture).
+  **Oct 22, orchestration + Control room**: key moments now run through
+  `agents/orchestration.py` (`FrameworkMomentPipeline`: Agent Framework
+  `ConcurrentBuilder` fan-out Analyst + Narrator, Director fan-in; structured
+  outputs via `default_options.response_format`; direct-call fallback;
+  `MATCHMIND_ORCHESTRATION=gather` switches back). `agents/tracing.py`: agent +
+  function middleware record runs, latency, tool calls (attributed via a
+  contextvar) and tokens into a per-moment trace carried in `insight` /
+  `coach` messages. Frontend: 4th seat "Control room" (`ControlRoom.tsx`):
+  pipeline map lit by the latest message, per-moment swimlanes, Director
+  decisions. Entry page carries the real-world impact line (bench warnings
+  ~25' ahead, graded live). Verified live: Analyst calls tools on its own,
+  fan-out ~2.4-4 s, Director ~0.8-1.3 s.
   Deploy plan agreed in principle, NOT yet authorised: ACR Basic + Container
   Apps scale-to-zero (min 1 replica only before submission) + Static Web Apps
   Free, ~USD 20 total through Nov 10.

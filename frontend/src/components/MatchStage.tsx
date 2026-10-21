@@ -7,6 +7,7 @@ import { PitchStage } from './PitchStage'
 import { MomentsRail } from './MomentsRail'
 import { CoachBlock, RiskBlock, StatsBlock } from './SidePanels'
 import { WhatIfBand } from './WhatIfBand'
+import { ControlRoom } from './ControlRoom'
 
 type Props = {
   seat: Seat
@@ -39,6 +40,24 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
           <div className="enter" style={{ ['--i' as string]: 1 }}>{pitch('lg')}</div>
           <div className="enter" style={{ ['--i' as string]: 2 }}><Momentum meta={meta} snapshot={state.snapshot} /></div>
           <div className="enter" style={{ ['--i' as string]: 3 }}>{rail}</div>
+        </main>
+      </>
+    )
+  }
+
+  if (seat === 'control') {
+    return (
+      <>
+        {band}
+        <main key="control" className="grid gap-3 px-3 pb-6 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="stagger flex min-w-0 flex-col gap-3">
+            <div className="enter" style={{ ['--i' as string]: 1 }}><ControlRoom meta={meta} feed={state.feed} risk={state.risk} agentsOn={state.agentsOn} coachOn={state.coachOn} /></div>
+          </div>
+          <aside className="stagger flex min-w-0 flex-col gap-3">
+            <div className="enter" style={{ ['--i' as string]: 2 }}>{pitch('sm')}</div>
+            <div className="enter" style={{ ['--i' as string]: 3 }}><RiskBlock meta={meta} risk={state.risk} alerts={state.alerts} /></div>
+            <div className="enter" style={{ ['--i' as string]: 4 }}>{rail}</div>
+          </aside>
         </main>
       </>
     )

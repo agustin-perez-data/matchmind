@@ -14,6 +14,7 @@ import logging
 import time
 
 from matchmind.agents.schemas import CoachProposal
+from matchmind.agents.tracing import MomentTrace, current_trace
 
 log = logging.getLogger("matchmind.agents.coach")
 
@@ -95,23 +96,35 @@ class CoachPipeline:
         t0 = time.perf_counter()
         errors: list[str] = []
         proposal = branch = None
+        trace = MomentTrace("coach")
+        token = current_trace.set(trace)
         try:
-            proposal = await self.coach.propose(context)
-        except Exception as exc:  # noqa: BLE001
-            log.warning("coach failed: %r", exc)
-            errors.append(f"coach: {exc!r}")
-        if proposal is not None and proposal.action != "hold":
+            trace.mark("stage", None, stage="coach", trigger=context.get("trigger"))
             try:
-                minute = max(int(proposal.minute), int(context.get("minute", 0)))
-                branch = self.tools.simulate_intervention(
-                    context["match_id"], minute, proposal.action, proposal.team_id,
-                    player_off_id=proposal.player_off_id, player_on_id=proposal.player_on_id,
-                    press_intensity=proposal.press_intensity, style=proposal.style,
-                )
-            except (KeyError, ValueError) as exc:
-                log.warning("branch simulation failed: %r", exc)
-                errors.append(f"simulate_intervention: {exc!r}")
+                proposal = await self.coach.propose(context)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("coach failed: %r", exc)
+                errors.append(f"coach: {exc!r}")
+            if proposal is not None and proposal.action != "hold":
+                t_engine = time.perf_counter()
+                trace.mark("stage", None, stage="engine", action=proposal.action, minute=proposal.minute)
+                try:
+                    minute = max(int(proposal.minute), int(context.get("minute", 0)))
+                    branch = self.tools.simulate_intervention(
+                        context["match_id"], minute, proposal.action, proposal.team_id,
+                        player_off_id=proposal.player_off_id, player_on_id=proposal.player_on_id,
+                        press_intensity=proposal.press_intensity, style=proposal.style,
+                    )
+                    trace.mark("stage_end", None, stage="engine", latency_ms=round((time.perf_counter() - t_engine) * 1000),
+                               branch_id=branch["branch_id"], status=branch["status"])
+                except (KeyError, ValueError) as exc:
+                    log.warning("branch simulation failed: %r", exc)
+                    errors.append(f"simulate_intervention: {exc!r}")
+                    trace.mark("stage_end", None, stage="engine", error=repr(exc)[:200])
+        finally:
+            current_trace.reset(token)
         return {
+            "trace": trace.to_list(),
             "trigger": context.get("trigger"),
             "trigger_detail": context.get("trigger_detail"),
             "clock": context.get("clock"),
