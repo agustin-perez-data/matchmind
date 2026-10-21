@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { SEAT_ORDER, SEATS, type Seat } from '../lib/seats'
-import type { StreamStatus } from '../lib/types'
+import type { StreamStatus, ViewerProfile } from '../lib/types'
 
 type Props = {
   speed: number
@@ -9,6 +9,9 @@ type Props = {
   onSeat: (s: Seat) => void
   status: StreamStatus
   onLeave: () => void
+  language: ViewerProfile['language']
+  sound: boolean
+  onSound: (on: boolean) => void
 }
 
 const SPEEDS = [0, 15, 30, 60, 120, 300, 1000]
@@ -45,6 +48,17 @@ export function ControlBar(p: Props) {
           <span className="display w-12 text-center text-base font-extrabold tabular-nums">{p.speed === 0 ? 'max' : `×${p.speed}`}</span>
           <button type="button" className="desk-btn" aria-label="faster" onClick={() => step(1)}>+</button>
         </Desk>
+        <Desk label="Commentary">
+          <span className="display pr-2 text-sm font-extrabold uppercase tracking-wider" title="chosen on the entry page">{p.language}</span>
+        </Desk>
+        <button type="button" role="switch" aria-checked={p.sound} aria-label="stadium sound" title={p.sound ? 'Stadium sound on' : 'Stadium sound off'}
+          onClick={() => p.onSound(!p.sound)} className={`flex h-[30px] items-center gap-1.5 border border-white/15 px-2 ${p.sound ? 'text-fg' : 'text-muted'}`}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M2 6h2.5L8 3v10L4.5 10H2z" fill="currentColor" stroke="none" />
+            {p.sound ? <><path d="M10.5 5.5a3.5 3.5 0 0 1 0 5" /><path d="M12.5 3.5a6 6 0 0 1 0 9" /></> : <path d="M10.5 6l4 4M14.5 6l-4 4" />}
+          </svg>
+          <span className="blk-meta text-[10px]">{p.sound ? 'on' : 'off'}</span>
+        </button>
         <span className={`display ml-1 text-sm font-bold uppercase tracking-widest ${p.status === 'live' ? 'text-teal' : p.status === 'error' ? 'text-bad' : 'text-muted'}`}>
           {p.status === 'live' && <span aria-hidden className="mr-1.5 inline-block h-2 w-2 bg-teal align-middle" />}{STATUS[p.status]}
         </span>

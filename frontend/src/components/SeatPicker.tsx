@@ -48,8 +48,9 @@ export function SeatPicker({ onPick, disabled, matches, matchId, onMatch, langua
           )
         })}
       </div>
-      <p className="display mt-8 text-xl font-extrabold uppercase tracking-wider text-muted">The agents speak</p>
-      <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="language">
+      <p className="display mt-8 text-xl font-extrabold uppercase tracking-wider text-muted">Commentary language</p>
+      <p className="mt-1 max-w-prose text-sm text-muted">The commentator, the analyst and the headlines speak it. The screen itself stays in English.</p>
+      <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="commentary language">
         {LANGUAGES.map((l) => {
           const on = l.id === language
           return (
@@ -90,7 +91,7 @@ export function SeatPicker({ onPick, disabled, matches, matchId, onMatch, langua
           )
         })}
       </div>
-      <p className="mt-4 text-sm text-muted">Speed, language, agents and the seat itself can be changed during the match from the desk that appears once you are seated. Speed 60 plays a match in about a minute and a half.</p>
+      <p className="mt-4 text-sm text-muted">Speed, stadium sound and the seat itself can be changed during the match from the desk that appears once you are seated; the fixture and the commentary language are chosen here. Speed 60 plays a match in about a minute and a half.</p>
     </section>
   )
 }

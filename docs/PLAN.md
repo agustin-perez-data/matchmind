@@ -194,6 +194,21 @@ Foundry, Best Azure Cloud Native Integration.
   the pitch as chips per team, the followed one in amber with live sprints /
   distance / top speed and the Director's personalised note; clicking a chip
   re-sends the profile as `player_focus` over the open socket.
+  **Oct 22, commentary language + stadium sound**: decided (option 2) that
+  the UI stays in English and the language is presented as the commentary
+  language ("Commentary language" on the entry page, a fixed EN/ES indicator
+  on the desk). Full UI i18n only if time remains after deploy and video.
+  Stadium sound (`lib/sounds.ts`, Web Audio synthesis, no samples or
+  licences): short pea whistle on kick-off / half-time / second-half
+  kick-off, a crowd roar on goals (32 detuned sawtooth voices with shout
+  contour and vibrato through "ah" formant filters + a pink-noise bed), a
+  long whistle at full time; limiter on the master bus; on/off switch on the
+  desk, remembered in localStorage; audio is unlocked by the seat click.
+  Evaluated by capturing the master bus from headless Edge
+  (`scratchpad/capture_audio.py` + `analyze_audio.py`): roar rms ≈ 0.2 for
+  2.5 s then a 2.5 s fade, no clipping, spectrum "choir-like" (peak 24 dB
+  over median, centroid ≈ 850 Hz); whistles rms ≈ 0.12. Capture on the
+  entry page: during a replay the match whistles contaminate the measurement.
   Deploy plan agreed in principle, NOT yet authorised: ACR Basic + Container
   Apps scale-to-zero (min 1 replica only before submission) + Static Web Apps
   Free, ~USD 20 total through Nov 10.

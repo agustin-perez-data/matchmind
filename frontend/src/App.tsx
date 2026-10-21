@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { listMatches, type MatchRow } from './lib/api'
 import { parseSeat, profileForSeat, type Seat } from './lib/seats'
 import { useMatchStream, type StreamOptions } from './lib/useMatchStream'
+import { soundFor, stadium } from './lib/sounds'
 import type { BranchSummary, ViewerProfile } from './lib/types'
 import { ControlBar } from './components/ControlBar'
 import { SeatPicker } from './components/SeatPicker'
@@ -79,8 +80,21 @@ export default function App() {
     return () => removeEventListener('popstate', onPop)
   }, [state.status, matchId, begin, stop])
 
+  const [sound, setSound] = useState(stadium.enabled)
+  const onSound = useCallback((on: boolean) => { stadium.setEnabled(on); setSound(on) }, [])
+
+  // Stadium sounds follow the events as they arrive (whistles and the goal roar).
+  useEffect(() => {
+    const e = state.lastEvent
+    if (!e) return
+    const kind = soundFor(e.type)
+    if (kind === 'roar') stadium.roar()
+    else if (kind) stadium.whistle(kind)
+  }, [state.lastEvent])
+
   const pickSeat = useCallback((s: Seat) => {
     if (!matchId) return
+    stadium.unlock() // a click: the browser lets audio start from here on
     setSeat(s)
     writeUrl({ seat: s, match: matchId, lang: language, speed, agents: agents ? null : '0', coach: coach ? null : '0' })
     begin(s, matchId)
@@ -115,7 +129,8 @@ export default function App() {
   return (
     <div className="stage flex min-h-full flex-col" style={teamVars}>
       {inMatch && seat && (
-        <ControlBar speed={speed} onSpeed={onSpeed} seat={seat} onSeat={switchSeat} status={state.status} onLeave={leave} />
+        <ControlBar speed={speed} onSpeed={onSpeed} seat={seat} onSeat={switchSeat} status={state.status} onLeave={leave}
+          language={language} sound={sound} onSound={onSound} />
       )}
       {loadError && <p className="mx-6 mt-3 bg-ink px-4 py-3 text-bad">{loadError}</p>}
       {!inMatch && !loadError && (
