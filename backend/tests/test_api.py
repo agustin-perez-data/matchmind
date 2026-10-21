@@ -102,6 +102,12 @@ def test_live_page_is_served(client):
     assert "WebSocket" in r.text and "/ws/matches/" in r.text
 
 
+def test_cors_allows_the_frontend_origin(client):
+    r = client.get("/matches", headers={"Origin": "http://localhost:5173"})
+    assert r.status_code == 200
+    assert r.headers.get("access-control-allow-origin") in ("*", "http://localhost:5173")
+
+
 def test_health_reports_agent_availability(client):
     r = client.get("/health")
     assert r.status_code == 200 and r.json()["agents"] is False

@@ -40,6 +40,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field, ValidationError
 
@@ -155,6 +156,8 @@ def create_app(
 
     app = FastAPI(title="MatchMind", version="0.3.0", lifespan=lifespan)
     app.state.catalog, app.state.registry, app.state.agents = catalog, registry, agents
+    # Public read-mostly demo API consumed by the Static Web Apps frontend: open CORS is intended.
+    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
     @app.get("/", include_in_schema=False)
     def root() -> RedirectResponse:
