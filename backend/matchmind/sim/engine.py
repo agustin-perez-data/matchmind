@@ -46,6 +46,9 @@ class MatchSimulator:
         self.home = home
         self.away = away
         self.rng = random.Random(seed)
+        # Cosmetic draws (knock descriptions) use their own stream so the injury
+        # model can change without altering a single pass or shot of the match.
+        self._flavour_rng = random.Random(seed ^ 0x5EED)
         self.match_id = match_id
         self.events: list[dict] = []
         self.score = {home.team_id: 0, away.team_id: 0}
@@ -131,6 +134,7 @@ class MatchSimulator:
                 acute = sum(d["distance_m"] for d in player.load_history[-7:]) / 7.0
                 chronic = sum(d["distance_m"] for d in player.load_history) / 28.0
                 acwr = acute / chronic if chronic > 0 else 1.0
+                player.acwr_pre = acwr
                 player.fatigue = max(0.0, min(0.3, (acwr - 1.0) * 0.5))
 
     # ------------------------------------------------------------- event emit
@@ -269,15 +273,29 @@ class MatchSimulator:
         self._emit("possession_change", winning, won_by=via)
 
     def _maybe_injury_concern(self, player: Player) -> None:
-        """Latent fatigue x susceptibility surfacing as an observable knock."""
-        p = 0.004 * player.fatigue * player.injury_susceptibility
+        """Ground-truth injury model: latent state surfacing as an observable knock.
+
+        Per-minute hazard, shaped after the sports-science evidence the Risk
+        Monitor is meant to recover:
+        - convex in accumulated fatigue (a tired player is disproportionately
+          exposed; fatigue itself is latent but leaks into metres per minute),
+        - a congestion spike when the pre-match ACWR exceeds the 1.3 sweet-spot
+          ceiling (fully observable from the 28-day load history),
+        - scaled by an individual susceptibility (latent, 0.5-1.0) so that
+          players with identical load still differ, as in real squads.
+        Draws exactly one random number per player-minute, so changing the
+        formula never alters the rest of the match.
+        """
+        congestion = max(0.0, player.acwr_pre - 1.3) * 2.0
+        load = 2.5 * player.fatigue ** 2 + congestion
+        p = 0.004 * load * player.injury_susceptibility
         if self.rng.random() < p:
             self._emit(
                 "injury_concern",
                 None,
                 player,
                 team_id_affected=player.player_id.split("-")[0],
-                detail=self.rng.choice(
+                detail=self._flavour_rng.choice(
                     ["holding hamstring", "slow to get up", "receiving treatment",
                      "stretching calf", "limping briefly"]
                 ),

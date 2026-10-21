@@ -23,8 +23,9 @@ class Player:
     discipline: float
     # Latent state. Hidden from every downstream agent: the Load & Risk
     # Monitor must infer risk purely from observable workload metrics.
-    injury_susceptibility: float = 0.5
+    injury_susceptibility: float = 0.75
     fatigue: float = 0.0
+    acwr_pre: float = 1.0  # pre-match acute:chronic workload ratio (derived from observable load history)
     # Observable: last 28 days of workload, one dict per day
     # {"day": -28..-1, "distance_m": float, "hsr_m": float} (hsr = high-speed running)
     load_history: list = field(default_factory=list)

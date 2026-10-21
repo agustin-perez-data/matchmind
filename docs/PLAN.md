@@ -124,10 +124,14 @@ Foundry, Best Azure Cloud Native Integration.
      diff vs actual); Coach agent proposing interventions on high-risk alerts.
   4. WebSocket messages: `risk` (windows + running scorecard), `coach`
      (proposal + counterfactual summary). Tests for all of it.
-- **D5-D6 (Oct 22-23)** — *frontend (biggest effort, 20% UX)*: React + Vite +
-  Tailwind. Agent feed (narration / insight / director), risk panel with live
-  calibration, what-if view with two timelines (actual vs branch), simple SVG
-  pitch with event dots, mode/language/player selector, speed control.
+- **D5 (Oct 21) DONE a day early** — *frontend*: React + Vite + Tailwind in
+  `frontend/`. Scoreboard, SVG pitch (recent passes/shots), xG race, momentum,
+  agent feed (insight + coach cards), Risk Monitor panel with live scorecard
+  vs baseline, what-if panel with the double timeline and a substitution form,
+  URL params + autostart. Design tokens in `src/index.css`; palette validated
+  with the dataviz validator; reviewed against frontend-design / Impeccable
+  craft floor / Emil Kowalski checklists (desktop + 390px screenshots).
+  Left: a short walkthrough of agents ON with real Foundry calls in the UI.
 - **D6 bis (Oct 24-25)**: deploy (Container Apps + Static Web Apps), README
   with architecture diagram, Analyst forecast + Judge credibility if time.
 - **D7 (Oct 26)**: demo video (scripted), pitch text, SUBMIT with buffer.
@@ -139,6 +143,16 @@ to it makes the point.
 
 ## 6. Current status / handoff notes
 
+- **Ground-truth injury model (Oct 21)**: `engine._maybe_injury_concern` is
+  now convex in fatigue + congestion spike (pre-match ACWR > 1.3) x latent
+  susceptibility 0.5-1.0, drawn from a separate RNG stream (`_flavour_rng`
+  for descriptions too) so the match flow never depends on it (test in
+  `test_engine.py`). Risk windows open only for the top-5 hazards on the pitch
+  (`TOP_N_WINDOWS`), same policy for the baseline. Evaluation over 40 matches:
+  top-3 0.32 vs baseline 0.16 vs random 0.14; recall 0.46 vs 0.26; lead 25'
+  vs 18'; 14 alerts/match. Weights still default (grid showed the rank metric
+  is flat across weights; the policy mattered more than the weights). The
+  canonical demo match is now Thames 1-2 Northbridge (5 knocks).
 - **D4 backend (Oct 20)**: `sim/engine.py` takes `interventions=[...]`
   (substitution / tactic at minute M; status applied|skipped; same seed =
   identical events until M). `generate(..., interventions, match_id)`; meta now

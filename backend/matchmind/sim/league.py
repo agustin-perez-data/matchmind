@@ -117,7 +117,7 @@ def build_team(spec: tuple, rng: random.Random) -> Team:
                 name=full_name,
                 position=position,
                 shirt_number=idx + 1,
-                injury_susceptibility=rng.uniform(0.2, 0.9),
+                injury_susceptibility=rng.uniform(0.5, 1.0),  # latent; see engine._maybe_injury_concern
                 load_history=_load_history(rng, congested=rng.random() < 0.25),
                 **attrs,
             )

@@ -1,32 +1,20 @@
-# React + TypeScript + Vite
+# MatchMind frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite + TypeScript + Tailwind. One page: scoreboard, pitch, xG race,
+momentum, agent feed, Load & Risk Monitor and the what-if panel.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev      # http://localhost:5173, proxies /matches, /ws and /mcp to the backend on :8000
+npm run build    # dist/ for Azure Static Web Apps
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+In production set `VITE_API_BASE` to the backend URL (Container Apps) at build time.
+
+URL parameters prefill the controls and can start the replay, handy for demos:
+`/?speed=120&mode=casual&lang=en&player=THU-15&agents=1&coach=1&autostart=1`.
+
+Design tokens live in `src/index.css` (`@theme`): deep blue-green field, amber
+reserved for goals and top-priority cards, team colours for identity, a
+separate status palette for risk bands. Typefaces: Barlow Condensed (display)
+and Barlow (text), tabular numerals throughout.

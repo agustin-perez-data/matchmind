@@ -26,6 +26,25 @@ def test_starters_are_the_eleven_who_kicked_off_not_everyone_who_played(meta, ev
         assert not (set(starters) & came_on)
 
 
+def test_injury_model_never_changes_the_rest_of_the_match():
+    """Knocks are drawn from the latent state, but passes, shots and goals must not depend on it."""
+    from matchmind.sim.engine import MatchSimulator
+    from matchmind.sim.league import build_league
+
+    def play(susceptibility: float) -> list[dict]:
+        league = build_league(7)
+        home, away = league["THU"], league["NBF"]
+        for p in home.players + away.players:
+            p.injury_susceptibility = susceptibility
+        return MatchSimulator(home, away, seed=42).run()["events"]
+
+    calm, fragile = play(0.0), play(1.0)
+    assert not [e for e in calm if e["type"] == "injury_concern"]
+    assert [e for e in fragile if e["type"] == "injury_concern"]
+    strip = lambda evs: [{k: v for k, v in e.items() if k != "event_id"} for e in evs if e["type"] != "injury_concern"]
+    assert strip(calm) == strip(fragile)
+
+
 def test_nobody_assists_their_own_shot(events):
     shots = [e for e in events if e["type"] in ("shot", "goal")]
     assert shots

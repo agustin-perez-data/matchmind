@@ -28,6 +28,7 @@ THRESHOLD = 0.5
 HIGH_THRESHOLD = 0.7
 RANKING_WINDOW_MINUTES = 6  # observations older than this are not "on the pitch" for ranking
 TOP_K = 3
+TOP_N_WINDOWS = 5  # a window only opens for a player ranked within the top N hazards on the pitch
 
 
 def _sigmoid(x: float) -> float:
@@ -70,9 +71,10 @@ class Track:
     """Risk windows + scoring for one predictor."""
 
     def __init__(self, model, horizon_min: int = HORIZON_MINUTES, threshold: float = THRESHOLD,
-                 ranking_window_min: int = RANKING_WINDOW_MINUTES):
+                 ranking_window_min: int = RANKING_WINDOW_MINUTES, top_n: int | None = None):
         self.model, self.horizon, self.threshold = model, horizon_min, threshold
         self.ranking_window = ranking_window_min
+        self.top_n = top_n  # None = any player above the threshold
         self._windows: dict[str, dict] = {}  # player_id -> active window
         self._last: dict[str, tuple[int, float]] = {}  # player_id -> (minute, hazard) of the latest observation
         self._alerts: list[dict] = []
@@ -93,6 +95,10 @@ class Track:
             self._windows[player_id]["expires_minute"] = minute + self.horizon
             self._windows[player_id]["hazard"] = h
             return None
+        if self.top_n is not None:
+            rank, _ = self._rank(player_id, minute)
+            if rank is None or rank > self.top_n:
+                return None
         window = {
             "player_id": player_id, "open_minute": minute, "expires_minute": minute + self.horizon,
             "hazard": h, "level": "high" if h >= HIGH_THRESHOLD else "elevated", "hit": False, **extra,
@@ -156,12 +162,13 @@ class RiskMonitor:
     """Consumes the event stream + Interpreter snapshots; keeps model and baseline tracks."""
 
     def __init__(self, meta: dict, model=None, baseline=None, horizon_min: int = HORIZON_MINUTES,
-                 threshold: float = THRESHOLD):
+                 threshold: float = THRESHOLD, top_n: int | None = TOP_N_WINDOWS):
         self.meta = meta
         self.horizon = horizon_min
         baseline = baseline or NaiveMinutesBaseline()
-        self.model_track = Track(model or RiskModel(), horizon_min, threshold)
-        self.baseline_track = Track(baseline, horizon_min, getattr(baseline, "threshold", 0.5))
+        # Same top-N policy for both tracks, so the comparison stays fair.
+        self.model_track = Track(model or RiskModel(), horizon_min, threshold, top_n=top_n)
+        self.baseline_track = Track(baseline, horizon_min, getattr(baseline, "threshold", 0.5), top_n=top_n)
         self.recent_alerts: list[dict] = []
         self.concerns: list[dict] = []
         self.minute = 0

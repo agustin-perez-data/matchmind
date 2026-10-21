@@ -68,7 +68,30 @@ metres-per-minute drop against the position norm). Because the simulator's
 hidden fatigue produces observable `injury_concern` events, every prediction is
 scored live: precision, recall, lead time, and where the player ranked among
 everybody on the pitch when the knock happened. A naive baseline (risk = minutes
-played) runs alongside, so the scorecard shows whether the model adds anything.
+played) runs alongside with the same window policy (top 5 hazards on the
+pitch), so the scorecard shows whether the model adds anything.
+
+Offline evaluation over 40 simulated matches (`python -m matchmind.risk.evaluate --matches 40`):
+
+| | Risk Monitor | Minutes-only baseline | Random pick |
+|---|---|---|---|
+| Knock happened to a top-3 hazard player | 32% | 16% | 14% |
+| Knocks covered by an open window | 46% | 26% | |
+| Mean warning time | 25 min | 18 min | |
+| Windows that came true | 9% | 8% | |
+| Alerts per match | 14 | 8 | |
+
+Honest reading: the monitor ranks risk far better than chance or a minutes
+heuristic, but most windows still pass without a knock. That is what the
+scorecard is for.
+
+**Ground truth, stated openly.** The simulator's per-minute knock hazard is
+convex in latent fatigue, spikes when the pre-match ACWR exceeds 1.3, and is
+scaled by a latent individual susceptibility (0.5-1.0). The monitor never sees
+fatigue or susceptibility; it only sees what leaks into the observables. The
+knock model draws from its own random stream, so changing it never changes a
+pass or a shot.
+
 The **Coach agent** turns high-risk alerts into proposals, and the engine shows
 the counterfactual branch of each proposal.
 

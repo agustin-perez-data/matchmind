@@ -53,6 +53,15 @@ def test_window_opens_once_renews_while_hot_and_expires_after_horizon():
     assert t.active(79) and t.active(80) == []  # expires 15 minutes after the last hot observation
 
 
+def test_windows_only_open_for_the_top_n_hazards_on_the_pitch():
+    t = Track(model=_Dial(), horizon_min=15, threshold=0.5, top_n=2)
+    assert t.update("A", 60, {"h": 0.9}) is not None
+    assert t.update("B", 60, {"h": 0.8}) is not None
+    assert t.update("C", 60, {"h": 0.7}) is None  # above threshold but only third
+    assert t.update("A", 65, {"h": 0.9}) is None  # renewal
+    assert len(t.active(65)) == 2
+
+
 def test_scoring_true_alert_lead_time_and_missed_concern():
     t = Track(model=NaiveMinutesBaseline(after_minute=50), horizon_min=15, threshold=0.5)
     t.update("P1", 50, _player(50))  # alert at 50 -> window until 65
