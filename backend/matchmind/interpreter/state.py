@@ -117,6 +117,42 @@ class MatchState:
         self._last_seconds: int | None = None
         self._last_period: int | None = None
         self.momentum_series: list[dict] = []
+        self._player_shots: dict[str, int] = {}
+        self._minute_marks: dict[int, dict] = {}  # team totals + per-player shots at the start of each minute
+
+    RECENT_KEYS = ("xg", "shots", "shots_on_target", "pressures", "passes")
+
+    def _mark_minute(self) -> None:
+        if self.minute not in self._minute_marks:
+            self._minute_marks[self.minute] = {
+                "teams": {tid: {k: t[k] for k in self.RECENT_KEYS} for tid, t in self.teams.items()},
+                "shots": dict(self._player_shots),
+            }
+
+    def recent(self, minutes: int = 10) -> dict:
+        """What happened in the last `minutes` of play: team totals gained and who took the shots.
+        The window starts at the latest minute mark at or before now − minutes (zero before kick-off)."""
+        start = self.minute - minutes
+        marks = [m for m in self._minute_marks if m <= start]
+        base = self._minute_marks[max(marks)] if marks else {"teams": {tid: {k: 0 for k in self.RECENT_KEYS} for tid in self.teams}, "shots": {}}
+        teams = {}
+        for tid, t in self.teams.items():
+            gained = {k: t[k] - base["teams"][tid][k] for k in self.RECENT_KEYS}
+            gained["xg"] = round(gained["xg"], 3)
+            teams[tid] = gained
+        shooters = sorted(
+            ({"player_id": pid, "name": self._players.get(pid, {}).get("name", pid), "team_id": self._players.get(pid, {}).get("team_id"),
+              "shots": n - base["shots"].get(pid, 0)} for pid, n in self._player_shots.items() if n - base["shots"].get(pid, 0) > 0),
+            key=lambda s: (-s["shots"], s["player_id"]),
+        )[:4]
+        return {"minutes": minutes, "from_minute": max(0, max(marks) if marks else 0), "teams": teams, "shooters": shooters}
+
+    def top_shooters(self, limit: int = 4) -> list[dict]:
+        return sorted(
+            ({"player_id": pid, "name": self._players.get(pid, {}).get("name", pid), "team_id": self._players.get(pid, {}).get("team_id"), "shots": n}
+             for pid, n in self._player_shots.items()),
+            key=lambda s: (-s["shots"], s["player_id"]),
+        )[:limit]
 
     # ------------------------------------------------------------ helpers
 
@@ -140,6 +176,7 @@ class MatchState:
         self.minute = int(event["minute"])
         self.clock = event.get("clock", f"{self.minute:02d}:{int(event['second']):02d}")
         self.last_event_id = int(event["event_id"])
+        self._mark_minute()
 
     def _push_threat(self, team_id: str, weight: float) -> None:
         self._momentum_raw += self._sign(team_id) * weight
@@ -184,6 +221,8 @@ class MatchState:
         xg = float(e.get("xg", 0.0))
         t["shots"] += 1
         t["xg"] += xg
+        if e.get("player_id"):
+            self._player_shots[e["player_id"]] = self._player_shots.get(e["player_id"], 0) + 1
         if e.get("outcome") in ("goal", "saved"):
             t["shots_on_target"] += 1
         self._push_threat(e["team_id"], THREAT_SHOT_BASE + THREAT_SHOT_PER_XG * xg)
@@ -306,4 +345,6 @@ class MatchState:
             "xg_race": copy.deepcopy(self.xg_race),
             "players": players,
             "risk_alerts": alerts,
+            "recent": self.recent(10),
+            "top_shooters": self.top_shooters(),
         }

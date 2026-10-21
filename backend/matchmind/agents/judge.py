@@ -185,6 +185,36 @@ class ForecastLedger:
     def record(self, entry: dict) -> None:
         self.judged.append(entry)
 
+    def remember(self, verdict_result: dict) -> None:
+        """Keep the Judge's words next to the scores, so the Analyst can read its own record."""
+        for entry in self.judged:
+            if entry["event_id"] == verdict_result.get("event_id"):
+                entry["claim"] = (verdict_result.get("forecast") or {}).get("claim")
+                entry["issued_clock"] = verdict_result.get("issued_clock")
+                entry["verdict"] = (verdict_result.get("verdict") or {}).get("verdict")
+                entry["lesson"] = (verdict_result.get("verdict") or {}).get("lesson")
+                entry["facts"] = verdict_result.get("facts")
+                return
+
+    def track_record(self, recent: int = 3) -> dict | None:
+        """The closed loop: what the Analyst has been graded on so far in this match, compact enough for a prompt."""
+        if not self.judged:
+            return None
+        summary = self.summary()
+        dom = [j for j in self.judged if j["scores"].get("dominance") is not None]
+        return {
+            "forecasts_graded": summary["judged"],
+            "your_scores": summary["analyst"],
+            "naive_baseline_scores": summary["naive"],
+            "dominance_calls_right": f"{sum(1 for j in dom if j['scores']['dominance'] == 1.0)} of {len(dom)}",
+            "recent_verdicts": [
+                {"issued_at": j.get("issued_clock"), "claim": j.get("claim"), "verdict": j.get("verdict"),
+                 "lesson": j.get("lesson"), "xg_gained": (j.get("facts") or {}).get("xg_gained"),
+                 "goals_in_window": len((j.get("facts") or {}).get("goals", []))}
+                for j in self.judged[-recent:] if j.get("verdict")
+            ],
+        }
+
     def summary(self) -> dict:
         """Running credibility: the Analyst's mean score next to the naive baseline's, on the same windows."""
         def mean(key: str, who: str) -> float | None:

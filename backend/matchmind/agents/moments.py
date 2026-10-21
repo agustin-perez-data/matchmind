@@ -99,14 +99,34 @@ def _player_view(players: dict, pid: str | None) -> dict | None:
     return None
 
 
+FULL_TIME_MINUTE = 93  # typical end of a synthetic match, stoppage included
+
+
+def game_state(snapshot: dict) -> dict:
+    """Who is chasing the game and how long is left: what drives the next ten minutes."""
+    home, away = snapshot["home_id"], snapshot["away_id"]
+    score = snapshot.get("score", {})
+    diff = int(score.get(home, 0)) - int(score.get(away, 0))
+    minute = int(snapshot.get("minute", 0))
+    return {
+        "leading": home if diff > 0 else away if diff < 0 else None,
+        "trailing": away if diff > 0 else home if diff < 0 else None,
+        "margin": abs(diff),
+        "minutes_remaining": max(0, FULL_TIME_MINUTE - minute),
+        "half_time_break_ahead": snapshot.get("period") == 1 and minute >= 40,
+    }
+
+
 def build_moment_context(
-    moment: KeyMoment, snapshot: dict, meta: dict, watched_players: list[str] | None = None
+    moment: KeyMoment, snapshot: dict, meta: dict, watched_players: list[str] | None = None,
+    track_record: dict | None = None,
 ) -> dict:
     """Compact, JSON-safe view of the match at this moment for the LLM agents.
 
     `watched_players` are the viewers' favourite players: their workload view is
     attached so player-focus narration can talk about them by name even when
-    they were not involved in the moment.
+    they were not involved in the moment. `track_record` is the Analyst's own
+    graded-forecast history in this match (closed loop with the Judge).
     """
     event = moment.event or {"event_id": moment.event_id}
     teams = {}
@@ -142,4 +162,8 @@ def build_moment_context(
         "players_involved": involved,
         "watched_players": watched,
         "risk_alerts": snapshot.get("risk_alerts", [])[:3],
+        "last_10_minutes": snapshot.get("recent"),
+        "top_shooters": snapshot.get("top_shooters", []),
+        "game_state": game_state(snapshot),
+        "analyst_track_record": track_record,
     }

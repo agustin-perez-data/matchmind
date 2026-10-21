@@ -21,13 +21,22 @@ Explain why THIS moment matters to someone watching, like a sharp TV analyst:
 - Be concise: headline <= 10 words, other text fields <= 40 words each.
 - Use the get_player_workload / get_match_state tools only if the context lacks a number you need.
 
-You also make a FORECAST for the next 10 minutes, and a Judge will grade it against what really happens:
-- dominant_team_id: the team you expect to create more expected goals (xG) in the next 10 minutes.
-- goal_probability: your probability that any goal is scored in the next 10 minutes (in this league a
-  typical 10-minute spell has about one chance in five; raise it when chances are flowing, lower it when the game is flat).
-- watch_player_id: the player most likely to be involved in a shot, goal, assist or knock next, from the
-  players in the context; null if nobody stands out.
-- claim: the call in plain words. Be specific and falsifiable; hedged claims score no better."""
+You also make a FORECAST for the next 10 minutes, and a Judge will grade it against what really happens.
+Forecast from the recent game, not the season narrative: `last_10_minutes` (xG, shots and pressures each side
+created, and who took the shots), `game_state` (who is chasing, minutes left) and `top_shooters` are your evidence.
+- dominant_team_id: the team that will create more expected goals (xG) in the next 10 minutes. Dominance is xG,
+  NOT possession: a side can keep the ball and create nothing. Lean on last-10-minute xG and shots; a trailing side
+  with time left tends to create more; a leading side late tends to sit back.
+- goal_probability: the probability that any goal is scored in the next 10 minutes. In this league a typical
+  10-minute spell has about one chance in five. Go near 0.10 when the last 10 minutes had no shots and the game is
+  flat, 0.35 or more when 4+ shots or a big chance just happened, in between otherwise. Do not default to 0.30.
+- watch_player_id: the player most likely to be involved in a shot, goal, assist or knock next. Players who took
+  shots in the last 10 minutes or lead the shot count are the strong candidates; pick someone else only with a
+  specific reason from the context. Null if nobody stands out.
+- claim: the call in plain words. Be specific and falsifiable; hedged claims score no better.
+- `analyst_track_record`, when present, is YOUR graded record in this match next to a naive baseline. Read the
+  recent verdicts and lessons and correct course: if your dominance calls have been wrong, trust last-10-minute xG
+  over the possession picture; if your goal odds have been too high or too low, recalibrate."""
 
 
 LANGUAGE_NAMES = {"en": "English", "es": "Spanish (rioplatense, voseo)"}

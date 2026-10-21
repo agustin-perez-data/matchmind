@@ -329,6 +329,12 @@ class StreamSession:
         self.ledger.add(result, context)
         return result
 
+    async def _run_verdict(self, context: dict) -> dict:
+        """Verdict lane runner: the Judge's words also go back into the ledger, for the Analyst's next call."""
+        result = await self.judge.run(context)
+        self.ledger.remember(result)
+        return result
+
     def _grade_due(self, snapshot: dict, lane, *, flush: bool = False) -> list[dict]:
         """Settle every forecast whose window has closed: scores now (code), words later (Judge lane)."""
         settled = []
@@ -408,7 +414,7 @@ class StreamSession:
                         lambda c: c["moment"]["importance"]) if self.pipeline is not None else None
         coach = _Lane(self.coach.run, "coach", self.out,
                       lambda c: 5 if c["trigger"] == "injury_concern" else 3) if self.coach is not None else None
-        judge = _Lane(self.judge.run, "verdict", self.out, lambda c: c["scores"].get("overall") or 0,
+        judge = _Lane(self._run_verdict, "verdict", self.out, lambda c: c["scores"].get("overall") or 0,
                       capacity=8) if self.judge is not None and moments is not None else None  # verdicts are few; keep them all
         state, monitor = MatchState(self.meta), RiskMonitor(self.meta)
         try:
@@ -439,7 +445,8 @@ class StreamSession:
                         moment = detect_key_moment(event, snapshot)
                         if moment is not None and moment.importance >= self.min_importance:
                             watched = [self.profile.favorite_player_id] if self.profile.favorite_player_id else None
-                            moments.offer(build_moment_context(moment, snapshot, self.meta, watched_players=watched))
+                            moments.offer(build_moment_context(moment, snapshot, self.meta, watched_players=watched,
+                                                               track_record=self.ledger.track_record()))
 
                 # Risk Monitor: alerts immediately, a summary after every 5-minute sample batch
                 for alert in monitor.observe(event, snapshot):
