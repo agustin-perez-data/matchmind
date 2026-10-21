@@ -29,8 +29,8 @@ export function SeatPicker({ onPick, disabled, matches, matchId, onMatch }: Prop
               style={{ borderTopColor: on ? '#ffd166' : 'rgba(255,255,255,0.25)' }}>
               <Crest team={m.home_team} size={36} />
               <span className="min-w-0 flex-1">
-                <span className="display block truncate text-lg font-extrabold uppercase leading-tight">{m.home_team.short_name} <span className="text-muted">v</span> {m.away_team.short_name}</span>
-                <span className="block truncate text-xs text-muted">{m.home_team.name} hosts {m.away_team.name}</span>
+                <span className="display block text-base font-extrabold uppercase leading-tight">{m.home_team.short_name} <span className="text-muted">v</span> {m.away_team.short_name}</span>
+                <span className="block text-xs text-muted">{m.home_team.city} v {m.away_team.city}</span>
               </span>
               <Crest team={m.away_team} size={36} />
             </button>
