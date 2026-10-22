@@ -186,8 +186,9 @@ select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-v
   width: 1.6rem; height: 1.6rem; line-height: 1; font-size: 1rem; font-weight: 700;
   color: var(--color-fg-2); cursor: pointer; transition: color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
-.desk-btn:hover { color: #fff; }
-.desk-btn:active { transform: scale(0.9); }
+.desk-btn:hover:not(:disabled) { color: #fff; }
+.desk-btn:active:not(:disabled) { transform: scale(0.9); }
+.desk-btn:disabled { opacity: 0.3; cursor: default; }
 .scroll-quiet { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.18) transparent; }
 
 /* ---------------------------------------------------------------- motion

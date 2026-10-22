@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { SEAT_ORDER, SEATS, type Seat } from '../lib/seats'
 import type { StreamStatus, ViewerProfile } from '../lib/types'
+import { canSlowDown, canSpeedUp, labelSpeed, stepSpeed } from '../lib/speed'
 
 type Props = {
   speed: number
@@ -14,16 +15,14 @@ type Props = {
   onSound: (on: boolean) => void
 }
 
-const SPEEDS = [0, 15, 30, 60, 120, 300, 1000]
 const STATUS: Record<StreamStatus, string> = { idle: 'ready', connecting: 'connecting', live: 'live', ended: 'full time', error: 'server unreachable' }
 
 /** The production desk: brand, seat tabs, speed, status. Fixture and language are chosen on the entry page. */
 export function ControlBar(p: Props) {
   const running = p.status === 'live' || p.status === 'connecting'
   const step = (dir: 1 | -1) => {
-    const i = SPEEDS.findIndex((s) => s >= p.speed)
-    const cur = i < 0 ? SPEEDS.length - 1 : i
-    p.onSpeed(SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, cur + dir))])
+    const next = stepSpeed(p.speed, dir)
+    if (next !== p.speed) p.onSpeed(next)
   }
   return (
     <div className="enter-up flex flex-wrap items-stretch gap-x-3 gap-y-2 border-b border-white/10 bg-ink px-3 py-2 sm:px-6">
@@ -44,9 +43,9 @@ export function ControlBar(p: Props) {
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
         <Desk label="Speed">
-          <button type="button" className="desk-btn" aria-label="slower" onClick={() => step(-1)}>−</button>
-          <span className="display w-12 text-center text-base font-extrabold tabular-nums">{p.speed === 0 ? 'max' : `×${p.speed}`}</span>
-          <button type="button" className="desk-btn" aria-label="faster" onClick={() => step(1)}>+</button>
+          <button type="button" className="desk-btn" aria-label="slower" title="slower" disabled={!canSlowDown(p.speed)} onClick={() => step(-1)}>−</button>
+          <span className="display w-12 text-center text-base font-extrabold tabular-nums" data-testid="speed">{labelSpeed(p.speed)}</span>
+          <button type="button" className="desk-btn" aria-label="faster" title={canSpeedUp(p.speed) ? 'faster' : 'already at maximum'} disabled={!canSpeedUp(p.speed)} onClick={() => step(1)}>+</button>
         </Desk>
         <Desk label="Commentary">
           <span className="display pr-2 text-sm font-extrabold uppercase tracking-wider" title="chosen on the entry page">{p.language}</span>

@@ -311,6 +311,14 @@ Foundry, Best Azure Cloud Native Integration.
   possession chip no longer says "Waiting for kick off" mid-match (a pressure
   event by the other side now falls back to the ball's own tag, and the
   placeholder only shows before kick-off).
+  **Oct 23, speed control bug**: the ladder had max (0) as its first rung,
+  so at "max" − did nothing and + jumped to ×15. Now `lib/speed.ts` owns the
+  ladder (15 … 1000, max on top), `stepSpeed` clamps both ends and snaps
+  off-ladder URL values in the right direction, `parseSpeed` rejects junk,
+  the desk disables − / + at the ends. Vitest added (`npm test`, 8 unit
+  tests) and an in-browser run confirmed every rung up and down, the URL
+  sync, the disabled states, and that the replay really follows the speed
+  (3 s real ≈ 1.2 match minutes at ×15, 14.5 at ×300).
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

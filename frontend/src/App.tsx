@@ -3,6 +3,7 @@ import { listMatches, type MatchRow } from './lib/api'
 import { compareForSeat, parseSeat, profileForSeat, type Seat } from './lib/seats'
 import { useMatchStream, type StreamOptions } from './lib/useMatchStream'
 import { soundFor, stadium } from './lib/sounds'
+import { parseSpeed } from './lib/speed'
 import type { BranchSummary, ViewerProfile } from './lib/types'
 import { ControlBar } from './components/ControlBar'
 import { SeatPicker } from './components/SeatPicker'
@@ -16,7 +17,7 @@ function readUrl() {
   return {
     seat: parseSeat(q.get('seat')),
     language: (q.get('lang') === 'es' ? 'es' : 'en') as Language,
-    speed: q.has('speed') ? Math.max(0, Number(q.get('speed'))) : 60,
+    speed: parseSpeed(q.get('speed')),
     match: q.get('match'),
     player: q.get('player'),
     agents: q.get('agents') !== '0',
