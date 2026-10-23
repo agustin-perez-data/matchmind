@@ -1,9 +1,9 @@
 import type { MatchEvent, Meta, Snapshot, StreamStatus, Team } from '../lib/types'
 import { Crest, onColor } from './Crest'
 
-type Props = { meta: Meta; snapshot: Snapshot | null; status: StreamStatus; lastGoal: MatchEvent | null; flash: number }
+type Props = { meta: Meta; snapshot: Snapshot | null; status: StreamStatus; lastGoal: MatchEvent | null; flash: number; teamId?: string | null }
 
-export function TopBand({ meta, snapshot, status, lastGoal, flash }: Props) {
+export function TopBand({ meta, snapshot, status, lastGoal, flash, teamId = null }: Props) {
   const h = meta.teams[meta.home_id], a = meta.teams[meta.away_id]
   const score = snapshot?.score ?? { [h.team_id]: 0, [a.team_id]: 0 }
   const th = snapshot?.teams[h.team_id], ta = snapshot?.teams[a.team_id]
@@ -12,7 +12,7 @@ export function TopBand({ meta, snapshot, status, lastGoal, flash }: Props) {
     <header className="grid grid-cols-[1fr_auto_1fr] sm:h-[104px]" aria-live="polite">
       <div key={`h${flash}`} className={`wipe-h slide-in-left flex items-center gap-3 px-4 sm:gap-5 sm:px-11 ${lastGoal?.team_id === h.team_id ? flashSide : ''}`} style={{ color: onColor(h.primary_color) }}>
         <span className="hidden sm:block"><Crest team={h} size={56} /></span>
-        <TeamSide team={h} sub={th ? `${th.shots_on_target} on target · xG ${th.xg.toFixed(2)}` : ''} />
+        <TeamSide team={h} sub={th ? `${th.shots_on_target} on target · xG ${th.xg.toFixed(2)}` : ''} mine={teamId === h.team_id} />
       </div>
       <div className="drop-in grid min-w-[136px] grid-rows-[1fr_auto] place-items-center bg-white px-3 pt-1 text-ink sm:min-w-[340px] sm:px-4">
         <div className="display flex items-baseline text-5xl font-black leading-none sm:text-7xl">
@@ -26,17 +26,18 @@ export function TopBand({ meta, snapshot, status, lastGoal, flash }: Props) {
         </div>
       </div>
       <div key={`a${flash}`} className={`wipe-a slide-in-right flex items-center justify-end gap-3 px-4 text-right sm:gap-5 sm:px-11 ${lastGoal?.team_id === a.team_id ? flashSide : ''}`} style={{ color: onColor(a.primary_color) }}>
-        <TeamSide team={a} sub={ta ? `xG ${ta.xg.toFixed(2)} · ${ta.shots_on_target} on target` : ''} />
+        <TeamSide team={a} sub={ta ? `xG ${ta.xg.toFixed(2)} · ${ta.shots_on_target} on target` : ''} mine={teamId === a.team_id} />
         <span className="hidden sm:block"><Crest team={a} size={56} /></span>
       </div>
     </header>
   )
 }
 
-function TeamSide({ team, sub }: { team: Team; sub: string }) {
+function TeamSide({ team, sub, mine = false }: { team: Team; sub: string; mine?: boolean }) {
   const { name, short_name: short } = team
   return (
     <div className="min-w-0 py-2 sm:py-0">
+      {mine && <div className="display mb-1 inline-block bg-amber px-1.5 text-[10px] font-extrabold uppercase tracking-[0.2em] text-ink">Your side</div>}
       <div className="display truncate text-2xl font-extrabold uppercase leading-none sm:text-[46px]" title={name}>
         <span className="sm:hidden">{team.team_id}</span><span className="hidden sm:inline md:hidden">{short}</span><span className="hidden md:inline">{name}</span>
       </div>

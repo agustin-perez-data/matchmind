@@ -9,7 +9,7 @@ export type StreamOptions = {
   agents: boolean
   coach: boolean
   minImportance?: number
-  compare?: ViewerProfile | null // a second viewer explained side by side (Control room)
+  compare?: ViewerProfile[] // extra viewers explained side by side (Control room)
 }
 
 export type FeedItem = { id: string; at: number; msg: InsightMsg | CoachMsg }
@@ -61,7 +61,8 @@ export function useMatchStream() {
       min_importance: String(opts.minImportance ?? 3),
     })
     if (opts.profile.favorite_player_id) q.set('player', opts.profile.favorite_player_id)
-    if (opts.compare) q.set('compare', `${opts.compare.mode}:${opts.compare.language}${opts.compare.favorite_player_id ? `:${opts.compare.favorite_player_id}` : ''}`)
+    if (opts.profile.team_id) q.set('team', opts.profile.team_id)
+    if (opts.compare && opts.compare.length) q.set('compare', opts.compare.map((c) => `${c.mode}:${c.language}:${c.favorite_player_id ?? ''}:${c.team_id ?? ''}`).join(','))
     const socket = new WebSocket(wsUrl(`/ws/matches/${opts.matchId}?${q}`))
     ws.current = socket
 

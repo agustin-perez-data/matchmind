@@ -172,3 +172,18 @@ def test_pipeline_result_is_json_serializable():
                               DirectorAgent(FakeAgent(DECISION)), [ViewerProfile()])
     result = asyncio.run(pipeline.run(CONTEXT))
     json.dumps(result)
+
+
+# ---------------------------------------------------------------- allegiance
+
+def test_narrator_brief_takes_the_supporters_side_or_stays_neutral():
+    from matchmind.agents.narrator import narrator_brief
+
+    neutral = narrator_brief(CONTEXT, ViewerProfile(mode="commentator", language="es"))
+    assert "team=neutral" in neutral and "Neutral viewer" in neutral
+    home = narrator_brief(CONTEXT, ViewerProfile(mode="commentator", language="es", team_id="THU"))
+    assert "team=THU" in home and "hincha de Thames United" in home and "nunca en los n" in home
+    away_en = narrator_brief(CONTEXT, ViewerProfile(mode="commentator", language="en", team_id="NBF"))
+    assert "supports Northbridge FC" in away_en
+    assert ViewerProfile(mode="commentator", language="es", team_id="THU").key == "commentator:es:-:THU"
+    assert ViewerProfile(mode="commentator", language="es").key == "commentator:es:-"  # unchanged for neutral viewers

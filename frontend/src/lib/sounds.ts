@@ -223,6 +223,57 @@ class Stadium {
     bed.start(t0)
   }
 
+  /** The home end when the other side scores: a short, falling "ohhh" from the same choir, no claps, no surge. */
+  groan() {
+    const r = this.ready()
+    if (!r) return
+    const { ctx, out } = r
+    const t0 = ctx.currentTime + 0.02
+    const total = 2.6
+    const env = ctx.createGain()
+    env.gain.setValueAtTime(0, t0)
+    env.gain.linearRampToValueAtTime(0.9, t0 + 0.25)
+    env.gain.setValueAtTime(0.9, t0 + 0.9)
+    env.gain.exponentialRampToValueAtTime(0.001, t0 + total)
+    const hp = ctx.createBiquadFilter()
+    hp.type = 'highpass'
+    hp.frequency.value = 380
+    const lp = ctx.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.value = 2200
+    const formants = ctx.createGain()
+    for (const [f, q, g] of [[520, 4, 1], [900, 4, 0.7], [1500, 6, 0.3]]) {
+      const bp = ctx.createBiquadFilter()
+      bp.type = 'bandpass'
+      bp.frequency.value = f
+      bp.Q.value = q
+      const bg = ctx.createGain()
+      bg.gain.value = g
+      formants.connect(bp).connect(bg).connect(lp)
+    }
+    lp.connect(hp).connect(env).connect(out)
+    const VOICES = 24
+    const voicesIn = ctx.createGain()
+    voicesIn.gain.value = 1.6 / Math.sqrt(VOICES)
+    voicesIn.connect(formants)
+    for (let i = 0; i < VOICES; i++) {
+      const at = t0 + Math.random() * 0.2
+      const base = 140 + Math.random() * 160
+      const o = ctx.createOscillator()
+      o.type = 'sawtooth'
+      o.frequency.setValueAtTime(base, at)
+      o.frequency.exponentialRampToValueAtTime(base * 0.72, at + 1.8 + Math.random() * 0.6) // everyone's voice sinks
+      const g = ctx.createGain()
+      g.gain.setValueAtTime(0, at)
+      g.gain.linearRampToValueAtTime(0.7, at + 0.1)
+      g.gain.setValueAtTime(0.7, at + 0.8 + Math.random() * 0.5)
+      g.gain.linearRampToValueAtTime(0, at + 1.6 + Math.random() * 0.8)
+      o.connect(g).connect(voicesIn)
+      o.start(at)
+      o.stop(t0 + total)
+    }
+  }
+
   private noise(seconds: number): AudioBufferSourceNode {
     const ctx = this.ctx as AudioContext
     const frames = Math.ceil(ctx.sampleRate * seconds)
@@ -247,7 +298,7 @@ export const stadium = new Stadium()
 if (import.meta.env.DEV) (window as unknown as { __stadium?: Stadium }).__stadium = stadium // for manual checks from the console
 
 /** Which sound, if any, a match event triggers. */
-export function soundFor(type: string): 'short' | 'long' | 'roar' | null {
+export function soundFor(type: string): 'short' | 'long' | 'roar' | null {  // 'roar' becomes a groan when the fan's side conceded
   switch (type) {
     case 'kickoff':
     case 'second_half_kickoff':

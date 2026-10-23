@@ -8,7 +8,7 @@ import { MomentsRail } from './MomentsRail'
 import { CoachBlock, RiskBlock, StatsBlock } from './SidePanels'
 import { WhatIfBand } from './WhatIfBand'
 import { ControlRoom } from './ControlRoom'
-import { FollowBlock } from './FollowBlock'
+import { YourSideBlock } from './YourSideBlock'
 import { ForecastLedger } from './ForecastLedger'
 import { TwoViewers } from './TwoViewers'
 import { ReliabilityBlock } from './ReliabilityBlock'
@@ -17,6 +17,8 @@ import { BenchReport } from './BenchReport'
 type Props = {
   favoritePlayerId: string | null
   onFavorite: (id: string | null) => void
+  teamId: string | null
+  onTeam: (id: string | null) => void
   seat: Seat
   meta: Meta
   state: StreamState
@@ -28,14 +30,14 @@ type Props = {
 }
 
 /** One match, three compositions: what each seat sees. */
-export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite }: Props) {
+export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite, teamId, onTeam }: Props) {
   const keyEvent = state.keyEvents.find((e) => e.type !== 'kickoff') ?? null
   const pitch = (size: 'lg' | 'sm') => (
     <PitchStage meta={meta} ball={state.ball} shots={state.shots} lastEvent={state.lastEvent} snapshot={state.snapshot}
       latest={state.feed[0] ?? null} keyEvent={keyEvent} seat={seat} size={size} agentsOn={state.agentsOn} />
   )
   const rail = <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} />
-  const band = <TopBand meta={meta} snapshot={state.snapshot} status={state.status} lastGoal={lastGoal} flash={state.goalFlash} />
+  const band = <TopBand meta={meta} snapshot={state.snapshot} status={state.status} lastGoal={lastGoal} flash={state.goalFlash} teamId={seat === 'fan' ? teamId : null} />
   const ended = state.status === 'ended'
   const ledger = (compact = false) => (
     <ForecastLedger meta={meta} snapshot={state.snapshot} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} agentsOn={state.agentsOn} ended={ended} compact={compact} />
@@ -50,7 +52,7 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
           <div className="enter" style={{ ['--i' as string]: 1 }}>{pitch('lg')}</div>
           <div className="enter" style={{ ['--i' as string]: 2 }}><Momentum meta={meta} snapshot={state.snapshot} /></div>
           <div className="enter" style={{ ['--i' as string]: 3 }}>
-            <FollowBlock meta={meta} snapshot={state.snapshot} latest={state.feed.find((f) => f.msg.kind === 'insight') ?? null} favoritePlayerId={favoritePlayerId} onFavorite={onFavorite} />
+            <YourSideBlock meta={meta} snapshot={state.snapshot} latest={state.feed.find((f) => f.msg.kind === 'insight') ?? null} teamId={teamId} onTeam={onTeam} favoritePlayerId={favoritePlayerId} onFavorite={onFavorite} />
           </div>
           <div className="enter" style={{ ['--i' as string]: 4 }}>{rail}</div>
         </main>

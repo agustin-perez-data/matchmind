@@ -22,10 +22,12 @@ class ViewerProfile(BaseModel):
     mode: Mode = "analyst"
     language: Language = "en"
     favorite_player_id: str | None = None
+    team_id: str | None = None  # the side the viewer supports; None = neutral
 
     @property
     def key(self) -> str:
-        return f"{self.mode}:{self.language}:{self.favorite_player_id or '-'}"
+        base = f"{self.mode}:{self.language}:{self.favorite_player_id or '-'}"
+        return f"{base}:{self.team_id}" if self.team_id else base
 
 
 FORECAST_HORIZON_MIN = 10

@@ -40,12 +40,23 @@ export function parseSeat(value: string | null): Seat | null {
   return value === 'fan' || value === 'analyst' || value === 'bench' || value === 'control' ? value : null
 }
 
-export function profileForSeat(seat: Seat, language: ViewerProfile['language'], favoritePlayerId: string | null): ViewerProfile {
-  if (seat === 'fan' && favoritePlayerId) return { mode: 'player_focus', language, favorite_player_id: favoritePlayerId }
-  return { mode: SEATS[seat].mode, language, favorite_player_id: seat === 'fan' ? favoritePlayerId : null }
+export function profileForSeat(seat: Seat, language: ViewerProfile['language'], favoritePlayerId: string | null, teamId: string | null = null): ViewerProfile {
+  const team = seat === 'fan' ? teamId : null
+  if (seat === 'fan' && favoritePlayerId) return { mode: 'player_focus', language, favorite_player_id: favoritePlayerId, team_id: team }
+  return { mode: SEATS[seat].mode, language, favorite_player_id: seat === 'fan' ? favoritePlayerId : null, team_id: team }
 }
 
-/** The Control room watches two viewers at once: its own commentator line and an analyst, same language. */
-export function compareForSeat(seat: Seat, language: ViewerProfile['language']): ViewerProfile | null {
-  return seat === 'control' ? { mode: 'analyst', language, favorite_player_id: null } : null
+/** Profile spec for the socket: mode:lang:player:team */
+export const profileSpec = (p: ViewerProfile) => `${p.mode}:${p.language}:${p.favorite_player_id ?? ''}:${p.team_id ?? ''}`
+
+/** The Control room watches several viewers at once: the home fan (its own line), the away fan and an analyst. */
+export function compareForSeat(seat: Seat, language: ViewerProfile['language'], awayId: string | null): ViewerProfile[] {
+  if (seat !== 'control') return []
+  const awayFan: ViewerProfile[] = awayId ? [{ mode: 'commentator', language, favorite_player_id: null, team_id: awayId }] : []
+  return [...awayFan, { mode: 'analyst', language, favorite_player_id: null, team_id: null }]
+}
+
+/** The control seat's own viewer is the home fan when the fixture is known, a neutral commentator otherwise. */
+export function controlProfile(language: ViewerProfile['language'], homeId: string | null): ViewerProfile {
+  return { mode: 'commentator', language, favorite_player_id: null, team_id: homeId }
 }

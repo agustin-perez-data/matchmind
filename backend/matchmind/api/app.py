@@ -251,10 +251,11 @@ def create_app(
         mode: str = Query("analyst"),
         lang: str = Query("en"),
         player: str | None = Query(None),
+        team: str | None = Query(None, description="the side the viewer supports (team_id); omit for neutral"),
         agents_on: bool = Query(True, alias="agents"),
         coach_on: bool = Query(True, alias="coach"),
         min_importance: int = Query(3, ge=1, le=5),
-        compare: str | None = Query(None, description="extra viewer profile to compare, mode:lang[:player] (Control room)"),
+        compare: str | None = Query(None, description="extra viewer profiles to compare, comma-separated mode:lang:player:team (Control room)"),
     ) -> None:
         await websocket.accept()
         meta = catalog.meta(match_id)
@@ -262,8 +263,8 @@ def create_app(
             await websocket.close(code=4404, reason=f"unknown match {match_id!r}")
             return
         try:
-            profile = ViewerProfile(mode=mode, language=lang, favorite_player_id=player)
-            compare_profiles = [parse_profile_spec(compare)] if compare else []
+            profile = ViewerProfile(mode=mode, language=lang, favorite_player_id=player, team_id=team or None)
+            compare_profiles = [parse_profile_spec(s) for s in compare.split(",") if s.strip()] if compare else []
         except ValidationError as exc:
             await websocket.close(code=4400, reason=f"bad viewer profile: {exc.errors()[0]['msg']}")
             return
@@ -282,12 +283,13 @@ def create_app(
 
 
 def parse_profile_spec(spec: str) -> ViewerProfile:
-    """'analyst:en' | 'commentator:es' | 'player_focus:en:THU-15' (validation errors propagate)."""
-    parts = [p for p in str(spec).split(":")]
+    """'analyst:en' | 'commentator:es' | 'player_focus:en:THU-15' | 'commentator:es::THU' (mode:lang:player:team)."""
+    parts = [p.strip() for p in str(spec).split(":")]
     if not parts or not parts[0]:
         raise ValueError(f"empty profile spec {spec!r}")
     return ViewerProfile(mode=parts[0], language=parts[1] if len(parts) > 1 and parts[1] else "en",
-                         favorite_player_id=parts[2] if len(parts) > 2 and parts[2] else None)
+                         favorite_player_id=parts[2] if len(parts) > 2 and parts[2] else None,
+                         team_id=parts[3] if len(parts) > 3 and parts[3] else None)
 
 
 class _Lane:

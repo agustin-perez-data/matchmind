@@ -268,7 +268,7 @@ def test_control_room_compares_a_second_viewer_on_every_moment(agent_client, fak
     url = f"/ws/matches/{meta['match_id']}?speed=0&mode=commentator&lang=es&compare=analyst:en&coach=0"
     with agent_client.websocket_connect(url) as ws:
         first = ws.receive_json()
-        assert first["compare"] == [{"mode": "analyst", "language": "en", "favorite_player_id": None}]
+        assert first["compare"] == [{"mode": "analyst", "language": "en", "favorite_player_id": None, "team_id": None}]
         ws.send_json({"compare": ["player_focus:en:THU-15"]})
         msgs = _drain(ws)
     acks = [m for m in msgs if m["kind"] == "ack" and "compare" in m]
@@ -279,6 +279,18 @@ def test_control_room_compares_a_second_viewer_on_every_moment(agent_client, fak
     assert any("analyst:en:-" in i["viewers"] or "player_focus:en:THU-15" in i["viewers"] for i in insights)
     _, profiles = fake_pipeline.calls[-1]
     assert [p.key for p in profiles][0] == "commentator:es:-" and len(profiles) == 2
+
+
+def test_fan_can_pick_a_side_on_the_socket_and_in_a_compare_spec(agent_client, fake_pipeline, meta):
+    url = f"/ws/matches/{meta['match_id']}?speed=0&mode=commentator&lang=es&team=THU&compare=commentator:es::NBF,analyst:en&coach=0"
+    with agent_client.websocket_connect(url) as ws:
+        first = ws.receive_json()
+        assert first["profile"]["team_id"] == "THU" and [c["team_id"] for c in first["compare"]] == ["NBF", None]
+        msgs = _drain(ws)
+    insights = [m for m in msgs if m["kind"] == "insight"]
+    assert insights and set(insights[0]["viewers"]) == {"commentator:es:-:THU", "commentator:es:-:NBF", "analyst:en:-"}
+    _, profiles = fake_pipeline.calls[-1]
+    assert [p.team_id for p in profiles] == ["THU", "NBF", None]
 
 
 def test_bad_compare_profile_closes_with_error(client, meta):

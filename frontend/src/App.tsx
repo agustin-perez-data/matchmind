@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { listMatches, type MatchRow } from './lib/api'
-import { compareForSeat, parseSeat, profileForSeat, type Seat } from './lib/seats'
+import { compareForSeat, controlProfile, parseSeat, profileForSeat, profileSpec, type Seat } from './lib/seats'
 import { useMatchStream, type StreamOptions } from './lib/useMatchStream'
 import { soundFor, stadium } from './lib/sounds'
 import { parseSpeed } from './lib/speed'
@@ -20,6 +20,7 @@ function readUrl() {
     speed: parseSpeed(q.get('speed')),
     match: q.get('match'),
     player: q.get('player'),
+    team: q.get('team'),
     agents: q.get('agents') !== '0',
     coach: q.get('coach') !== '0',
   }
@@ -43,6 +44,7 @@ export default function App() {
   const [speed, setSpeed] = useState(initial.speed)
   const [language, setLanguage] = useState<Language>(initial.language)
   const [favorite, setFavorite] = useState<string | null>(initial.player)
+  const [team, setTeam] = useState<string | null>(initial.team)
   // agents / coach come only from the URL (dev switches: ?agents=0&coach=0 replays without LLM calls)
   const { agents, coach } = initial
   const [seat, setSeat] = useState<Seat | null>(initial.seat)
@@ -50,10 +52,17 @@ export default function App() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const { state, start, stop, send } = useMatchStream()
 
-  const begin = useCallback((s: Seat, id: string, opts?: Partial<StreamOptions>) => {
+  const sidesOf = useCallback((id: string, rows: MatchRow[] = matches) => {
+    const row = rows.find((m) => m.match_id === id)
+    return { home: row?.home_team.team_id ?? null, away: row?.away_team.team_id ?? null }
+  }, [matches])
+
+  const begin = useCallback((s: Seat, id: string, opts?: Partial<StreamOptions>, rows?: MatchRow[]) => {
     setSelectedBranch(null)
-    start({ matchId: id, speed, profile: profileForSeat(s, language, favorite), compare: compareForSeat(s, language), agents, coach, minImportance: s === 'fan' ? 2 : 3, ...opts })
-  }, [start, speed, language, favorite, agents, coach])
+    const { home, away } = sidesOf(id, rows)  // on autostart the catalogue has just arrived and is not in state yet
+    const profile = s === 'control' ? controlProfile(language, home) : profileForSeat(s, language, favorite, team)
+    start({ matchId: id, speed, profile, compare: compareForSeat(s, language, away), agents, coach, minImportance: s === 'fan' ? 2 : 3, ...opts })
+  }, [start, speed, language, favorite, team, agents, coach, sidesOf])
 
   // Load the catalogue; a seat in the URL means "straight into the match".
   useEffect(() => {
@@ -63,7 +72,7 @@ export default function App() {
         const headline = rows.find((r) => r.match_id.startsWith('THU'))?.match_id ?? rows[0]?.match_id
         const id = initial.match && rows.some((r) => r.match_id === initial.match) ? initial.match : headline
         if (id) setMatchId(id)
-        if (id && initial.seat) begin(initial.seat, id)
+        if (id && initial.seat) begin(initial.seat, id, undefined, rows)
       })
       .catch((e: Error) => setLoadError(`Could not reach the match server (${e.message}). Start the backend and reload.`))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,24 +98,26 @@ export default function App() {
     const e = state.lastEvent
     if (!e) return
     const kind = soundFor(e.type)
-    if (kind === 'roar') stadium.roar()
+    if (kind === 'roar') (team && e.team_id && e.team_id !== team ? stadium.groan() : stadium.roar())
     else if (kind) stadium.whistle(kind)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastEvent])
 
   const pickSeat = useCallback((s: Seat) => {
     if (!matchId) return
     stadium.unlock() // a click: the browser lets audio start from here on
     setSeat(s)
-    writeUrl({ seat: s, match: matchId, lang: language, speed, agents: agents ? null : '0', coach: coach ? null : '0' })
+    writeUrl({ seat: s, match: matchId, lang: language, speed, team, agents: agents ? null : '0', coach: coach ? null : '0' })
     begin(s, matchId)
   }, [matchId, language, speed, agents, coach, begin])
 
   const switchSeat = useCallback((s: Seat) => {
     setSeat(s)
     writeUrl({ seat: s }, true)
-    const c = compareForSeat(s, language)
-    send({ profile: profileForSeat(s, language, favorite), compare: c ? [`${c.mode}:${c.language}`] : [] })
-  }, [send, language, favorite])
+    const { home, away } = sidesOf(matchId)
+    const profile = s === 'control' ? controlProfile(language, home) : profileForSeat(s, language, favorite, team)
+    send({ profile, compare: compareForSeat(s, language, away).map(profileSpec) })
+  }, [send, language, favorite, team, matchId, sidesOf])
 
   const leave = useCallback(() => {
     stop()
@@ -118,8 +129,12 @@ export default function App() {
   const onSpeed = useCallback((v: number) => { setSpeed(v); writeUrl({ speed: v }, true); send({ speed: v }) }, [send])
   const onFavorite = useCallback((id: string | null) => {
     setFavorite(id); writeUrl({ player: id }, true)
-    if (seat) send({ profile: profileForSeat(seat, language, id) })
-  }, [send, seat, language])
+    if (seat) send({ profile: profileForSeat(seat, language, id, team) })
+  }, [send, seat, language, team])
+  const onTeam = useCallback((id: string | null) => {
+    setTeam(id); writeUrl({ team: id }, true)
+    if (seat) send({ profile: profileForSeat(seat, language, favorite, id) })
+  }, [send, seat, language, favorite])
 
   const meta = state.meta
   const inMatch = seat !== null && (state.status === 'live' || state.status === 'ended' || state.status === 'connecting')
@@ -143,7 +158,7 @@ export default function App() {
       {inMatch && seat && state.status === 'connecting' && <p className="display px-6 py-10 text-2xl font-bold uppercase tracking-wider text-muted">Connecting to the studio</p>}
       {inMatch && seat && meta && (
         <MatchStage seat={seat} meta={meta} state={state} branches={branches} latestCoach={latestCoach} lastGoal={lastGoal}
-          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} />
+          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} teamId={team} onTeam={onTeam} />
       )}
     </div>
   )

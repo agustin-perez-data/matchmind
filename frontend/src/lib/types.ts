@@ -112,6 +112,7 @@ export type ViewerProfile = {
   mode: 'analyst' | 'casual' | 'commentator' | 'player_focus'
   language: 'en' | 'es'
   favorite_player_id: string | null
+  team_id?: string | null // the side the viewer supports; null = neutral
 }
 
 export type Forecast = {

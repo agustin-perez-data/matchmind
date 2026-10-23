@@ -35,13 +35,31 @@ def _favorite(context: dict, profile: ViewerProfile) -> dict | None:
     return {"player_id": profile.favorite_player_id, "involved_in_this_moment": False}
 
 
+ALLEGIANCE = {
+    "en": "The viewer supports {team}. Take their side openly: celebrate their goals and chances, suffer the other side's, "
+          "praise their players, grumble about decisions that go against them. Keep every fact straight; the bias is in the "
+          "emotion and the framing, never in the numbers.",
+    "es": "El espectador es hincha de {team}. Ponete de su lado sin disimulo: festejá sus goles y sus chances, sufrí las del "
+          "rival, elogiá a sus jugadores, quejate de lo que le juega en contra. Los hechos siempre exactos; la parcialidad va en "
+          "la emoción y el enfoque, nunca en los números.",
+}
+
+
+def _allegiance(context: dict, profile: ViewerProfile) -> str:
+    if not profile.team_id:
+        return "Neutral viewer: no side."
+    name = context.get("teams", {}).get(profile.team_id, {}).get("name", profile.team_id)
+    return ALLEGIANCE.get(profile.language, ALLEGIANCE["en"]).format(team=name)
+
+
 def narrator_brief(context: dict, profile: ViewerProfile) -> str:
     """The viewer-specific part of the Narrator's prompt (shared with the concurrent orchestration)."""
     style = STYLE_GUIDES[(profile.mode, profile.language)]
     return (
-        f"Viewer profile: mode={profile.mode}, language={profile.language}, "
+        f"Viewer profile: mode={profile.mode}, language={profile.language}, team={profile.team_id or 'neutral'}, "
         f"favorite_player={json.dumps(_favorite(context, profile), ensure_ascii=False)}\n"
         f"Style guide: {style}\n"
+        f"Allegiance: {_allegiance(context, profile)}\n"
     )
 
 
