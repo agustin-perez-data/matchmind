@@ -71,7 +71,7 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="display text-base font-extrabold uppercase tracking-wider text-fg-2">Follow one of {teamId ? 'yours' : 'them'}</h3>
-        <span className="blk-meta text-[11px]">{followedMeta ? 'their touches light up on the pitch' : 'optional'}</span>
+        <span className="blk-meta text-[11px]">optional</span>
       </div>
       <div className="mt-2 grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -107,6 +107,7 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
                 <button type="button" className="btn-quiet px-2 py-0.5 text-xs" onClick={() => onFavorite(null)}>Unfollow</button>
               </div>
               <div className="blk-meta mt-1">{followedMeta.position} · {followed ? (followed.on_pitch ? `${followed.minutes_played}' on the pitch` : 'off the pitch') : 'warming up'}{involvement ? <span className={involvement === 'in the game' ? 'text-teal' : involvement === 'quiet spell' ? 'text-muted' : 'text-fg-2'}> · {involvement}: {recent} touch{recent === 1 ? '' : 'es'} in the last 10'</span> : null}</div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-amber"><span aria-hidden className="inline-block h-2 w-2 rounded-full bg-amber" />their touches light up on the pitch</div>
               {subbedOff && (
                 <p className="mt-2 border-l-2 border-amber pl-2 text-sm text-fg-2">
                   Off at {subbedOff.clock}{subName ? `, ${subName} came on` : ''}. {ended ? 'Their card is ready below.' : 'Stay with their numbers, or'}
