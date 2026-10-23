@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Seat } from '../lib/seats'
 import type { BallPoint, FeedItem } from '../lib/useMatchStream'
 import { touchPoints, type Touch } from '../lib/follow'
@@ -17,9 +18,14 @@ type Props = {
 
 /** Pitch in studio perspective: shot map, ball with a short trail, possession chip, and the lower third. */
 export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false, followId = null, touches = [] }: Props) {
-  const mine = followId ? touchPoints(touches, followId) : []
+  // Which half the map shows. Teams swap ends at half time, so "all" mixes both ends; a half reads clean.
+  const [half, setHalf] = useState<1 | 2 | 'all'>('all')
+  const inHalf = (period: number) => half === 'all' || period === half
+  const shownShots = shots.filter((e) => inHalf(e.period))
+  const mine = (followId ? touchPoints(touches.filter((t) => inHalf(t.period)), followId) : [])
   const color = (team?: string) => (team === meta.home_id ? 'var(--home-ink)' : 'var(--away-ink)')
-  const homeRight = snapshot ? snapshot.period === 1 : true
+  const currentHalfRight = snapshot ? snapshot.period === 1 : true
+  const homeRight = half === 'all' ? currentHalfRight : half === 1
   const left = homeRight ? meta.teams[meta.home_id] : meta.teams[meta.away_id]
   const right = homeRight ? meta.teams[meta.away_id] : meta.teams[meta.home_id]
   const now = ball[ball.length - 1]
@@ -28,6 +34,14 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
   return (
     <section className="relative">
       <div className="flex flex-wrap items-center justify-between gap-2 px-2 text-xs text-muted sm:px-6">
+        <div className="flex items-center" role="radiogroup" aria-label="which half the map shows">
+          {([1, 2, 'all'] as const).map((h) => (
+            <button key={String(h)} type="button" role="radio" aria-checked={half === h} onClick={() => setHalf(h)}
+              className={`display px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider transition-[background,color] duration-150 ${half === h ? 'bg-white text-ink' : 'border border-white/15 text-muted hover:text-fg'}`}>
+              {h === 1 ? '1st half' : h === 2 ? '2nd half' : 'All'}
+            </button>
+          ))}
+        </div>
         {possession
           ? <span className="display text-sm font-extrabold uppercase tracking-wider" style={{ color: possession.color }}>{possession.text}</span>
           : <span>{!snapshot || snapshot.minute === 0 ? 'Waiting for kick off' : ''}</span>}
@@ -46,8 +60,8 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
             <rect x={0} y={24.84} width={5.5} height={18.32} /><rect x={W - 5.5} y={24.84} width={5.5} height={18.32} />
           </g>
           {/* shot map: every shot so far, sized by xG; goals ringed in amber */}
-          {shots.map((e, i) => {
-            const age = shots.length - 1 - i
+          {shownShots.map((e, i) => {
+            const age = shownShots.length - 1 - i
             return (
               <g key={e.event_id} className="enter-pop" style={{ transformOrigin: `${sx(e.x!)}px ${sy(e.y!)}px`, transformBox: 'view-box' }} opacity={age > 6 ? 0.55 : 1}>
                 <circle cx={sx(e.x!)} cy={sy(e.y!)} r={1 + (e.xg ?? 0) * 7} fill={color(e.team_id)} fillOpacity={0.4} stroke={color(e.team_id)} strokeWidth={0.4} />
