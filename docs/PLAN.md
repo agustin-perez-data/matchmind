@@ -362,8 +362,10 @@ Foundry, Best Azure Cloud Native Integration.
   kept quoting. Added: an involvement read ("in the game / steady / quiet
   spell", touches in the last 10' vs the player's own pace) and a one-click
   "follow <sub> instead" when the player goes off.
-  **Oct 23, pitch half filter**: 1st half / 2nd half / All above the pitch
-  (default All) filters the shot map and the followed player's touches;
+  **Oct 23, pitch half filter**: All / 1st half / 2nd half above the pitch
+  (bigger, amber highlight) filters the shot map and the followed player's
+  touches; until the viewer picks, it follows the match (the half being
+  played, then All at full time) and a manual pick sticks;
   the attacking-direction labels follow the chosen half, since the teams
   swap ends and "All" mixes both ends. A touch ping (sonar ring + name
   flash, one-shot, off under reduced motion) marks each new touch.

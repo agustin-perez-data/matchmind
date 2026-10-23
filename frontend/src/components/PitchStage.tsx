@@ -12,14 +12,17 @@ const sy = (y: number) => (y / 100) * H
 type Props = {
   followId?: string | null
   touches?: Touch[]
+  ended?: boolean
   meta: Meta; ball: BallPoint[]; shots: MatchEvent[]; lastEvent: MatchEvent | null; snapshot: Snapshot | null
   latest: FeedItem | null; keyEvent: MatchEvent | null; seat: Seat; size?: 'lg' | 'sm'; agentsOn?: boolean
 }
 
 /** Pitch in studio perspective: shot map, ball with a short trail, possession chip, and the lower third. */
-export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false, followId = null, touches = [] }: Props) {
+export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false, followId = null, touches = [], ended = false }: Props) {
   // Which half the map shows. Teams swap ends at half time, so "all" mixes both ends; a half reads clean.
-  const [half, setHalf] = useState<1 | 2 | 'all'>('all')
+  // Until the viewer picks, the map follows the match: the half being played, then everything at full time.
+  const [pick, setPick] = useState<1 | 2 | 'all' | null>(null)
+  const half: 1 | 2 | 'all' = pick ?? (ended ? 'all' : snapshot?.period === 2 ? 2 : 1)
   const inHalf = (period: number) => half === 'all' || period === half
   const shownShots = shots.filter((e) => inHalf(e.period))
   const mine = (followId ? touchPoints(touches.filter((t) => inHalf(t.period)), followId) : [])
@@ -34,10 +37,11 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
   return (
     <section className="relative">
       <div className="flex flex-wrap items-center justify-between gap-2 px-2 text-xs text-muted sm:px-6">
-        <div className="flex items-center" role="radiogroup" aria-label="which half the map shows">
-          {([1, 2, 'all'] as const).map((h) => (
-            <button key={String(h)} type="button" role="radio" aria-checked={half === h} onClick={() => setHalf(h)}
-              className={`display px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider transition-[background,color] duration-150 ${half === h ? 'bg-white text-ink' : 'border border-white/15 text-muted hover:text-fg'}`}>
+        <div className="flex items-stretch border border-white/20" role="radiogroup" aria-label="which half the map shows">
+          <span className="blk-meta hidden items-center px-2 text-[10px] sm:flex">Map</span>
+          {(['all', 1, 2] as const).map((h) => (
+            <button key={String(h)} type="button" role="radio" aria-checked={half === h} onClick={() => setPick(h)}
+              className={`display px-3 py-1.5 text-sm font-extrabold uppercase tracking-wider transition-[background,color] duration-150 ${half === h ? 'bg-amber text-ink' : 'text-fg-2 hover:bg-white/10 hover:text-fg'}`}>
               {h === 1 ? '1st half' : h === 2 ? '2nd half' : 'All'}
             </button>
           ))}
