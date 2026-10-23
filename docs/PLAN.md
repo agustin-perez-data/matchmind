@@ -319,6 +319,28 @@ Foundry, Best Azure Cloud Native Integration.
   tests) and an in-browser run confirmed every rung up and down, the URL
   sync, the disabled states, and that the replay really follows the speed
   (3 s real ≈ 1.2 match minutes at ×15, 14.5 at ×300).
+  **Oct 23, fan seat rebuilt: "Your side" + a Follow worth having.** Agustín
+  judged Follow weak (invisible effect, physio numbers, 22 surnames); we
+  chose to replace its frame and keep the good part. `ViewerProfile.team_id`
+  (None = neutral; key gets a 4th part only when set), the Narrator brief
+  carries an allegiance paragraph (celebrate yours, suffer theirs, facts
+  exact), socket `?team=` and 4-part compare specs `mode:lang:player:team`
+  (comma-separated); the Control room now compares home fan, away fan and
+  analyst ("Same moment, three viewers"). Frontend: `YourSideBlock.tsx`
+  (Thames / Neutral / Northbridge, neutral by default; follow one of yours),
+  "YOUR SIDE" tag on the band, a crowd groan (`stadium.groan`) when your side
+  concedes. Follow: the stream keeps every on-ball/knock/sub/card event
+  (`lib/follow.ts` `keep`, ~1,000 per match), the followed player's touches
+  light up on the pitch (amber; shots bigger), fan stats (touches, shots,
+  goals, assists, xG, key passes, duels, pass accuracy; goals/assists from
+  goal events only, a strike is also a shot), a ticker of their moments,
+  the Analyst's "player to watch" notice with its verdict, a sub-off notice,
+  and at full time a downloadable 1200×630 PNG card (`lib/playerCard.ts`,
+  canvas). player_focus style guide now talks like a fan, not a physio.
+  Vitest: 15 unit tests (speed + follow). Verified live: biased relato in
+  Spanish as a Northbridge fan ("¡Vamos, NBF!"), touch map and card for Kai
+  Ferrant. Declined by Agustín: Coach alerts on the followed player (fans
+  don't see the bench), "player moments" with sounds.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

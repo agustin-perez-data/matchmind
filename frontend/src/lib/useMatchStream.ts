@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { wsUrl } from './api'
+import { keep, type Touch } from './follow'
 import type { CoachMsg, Credibility, InsightMsg, MatchEvent, Meta, RiskMsg, RiskWindow, Snapshot, StreamStatus, VerdictMsg, ViewerProfile } from './types'
 
 export type StreamOptions = {
@@ -24,6 +25,7 @@ export type StreamState = {
   ball: BallPoint[] // recent ball positions, oldest first
   shots: MatchEvent[] // every shot so far, oldest first
   keyEvents: MatchEvent[] // newest first
+  touches: Touch[] // every on-ball action and knock/sub/card of the match, oldest first (for the followed player)
   feed: FeedItem[] // newest first
   risk: RiskMsg | null
   alerts: RiskWindow[] // newest first
@@ -35,7 +37,7 @@ export type StreamState = {
 }
 
 const EMPTY: StreamState = {
-  status: 'idle', meta: null, snapshot: null, lastEvent: null, ball: [], shots: [], keyEvents: [], feed: [],
+  status: 'idle', meta: null, snapshot: null, lastEvent: null, ball: [], shots: [], keyEvents: [], touches: [], feed: [],
   risk: null, alerts: [], verdicts: [], credibility: null, agentsOn: false, coachOn: false, goalFlash: 0,
 }
 
@@ -78,6 +80,8 @@ export function useMatchStream() {
             if (x.state) next.snapshot = x.state
             if (typeof e.x === 'number') next.ball = [...s.ball.slice(-(BALL_TRAIL - 1)), { x: e.end_x ?? e.x, y: e.end_y ?? (e.y as number), team_id: e.team_id }]
             if (e.type === 'shot') next.shots = [...s.shots, e]
+            const t = keep(e)
+            if (t) next.touches = [...s.touches, t]
             if (KEY_TYPES.has(e.type)) next.keyEvents = [e, ...s.keyEvents].slice(0, 120)
             if (e.type === 'goal') next.goalFlash = s.goalFlash + 1
             return next

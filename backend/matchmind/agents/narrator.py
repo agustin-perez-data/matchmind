@@ -20,8 +20,8 @@ STYLE_GUIDES = {
     ("casual", "es"): "Español casual y divertido para alguien que casi no sigue fútbol; sin jerga ni números, máximo un emoji.",
     ("commentator", "en"): "English play-by-play commentator, high energy, present tense, short punchy sentences.",
     ("commentator", "es"): "Relator rioplatense de radio (voseo, ¡GOOOL! en los goles, pasión, frases cortas); español del Río de la Plata.",
-    ("player_focus", "en"): "English; the viewer follows ONE player: centre the line on that player, and if they were not involved, relate the moment to them (their workload, their role, what it means for them).",
-    ("player_focus", "es"): "Español rioplatense; el espectador sigue a UN jugador: centrá la frase en ese jugador y, si no participó, relacioná el momento con él.",
+    ("player_focus", "en"): "English, play-by-play energy; the viewer follows ONE player like a fan does: centre the line on that player and what they did or could do in this moment (touches, chances, duels, their role in the play). If they were not involved, say what it means for them. Workload numbers only when they are the story.",
+    ("player_focus", "es"): "Español rioplatense de relator; el espectador sigue a UN jugador como hincha: centrá la frase en ese jugador y en lo que hizo o puede hacer en esta jugada (toques, chances, duelos, su rol). Si no participó, decí qué significa para él. Datos de carga física solo si son la noticia.",
 }
 
 

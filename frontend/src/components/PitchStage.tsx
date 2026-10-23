@@ -1,5 +1,6 @@
 import type { Seat } from '../lib/seats'
 import type { BallPoint, FeedItem } from '../lib/useMatchStream'
+import { touchPoints, type Touch } from '../lib/follow'
 import type { MatchEvent, Meta, Snapshot } from '../lib/types'
 import { IconChart, IconMic } from './icons'
 
@@ -8,12 +9,15 @@ const sx = (x: number) => (x / 100) * W
 const sy = (y: number) => (y / 100) * H
 
 type Props = {
+  followId?: string | null
+  touches?: Touch[]
   meta: Meta; ball: BallPoint[]; shots: MatchEvent[]; lastEvent: MatchEvent | null; snapshot: Snapshot | null
   latest: FeedItem | null; keyEvent: MatchEvent | null; seat: Seat; size?: 'lg' | 'sm'; agentsOn?: boolean
 }
 
 /** Pitch in studio perspective: shot map, ball with a short trail, possession chip, and the lower third. */
-export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false }: Props) {
+export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false, followId = null, touches = [] }: Props) {
+  const mine = followId ? touchPoints(touches, followId) : []
   const color = (team?: string) => (team === meta.home_id ? 'var(--home-ink)' : 'var(--away-ink)')
   const homeRight = snapshot ? snapshot.period === 1 : true
   const left = homeRight ? meta.teams[meta.home_id] : meta.teams[meta.away_id]
@@ -27,7 +31,7 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
         {possession
           ? <span className="display text-sm font-extrabold uppercase tracking-wider" style={{ color: possession.color }}>{possession.text}</span>
           : <span>{!snapshot || snapshot.minute === 0 ? 'Waiting for kick off' : ''}</span>}
-        {size === 'lg' && <span>dots are shots sized by expected goals, ringed when they went in</span>}
+        {size === 'lg' && <span>dots are shots sized by expected goals, ringed when they went in{followId ? '; amber: your player' : ''}</span>}
       </div>
       <div className={`${size === 'lg' ? '-mt-3 sm:-mt-6' : '-mt-1'} px-2 sm:px-6`} style={{ perspective: '1000px' }}>
         <svg viewBox={`0 0 ${W} ${H}`} className={`mx-auto h-auto w-full ${size === 'lg' ? 'max-w-[720px]' : 'max-w-[460px]'}`} role="img"
@@ -50,6 +54,14 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
                 {e.outcome === 'goal' && <circle cx={sx(e.x!)} cy={sy(e.y!)} r={3 + (e.xg ?? 0) * 7} fill="none" stroke="var(--color-amber)" strokeWidth={0.7} />}
                 <title>{e.clock} {e.player_name}, {e.outcome}, xG {e.xg?.toFixed(2)}</title>
               </g>
+            )
+          })}
+          {/* the followed player's touches: where they acted on the ball, shots bigger */}
+          {mine.map((t, i) => {
+            const shot = t.type === 'shot' || t.type === 'goal'
+            return (
+              <circle key={t.event_id} className="enter-pop" style={{ transformOrigin: `${sx(t.x)}px ${sy(t.y)}px`, transformBox: 'view-box' }}
+                cx={sx(t.x)} cy={sy(t.y)} r={shot ? 1.8 : 1} fill="var(--color-amber)" fillOpacity={shot ? 0.95 : 0.45 + Math.min(0.4, i / Math.max(1, mine.length) * 0.4)} stroke={shot ? '#0b0f1a' : 'none'} strokeWidth={0.3} />
             )
           })}
           {/* the ball: a short comet trail and the marker */}

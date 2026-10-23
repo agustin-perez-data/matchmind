@@ -19,6 +19,7 @@ type Props = {
   onFavorite: (id: string | null) => void
   teamId: string | null
   onTeam: (id: string | null) => void
+  language: 'en' | 'es'
   seat: Seat
   meta: Meta
   state: StreamState
@@ -30,11 +31,12 @@ type Props = {
 }
 
 /** One match, three compositions: what each seat sees. */
-export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite, teamId, onTeam }: Props) {
+export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite, teamId, onTeam, language }: Props) {
   const keyEvent = state.keyEvents.find((e) => e.type !== 'kickoff') ?? null
   const pitch = (size: 'lg' | 'sm') => (
     <PitchStage meta={meta} ball={state.ball} shots={state.shots} lastEvent={state.lastEvent} snapshot={state.snapshot}
-      latest={state.feed[0] ?? null} keyEvent={keyEvent} seat={seat} size={size} agentsOn={state.agentsOn} />
+      latest={state.feed[0] ?? null} keyEvent={keyEvent} seat={seat} size={size} agentsOn={state.agentsOn}
+      followId={seat === 'fan' ? favoritePlayerId : null} touches={state.touches} />
   )
   const rail = <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} />
   const band = <TopBand meta={meta} snapshot={state.snapshot} status={state.status} lastGoal={lastGoal} flash={state.goalFlash} teamId={seat === 'fan' ? teamId : null} />
@@ -52,7 +54,7 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
           <div className="enter" style={{ ['--i' as string]: 1 }}>{pitch('lg')}</div>
           <div className="enter" style={{ ['--i' as string]: 2 }}><Momentum meta={meta} snapshot={state.snapshot} /></div>
           <div className="enter" style={{ ['--i' as string]: 3 }}>
-            <YourSideBlock meta={meta} snapshot={state.snapshot} latest={state.feed.find((f) => f.msg.kind === 'insight') ?? null} teamId={teamId} onTeam={onTeam} favoritePlayerId={favoritePlayerId} onFavorite={onFavorite} />
+            <YourSideBlock meta={meta} snapshot={state.snapshot} feed={state.feed} verdicts={state.verdicts} touches={state.touches} language={language} ended={ended} teamId={teamId} onTeam={onTeam} favoritePlayerId={favoritePlayerId} onFavorite={onFavorite} />
           </div>
           <div className="enter" style={{ ['--i' as string]: 4 }}>{rail}</div>
         </main>

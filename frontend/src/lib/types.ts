@@ -50,6 +50,10 @@ export type MatchEvent = {
   card?: string
   player_on_name?: string
   player_off_name?: string
+  player_on_id?: string
+  player_off_id?: string
+  receiver_id?: string
+  assist_player_id?: string
   score?: Record<string, number>
   forced?: boolean
 }

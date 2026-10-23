@@ -158,7 +158,7 @@ export default function App() {
       {inMatch && seat && state.status === 'connecting' && <p className="display px-6 py-10 text-2xl font-bold uppercase tracking-wider text-muted">Connecting to the studio</p>}
       {inMatch && seat && meta && (
         <MatchStage seat={seat} meta={meta} state={state} branches={branches} latestCoach={latestCoach} lastGoal={lastGoal}
-          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} teamId={team} onTeam={onTeam} />
+          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} teamId={team} onTeam={onTeam} language={language} />
       )}
     </div>
   )

@@ -1,28 +1,54 @@
-import type { FeedItem } from '../lib/useMatchStream'
-import type { Meta, Snapshot } from '../lib/types'
+import { useMemo } from 'react'
+import { fanStats, playerEvents, ticker, touchPoints, type Touch } from '../lib/follow'
+import { downloadPlayerCard } from '../lib/playerCard'
+import type { FeedItem, VerdictItem } from '../lib/useMatchStream'
+import type { InsightMsg, Meta, Snapshot } from '../lib/types'
 import { Crest, onColor } from './Crest'
 import { IconMic } from './icons'
 
 type Props = {
   meta: Meta
   snapshot: Snapshot | null
-  latest: FeedItem | null
+  feed: FeedItem[]
+  verdicts: VerdictItem[]
+  touches: Touch[]
+  language: 'en' | 'es'
+  ended: boolean
   teamId: string | null
   onTeam: (id: string | null) => void
   favoritePlayerId: string | null
   onFavorite: (id: string | null) => void
 }
 
-/** The fan's own corner: pick a side (or stay neutral) and, if you like, one player of yours to follow. */
-export function YourSideBlock({ meta, snapshot, latest, teamId, onTeam, favoritePlayerId, onFavorite }: Props) {
+/** The fan's own corner: pick a side (or stay neutral) and one player to follow; their match told the fan's way. */
+export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, language, ended, teamId, onTeam, favoritePlayerId, onFavorite }: Props) {
   const home = meta.teams[meta.home_id], away = meta.teams[meta.away_id]
+  const allPlayers = useMemo(() => Object.values(meta.teams).flatMap((t) => t.players.map((p) => ({ ...p, team_id: t.team_id }))), [meta])
+  const followedMeta = favoritePlayerId ? allPlayers.find((p) => p.player_id === favoritePlayerId) ?? null : null
   const followed = favoritePlayerId ? snapshot?.players[favoritePlayerId] ?? null : null
-  const followedMeta = favoritePlayerId ? Object.values(meta.teams).flatMap((t) => t.players).find((p) => p.player_id === favoritePlayerId) : null
-  const note = latest?.msg.kind === 'insight' ? Object.values(latest.msg.viewers)[0]?.decision?.personalized_note ?? null : null
+  const latestInsight = feed.find((f): f is FeedItem & { msg: InsightMsg } => f.msg.kind === 'insight') ?? null
+  const note = latestInsight ? Object.values(latestInsight.msg.viewers)[0]?.decision?.personalized_note ?? null : null
+  const mine = useMemo(() => (favoritePlayerId ? playerEvents(touches, favoritePlayerId) : []), [touches, favoritePlayerId])
+  const stats = useMemo(() => (favoritePlayerId ? fanStats(touches, favoritePlayerId) : null), [touches, favoritePlayerId])
+  const lines = useMemo(() => (favoritePlayerId ? ticker(touches, favoritePlayerId, meta, 6) : []), [touches, favoritePlayerId, meta])
   const sides = teamId ? [teamId] : [meta.home_id, meta.away_id]
+
+  // the Analyst's eye: the latest pending forecast that names this player, and whether a verdict settled it
+  const analystCall = favoritePlayerId && latestInsight?.msg.analyst?.forecast?.watch_player_id === favoritePlayerId ? latestInsight.msg : null
+  const settled = analystCall ? verdicts.find((v) => v.msg.event_id === analystCall.event_id) ?? null : null
+  const subbedOff = mine.find((e) => e.type === 'substitution' && e.player_off_id === favoritePlayerId) ?? null
+
   const pick = (id: string | null) => {
     onTeam(id)
-    if (id && followedMeta && meta.teams[id].players.every((p) => p.player_id !== followedMeta.player_id)) onFavorite(null) // your player must be one of yours
+    if (id && followedMeta && followedMeta.team_id !== id) onFavorite(null) // your player must be one of yours
+  }
+  const download = () => {
+    if (!followedMeta || !stats) return
+    downloadPlayerCard({
+      meta, team: meta.teams[followedMeta.team_id], name: followedMeta.name, position: followedMeta.position, shirt: followedMeta.shirt_number,
+      minutes: followed?.minutes_played ?? 0, score: snapshot?.score ?? meta.score, stats, points: touchPoints(touches, followedMeta.player_id),
+      moments: [...lines].reverse().filter((l) => l.big || lines.length <= 6).slice(0, 6).map((l) => ({ clock: l.clock, text: l.text })), language,
+    })
   }
 
   return (
@@ -48,9 +74,9 @@ export function YourSideBlock({ meta, snapshot, latest, teamId, onTeam, favorite
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="display text-base font-extrabold uppercase tracking-wider text-fg-2">Follow one of {teamId ? 'yours' : 'them'}</h3>
-        <span className="blk-meta text-[11px]">{followed ? 'the commentary leans towards them' : 'optional'}</span>
+        <span className="blk-meta text-[11px]">{followedMeta ? 'their touches light up on the pitch' : 'optional'}</span>
       </div>
-      <div className="mt-2 grid gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="mt-2 grid gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="grid gap-3 sm:grid-cols-2">
           {sides.map((tid) => {
             const team = meta.teams[tid]
@@ -76,21 +102,58 @@ export function YourSideBlock({ meta, snapshot, latest, teamId, onTeam, favorite
           })}
         </div>
 
-        <div className="lt-sub min-h-[96px] px-3 py-2">
-          {followedMeta ? (
+        <div className="lt-sub min-h-[120px] px-3 py-2">
+          {followedMeta && stats ? (
             <div key={followedMeta.player_id} className="enter-fade">
               <div className="flex items-baseline justify-between gap-2">
                 <div className="display text-2xl font-black uppercase leading-none">{followedMeta.name}</div>
                 <button type="button" className="btn-quiet px-2 py-0.5 text-xs" onClick={() => onFavorite(null)}>Unfollow</button>
               </div>
               <div className="blk-meta mt-1">{followedMeta.position} · {followed ? (followed.on_pitch ? `${followed.minutes_played}' on the pitch` : 'off the pitch') : 'warming up'}</div>
+              {subbedOff && (
+                <p className="mt-2 border-l-2 border-amber pl-2 text-sm text-fg-2">
+                  Off at {subbedOff.clock}{subbedOff.player_on_id ? `, ${allPlayers.find((p) => p.player_id === subbedOff.player_on_id)?.name.split(' ').slice(-1)[0] ?? ''} came on` : ''}. {ended ? 'Their card is ready below.' : 'Follow someone else, or stay with their numbers.'}
+                </p>
+              )}
+              <dl className="mt-2 grid grid-cols-4 gap-x-2 gap-y-1 text-center">
+                <Stat label="Touches" value={String(stats.touches)} />
+                <Stat label="Shots" value={String(stats.shots)} />
+                <Stat label="Goals" value={String(stats.goals)} hot={stats.goals > 0} />
+                <Stat label="Assists" value={String(stats.assists)} hot={stats.assists > 0} />
+                <Stat label="xG" value={stats.xg.toFixed(2)} />
+                <Stat label="Key passes" value={String(stats.keyPasses)} />
+                <Stat label="Duels won" value={String(stats.tackles + stats.interceptions)} />
+                <Stat label="Pass acc." value={stats.passes ? `${Math.round((stats.passesCompleted / stats.passes) * 100)}%` : '–'} />
+              </dl>
+              {analystCall && (
+                <p className="mt-2 flex gap-1.5 text-sm text-amber">
+                  <span className="tag tag-w shrink-0 text-[10px]">Analyst</span>
+                  <span>{settled ? (settled.msg.scores.watch === 1 ? `called it at ${analystCall.clock}: ${followedMeta.name.split(' ').slice(-1)[0]} got involved.` : `named ${followedMeta.name.split(' ').slice(-1)[0]} at ${analystCall.clock}, and was wrong.`) : `has an eye on ${followedMeta.name.split(' ').slice(-1)[0]} for the next 10 minutes too.`}</span>
+                </p>
+              )}
+              {lines.length > 0 && (
+                <ul className="mt-2 space-y-0.5 text-sm">
+                  {lines.map((l) => <li key={l.event_id} className={l.big ? 'font-semibold text-fg' : 'text-fg-2'}><span className="tabular-nums text-muted">{l.clock}</span> {l.text}</li>)}
+                </ul>
+              )}
+              {lines.length === 0 && <p className="mt-2 text-sm text-muted">Nothing yet: the first touch shows up here.</p>}
               {note && <p className="mt-2 flex gap-1.5 text-sm text-fg-2"><IconMic /><span>{note}</span></p>}
+              {ended && <button type="button" className="btn btn-teal mt-3 text-sm" onClick={download}>Download their card</button>}
             </div>
           ) : (
-            <p className="text-sm text-muted">{teamId ? 'Pick one of your players and the commentary keeps an eye on them for you.' : 'Nobody followed. Pick a player from either side and the commentary keeps an eye on them for you.'}</p>
+            <p className="text-sm text-muted">{teamId ? 'Pick one of your players: their touches light up on the pitch and their match is told here.' : 'Nobody followed. Pick a player from either side: their touches light up on the pitch and their match is told here.'}</p>
           )}
         </div>
       </div>
     </section>
+  )
+}
+
+function Stat({ label, value, hot = false }: { label: string; value: string; hot?: boolean }) {
+  return (
+    <div>
+      <dt className="blk-meta text-[10px]">{label}</dt>
+      <dd className={`display text-xl font-extrabold tabular-nums ${hot ? 'text-amber' : ''}`}>{value}</dd>
+    </div>
   )
 }
