@@ -346,8 +346,11 @@ Foundry, Best Azure Cloud Native Integration.
   wipe, Esc = neutral) when a fan takes the seat from the entry page (the
   stream starts only after the pick) or switches to Fan mid-match without a
   side in the URL. URL `team=THU|NBF|neutral`; absent means ask. Inside the
-  match the Your side block only shows the end, with a quiet "change end"
-  that reopens the modal. Verified in the browser from both flows.
+  match the Your side block only shows the end. Agustín's rules (Oct 23):
+  the question is asked every time the fan seat is taken from the entry
+  page (the URL's old `team` is cleared on entry and on leaving), the end
+  cannot change mid-match (no "change end", switching seats and back keeps
+  it), and Escape does nothing. Verified in the browser end to end.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

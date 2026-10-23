@@ -18,7 +18,6 @@ type Props = {
   favoritePlayerId: string | null
   onFavorite: (id: string | null) => void
   teamId: string | null
-  onChangeSide: () => void
   language: 'en' | 'es'
   seat: Seat
   meta: Meta
@@ -31,7 +30,7 @@ type Props = {
 }
 
 /** One match, three compositions: what each seat sees. */
-export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite, teamId, onChangeSide, language }: Props) {
+export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite, teamId, language }: Props) {
   const keyEvent = state.keyEvents.find((e) => e.type !== 'kickoff') ?? null
   const pitch = (size: 'lg' | 'sm') => (
     <PitchStage meta={meta} ball={state.ball} shots={state.shots} lastEvent={state.lastEvent} snapshot={state.snapshot}
@@ -54,7 +53,7 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
           <div className="enter" style={{ ['--i' as string]: 1 }}>{pitch('lg')}</div>
           <div className="enter" style={{ ['--i' as string]: 2 }}><Momentum meta={meta} snapshot={state.snapshot} /></div>
           <div className="enter" style={{ ['--i' as string]: 3 }}>
-            <YourSideBlock meta={meta} snapshot={state.snapshot} feed={state.feed} verdicts={state.verdicts} touches={state.touches} language={language} ended={ended} teamId={teamId} onChangeSide={onChangeSide} favoritePlayerId={favoritePlayerId} onFavorite={onFavorite} />
+            <YourSideBlock meta={meta} snapshot={state.snapshot} feed={state.feed} verdicts={state.verdicts} touches={state.touches} language={language} ended={ended} teamId={teamId} favoritePlayerId={favoritePlayerId} onFavorite={onFavorite} />
           </div>
           <div className="enter" style={{ ['--i' as string]: 4 }}>{rail}</div>
         </main>

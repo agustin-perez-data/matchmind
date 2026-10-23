@@ -111,11 +111,11 @@ export default function App() {
     if (!matchId) return
     stadium.unlock() // a click: the browser lets audio start from here on
     setSeat(s)
-    const teamParam = s === 'fan' && sideChosen ? (team ?? 'neutral') : null
-    writeUrl({ seat: s, match: matchId, lang: language, speed, team: teamParam, agents: agents ? null : '0', coach: coach ? null : '0' })
-    if (s === 'fan' && !sideChosen) { setAskSide(true); return } // the turnstile first; the match starts once you have picked an end
+    writeUrl({ seat: s, match: matchId, lang: language, speed, team: null, agents: agents ? null : '0', coach: coach ? null : '0' })
+    setTeam(null); setSideChosen(false)
+    if (s === 'fan') { setAskSide(true); return } // the turnstile first, every time; the match starts once you have picked an end
     begin(s, matchId)
-  }, [matchId, language, speed, team, sideChosen, agents, coach, begin])
+  }, [matchId, language, speed, agents, coach, begin])
 
   /** The fan picked an end (or neutral) at the turnstile. */
   const chooseSide = useCallback((id: string | null) => {
@@ -139,7 +139,9 @@ export default function App() {
     stop()
     setSeat(null)
     setSelectedBranch(null)
-    writeUrl({ seat: null })
+    setAskSide(false)
+    setTeam(null); setSideChosen(false) // your end is for one match: next time you take the seat you are asked again
+    writeUrl({ seat: null, team: null })
   }, [stop])
 
   const onSpeed = useCallback((v: number) => { setSpeed(v); writeUrl({ speed: v }, true); send({ speed: v }) }, [send])
@@ -147,7 +149,6 @@ export default function App() {
     setFavorite(id); writeUrl({ player: id }, true)
     if (seat) send({ profile: profileForSeat(seat, language, id, team) })
   }, [send, seat, language, team])
-  const changeSide = useCallback(() => setAskSide(true), [])
 
   const meta = state.meta
   const inMatch = seat !== null && (state.status === 'live' || state.status === 'ended' || state.status === 'connecting')
@@ -171,7 +172,7 @@ export default function App() {
       {inMatch && seat && state.status === 'connecting' && <p className="display px-6 py-10 text-2xl font-bold uppercase tracking-wider text-muted">Connecting to the studio</p>}
       {inMatch && seat && meta && (
         <MatchStage seat={seat} meta={meta} state={state} branches={branches} latestCoach={latestCoach} lastGoal={lastGoal}
-          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} teamId={team} onChangeSide={changeSide} language={language} />
+          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} teamId={team} language={language} />
       )}
       {askSide && (() => {
         const row = matches.find((m) => m.match_id === matchId)

@@ -4,15 +4,10 @@ import { Crest, onColor } from './Crest'
 
 type Props = { home: CatalogTeam; away: CatalogTeam; onPick: (teamId: string | null) => void }
 
-/** The turnstile: which end are you in? Shown once when a fan takes the seat; Escape means neutral. */
+/** The turnstile: which end are you in? Asked every time a fan takes the seat; the answer holds for the whole match. */
 export function SideModal({ home, away, onPick }: Props) {
   const neutral = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
-    neutral.current?.focus()
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onPick(null) }
-    addEventListener('keydown', onKey)
-    return () => removeEventListener('keydown', onKey)
-  }, [onPick])
+  useEffect(() => { neutral.current?.focus() }, [])
 
   const End = ({ team, side }: { team: CatalogTeam; side: 'home' | 'away' }) => (
     <button type="button" onClick={() => onPick(team.team_id)}
@@ -42,7 +37,7 @@ export function SideModal({ home, away, onPick }: Props) {
           </button>
           <End team={away} side="away" />
         </div>
-        <p className="mt-3 text-xs text-muted">Esc for neutral. You can change ends later from the Your side block.</p>
+        <p className="mt-3 text-xs text-muted">Your end holds for the whole match. To switch, leave the seat and come back in.</p>
       </div>
     </div>
   )

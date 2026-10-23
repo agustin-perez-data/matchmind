@@ -15,14 +15,12 @@ type Props = {
   language: 'en' | 'es'
   ended: boolean
   teamId: string | null
-  onChangeSide: () => void
   favoritePlayerId: string | null
   onFavorite: (id: string | null) => void
 }
 
 /** The fan's own corner: pick a side (or stay neutral) and one player to follow; their match told the fan's way. */
-export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, language, ended, teamId, onChangeSide, favoritePlayerId, onFavorite }: Props) {
-  const home = meta.teams[meta.home_id], away = meta.teams[meta.away_id]
+export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, language, ended, teamId, favoritePlayerId, onFavorite }: Props) {
   const allPlayers = useMemo(() => Object.values(meta.teams).flatMap((t) => t.players.map((p) => ({ ...p, team_id: t.team_id }))), [meta])
   const followedMeta = favoritePlayerId ? allPlayers.find((p) => p.player_id === favoritePlayerId) ?? null : null
   const followed = favoritePlayerId ? snapshot?.players[favoritePlayerId] ?? null : null
@@ -62,8 +60,7 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
         ) })() : (
           <span className="display inline-flex items-center gap-2 border border-white/20 px-3 py-1.5 text-lg font-black uppercase tracking-wide text-fg-2">Neutral <span className="text-[11px] font-semibold tracking-[0.2em] text-muted">just watching</span></span>
         )}
-        <button type="button" className="text-sm text-muted underline-offset-2 hover:text-fg hover:underline" onClick={onChangeSide}>change end</button>
-        <span className="sr-only">{home.short_name} or {away.short_name}</span>
+        <span className="blk-meta text-[11px]">for the whole match</span>
       </div>
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">
