@@ -67,7 +67,6 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
         ) })() : (
           <span className="display inline-flex items-center gap-2 border border-white/20 px-3 py-1.5 text-lg font-black uppercase tracking-wide text-fg-2">Neutral <span className="text-[11px] font-semibold tracking-[0.2em] text-muted">just watching</span></span>
         )}
-        <span className="blk-meta text-[11px]">for the whole match</span>
       </div>
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">

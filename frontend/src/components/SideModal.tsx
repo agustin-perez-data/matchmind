@@ -47,7 +47,7 @@ export function SideModal({ home, away, onPick, onClose }: Props) {
           </button>
           <End team={away} side="away" />
         </div>
-        <p className="mt-3 text-xs text-muted">Your end holds for the whole match. Close this (× or Esc) to go back to the main menu.</p>
+        <p className="mt-3 text-xs text-muted">Close this (× or Esc) to go back to the main menu.</p>
       </div>
     </div>
   )
