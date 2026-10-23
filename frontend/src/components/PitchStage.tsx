@@ -59,9 +59,14 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
           {/* the followed player's touches: where they acted on the ball, shots bigger */}
           {mine.map((t, i) => {
             const shot = t.type === 'shot' || t.type === 'goal'
+            const newest = i === mine.length - 1
             return (
-              <circle key={t.event_id} className="enter-pop" style={{ transformOrigin: `${sx(t.x)}px ${sy(t.y)}px`, transformBox: 'view-box' }}
-                cx={sx(t.x)} cy={sy(t.y)} r={shot ? 1.8 : 1} fill="var(--color-amber)" fillOpacity={shot ? 0.95 : 0.45 + Math.min(0.4, i / Math.max(1, mine.length) * 0.4)} stroke={shot ? '#0b0f1a' : 'none'} strokeWidth={0.3} />
+              <g key={t.event_id}>
+                {newest && <circle className="ping" cx={sx(t.x)} cy={sy(t.y)} r={shot ? 2.4 : 1.6} fill="none" stroke="var(--color-amber)" strokeWidth={0.5}
+                  style={{ transformOrigin: `${sx(t.x)}px ${sy(t.y)}px`, transformBox: 'view-box' }} />}
+                <circle className="enter-pop" style={{ transformOrigin: `${sx(t.x)}px ${sy(t.y)}px`, transformBox: 'view-box' }}
+                  cx={sx(t.x)} cy={sy(t.y)} r={shot ? 1.8 : 1} fill="var(--color-amber)" fillOpacity={shot ? 0.95 : 0.45 + Math.min(0.4, i / Math.max(1, mine.length) * 0.4)} stroke={shot ? '#0b0f1a' : 'none'} strokeWidth={0.3} />
+              </g>
             )
           })}
           {/* the ball: a short comet trail and the marker */}

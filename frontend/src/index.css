@@ -240,6 +240,11 @@ select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-v
 .move { transition: transform 260ms var(--ease-out); }
 .stagger > * { transition-delay: calc(var(--i, 0) * 60ms); }
 .flash-h, .flash-a { animation: flash 700ms var(--ease-out) 1; }
+/* a touch by the followed player: one sonar ring, then gone */
+.ping { animation: ping 520ms var(--ease-out) 1 forwards; }
+@keyframes ping { 0% { transform: scale(0.6); opacity: 0.9; } 100% { transform: scale(3); opacity: 0; } }
+.name-flash { animation: nameflash 600ms var(--ease-out) 1; }
+@keyframes nameflash { 0% { color: var(--color-amber); } 100% { color: inherit; } }
 @keyframes flash { 0% { filter: brightness(1.9) saturate(1.3); } 100% { filter: brightness(1); } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -249,6 +254,7 @@ select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-v
   }
   .draw { transition: none; }
   .grow-x, .move { transition: none; }
-  .flash-h, .flash-a { animation: none; }
+  .flash-h, .flash-a, .ping, .name-flash { animation: none; }
+  .ping { opacity: 0; }
   .stagger > * { transition-delay: 0ms; }
 }

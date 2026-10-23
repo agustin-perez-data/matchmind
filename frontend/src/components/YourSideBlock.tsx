@@ -104,7 +104,7 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
           {followedMeta && stats ? (
             <div key={followedMeta.player_id} className="enter-fade">
               <div className="flex items-baseline justify-between gap-2">
-                <div className="display text-2xl font-black uppercase leading-none">{followedMeta.name}</div>
+                <div key={onBall.length} className="name-flash display text-2xl font-black uppercase leading-none">{followedMeta.name}</div>
                 <button type="button" className="btn-quiet px-2 py-0.5 text-xs" onClick={() => onFavorite(null)}>Unfollow</button>
               </div>
               <div className="blk-meta mt-1">{followedMeta.position} · {followed ? (followed.on_pitch ? `${followed.minutes_played}' on the pitch` : 'off the pitch') : 'warming up'}{involvement ? <span className={involvement === 'in the game' ? 'text-teal' : involvement === 'quiet spell' ? 'text-muted' : 'text-fg-2'}> · {involvement}: {recent} touch{recent === 1 ? '' : 'es'} in the last 10'</span> : null}</div>
