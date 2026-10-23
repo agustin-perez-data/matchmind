@@ -4,10 +4,16 @@ import { Crest, onColor } from './Crest'
 
 type Props = { home: CatalogTeam; away: CatalogTeam; onPick: (teamId: string | null) => void }
 
-/** The turnstile: which end are you in? Asked every time a fan takes the seat; the answer holds for the whole match. */
+/** The turnstile: which end are you in? Asked every time a fan takes the seat; the answer holds for the whole match.
+ *  Closing it (the X or Escape) means walking in neutral. */
 export function SideModal({ home, away, onPick }: Props) {
   const neutral = useRef<HTMLButtonElement>(null)
-  useEffect(() => { neutral.current?.focus() }, [])
+  useEffect(() => {
+    neutral.current?.focus()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onPick(null) } // Escape = just watching
+    addEventListener('keydown', onKey)
+    return () => removeEventListener('keydown', onKey)
+  }, [onPick])
 
   const End = ({ team, side }: { team: CatalogTeam; side: 'home' | 'away' }) => (
     <button type="button" onClick={() => onPick(team.team_id)}
@@ -22,8 +28,10 @@ export function SideModal({ home, away, onPick }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-stage/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="side-title">
-      <div className="enter-pop blk w-full max-w-4xl px-4 py-4 sm:px-6 sm:py-6" style={{ borderTopColor: '#ffd166' }}>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="enter-pop blk relative w-full max-w-4xl px-4 py-4 sm:px-6 sm:py-6" style={{ borderTopColor: '#ffd166' }}>
+        <button type="button" aria-label="Close, just watching" title="Close (Esc): just watching" onClick={() => onPick(null)}
+          className="display absolute right-3 top-3 grid h-9 w-9 place-items-center text-2xl font-black leading-none text-fg-2 transition-[color,transform] duration-150 hover:text-fg active:scale-90">×</button>
+        <div className="flex flex-wrap items-baseline justify-between gap-2 pr-10">
           <h2 id="side-title" className="display text-3xl font-black uppercase leading-none sm:text-5xl">Which end are you in?</h2>
           <span className="blk-meta">{home.short_name} v {away.short_name} · Matchday 9</span>
         </div>
@@ -37,7 +45,7 @@ export function SideModal({ home, away, onPick }: Props) {
           </button>
           <End team={away} side="away" />
         </div>
-        <p className="mt-3 text-xs text-muted">Your end holds for the whole match. To switch, leave the seat and come back in.</p>
+        <p className="mt-3 text-xs text-muted">Your end holds for the whole match. Close this (× or Esc) to walk in neutral.</p>
       </div>
     </div>
   )
