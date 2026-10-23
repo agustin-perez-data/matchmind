@@ -2,18 +2,18 @@ import { useEffect, useRef } from 'react'
 import type { CatalogTeam } from '../lib/api'
 import { Crest, onColor } from './Crest'
 
-type Props = { home: CatalogTeam; away: CatalogTeam; onPick: (teamId: string | null) => void }
+type Props = { home: CatalogTeam; away: CatalogTeam; onPick: (teamId: string | null) => void; onClose: () => void }
 
 /** The turnstile: which end are you in? Asked every time a fan takes the seat; the answer holds for the whole match.
- *  Closing it (the X or Escape) means walking in neutral. */
-export function SideModal({ home, away, onPick }: Props) {
+ *  Closing it (the × or Escape) means not taking the seat: back to the main menu. */
+export function SideModal({ home, away, onPick, onClose }: Props) {
   const neutral = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     neutral.current?.focus()
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onPick(null) } // Escape = just watching
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() } // Escape = back to the main menu
     addEventListener('keydown', onKey)
     return () => removeEventListener('keydown', onKey)
-  }, [onPick])
+  }, [onClose])
 
   const End = ({ team, side }: { team: CatalogTeam; side: 'home' | 'away' }) => (
     <button type="button" onClick={() => onPick(team.team_id)}
@@ -29,7 +29,7 @@ export function SideModal({ home, away, onPick }: Props) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-stage/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="side-title">
       <div className="enter-pop blk relative w-full max-w-4xl px-4 py-4 sm:px-6 sm:py-6" style={{ borderTopColor: '#ffd166' }}>
-        <button type="button" aria-label="Close, just watching" title="Close (Esc): just watching" onClick={() => onPick(null)}
+        <button type="button" aria-label="Close, back to the main menu" title="Close (Esc): back to the main menu" onClick={onClose}
           className="absolute right-3 top-3 grid h-10 w-10 place-items-center border border-white/15 text-fg-2 transition-[color,border-color,transform] duration-150 hover:border-white/50 hover:text-fg active:scale-90">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M3 3l12 12M15 3L3 15" /></svg>
         </button>
@@ -47,7 +47,7 @@ export function SideModal({ home, away, onPick }: Props) {
           </button>
           <End team={away} side="away" />
         </div>
-        <p className="mt-3 text-xs text-muted">Your end holds for the whole match. Close this (× or Esc) to walk in neutral.</p>
+        <p className="mt-3 text-xs text-muted">Your end holds for the whole match. Close this (× or Esc) to go back to the main menu.</p>
       </div>
     </div>
   )

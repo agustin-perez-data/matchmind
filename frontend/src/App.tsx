@@ -176,7 +176,7 @@ export default function App() {
       )}
       {askSide && (() => {
         const row = matches.find((m) => m.match_id === matchId)
-        return row ? <SideModal home={row.home_team} away={row.away_team} onPick={chooseSide} /> : null
+        return row ? <SideModal home={row.home_team} away={row.away_team} onPick={chooseSide} onClose={leave} /> : null
       })()}
     </div>
   )
