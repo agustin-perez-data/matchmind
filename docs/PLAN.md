@@ -350,7 +350,7 @@ Foundry, Best Azure Cloud Native Integration.
   the question is asked every time the fan seat is taken from the entry
   page (the URL's old `team` is cleared on entry and on leaving), the end
   cannot change mid-match (no "change end", switching seats and back keeps
-  it), and Escape does nothing. Verified in the browser end to end.
+  it). Oct 23 evening: Escape and an × top-right both close the modal as neutral (both must exist). Verified in the browser end to end.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the
