@@ -351,6 +351,17 @@ Foundry, Best Azure Cloud Native Integration.
   page (the URL's old `team` is cleared on entry and on leaving), the end
   cannot change mid-match (no "change end", switching seats and back keeps
   it). Oct 23 evening: Escape and an × top-right both exist and both close the modal by going back to the main menu (the seat is not taken; mid-match it leaves the stream). Verified in the browser end to end.
+  **Oct 23, Follow tested end to end** (real agents, speed 150, Thames fan):
+  following lights the touch map and fills stats/ticker instantly from the
+  whole match so far; switching player mid-match is instant and lossless
+  (the stream keeps every on-ball event); the Narrator moves to the new
+  player at the next key moment; the card button appears at full time. Fix:
+  the Narrator's favourite-player summary now carries fan fields only
+  (touches, shots, goals, assists, duels, risk band) and the style guide
+  forbids metres/sprints/speed, which the half-time and full-time lines
+  kept quoting. Added: an involvement read ("in the game / steady / quiet
+  spell", touches in the last 10' vs the player's own pace) and a one-click
+  "follow <sub> instead" when the player goes off.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

@@ -35,6 +35,13 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
   const analystCall = favoritePlayerId && latestInsight?.msg.analyst?.forecast?.watch_player_id === favoritePlayerId ? latestInsight.msg : null
   const settled = analystCall ? verdicts.find((v) => v.msg.event_id === analystCall.event_id) ?? null : null
   const subbedOff = mine.find((e) => e.type === 'substitution' && e.player_off_id === favoritePlayerId) ?? null
+  const subName = subbedOff?.player_on_id ? allPlayers.find((p) => p.player_id === subbedOff.player_on_id)?.name.split(' ').slice(-1)[0] ?? null : null
+  // involvement: touches in the last 10 match minutes against the player's own pace over the match
+  const nowMin = snapshot ? (snapshot.period === 2 ? Math.max(snapshot.minute, 45) : snapshot.minute) : 0
+  const onBall = mine.filter((e) => e.player_id === favoritePlayerId && ['pass', 'shot', 'goal', 'tackle', 'interception'].includes(e.type))
+  const recent = onBall.filter((e) => (e.period === 2 ? Math.max(e.minute, 45) : e.minute) >= nowMin - 10).length
+  const pace = followed && followed.minutes_played > 0 ? (onBall.length / followed.minutes_played) * 10 : 0
+  const involvement = !followed || !followed.on_pitch || followed.minutes_played < 10 ? null : recent >= pace * 1.3 ? 'in the game' : recent <= pace * 0.6 ? 'quiet spell' : 'steady'
 
   const download = () => {
     if (!followedMeta || !stats) return
@@ -100,10 +107,11 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
                 <div className="display text-2xl font-black uppercase leading-none">{followedMeta.name}</div>
                 <button type="button" className="btn-quiet px-2 py-0.5 text-xs" onClick={() => onFavorite(null)}>Unfollow</button>
               </div>
-              <div className="blk-meta mt-1">{followedMeta.position} · {followed ? (followed.on_pitch ? `${followed.minutes_played}' on the pitch` : 'off the pitch') : 'warming up'}</div>
+              <div className="blk-meta mt-1">{followedMeta.position} · {followed ? (followed.on_pitch ? `${followed.minutes_played}' on the pitch` : 'off the pitch') : 'warming up'}{involvement ? <span className={involvement === 'in the game' ? 'text-teal' : involvement === 'quiet spell' ? 'text-muted' : 'text-fg-2'}> · {involvement}: {recent} touch{recent === 1 ? '' : 'es'} in the last 10'</span> : null}</div>
               {subbedOff && (
                 <p className="mt-2 border-l-2 border-amber pl-2 text-sm text-fg-2">
-                  Off at {subbedOff.clock}{subbedOff.player_on_id ? `, ${allPlayers.find((p) => p.player_id === subbedOff.player_on_id)?.name.split(' ').slice(-1)[0] ?? ''} came on` : ''}. {ended ? 'Their card is ready below.' : 'Follow someone else, or stay with their numbers.'}
+                  Off at {subbedOff.clock}{subName ? `, ${subName} came on` : ''}. {ended ? 'Their card is ready below.' : 'Stay with their numbers, or'}
+                  {!ended && subbedOff.player_on_id && <button type="button" className="btn ml-2 bg-amber px-2 py-0.5 text-xs" onClick={() => onFavorite(subbedOff.player_on_id!)}>follow {subName} instead</button>}
                 </p>
               )}
               <dl className="mt-2 grid grid-cols-4 gap-x-2 gap-y-1 text-center">

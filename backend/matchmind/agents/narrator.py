@@ -20,9 +20,13 @@ STYLE_GUIDES = {
     ("casual", "es"): "Español casual y divertido para alguien que casi no sigue fútbol; sin jerga ni números, máximo un emoji.",
     ("commentator", "en"): "English play-by-play commentator, high energy, present tense, short punchy sentences.",
     ("commentator", "es"): "Relator rioplatense de radio (voseo, ¡GOOOL! en los goles, pasión, frases cortas); español del Río de la Plata.",
-    ("player_focus", "en"): "English, play-by-play energy; the viewer follows ONE player like a fan does: centre the line on that player and what they did or could do in this moment (touches, chances, duels, their role in the play). If they were not involved, say what it means for them. Workload numbers only when they are the story.",
-    ("player_focus", "es"): "Español rioplatense de relator; el espectador sigue a UN jugador como hincha: centrá la frase en ese jugador y en lo que hizo o puede hacer en esta jugada (toques, chances, duelos, su rol). Si no participó, decí qué significa para él. Datos de carga física solo si son la noticia.",
+    ("player_focus", "en"): "English, play-by-play energy; the viewer follows ONE player like a fan does: centre the line on that player and what they did or could do in this moment (touches, chances, duels, their role in the play). If they were not involved, say what it means for them. Never quote metres, kilometres, sprints or speed; a fan talks about touches, shots, goals, assists and duels.",
+    ("player_focus", "es"): "Español rioplatense de relator; el espectador sigue a UN jugador como hincha: centrá la frase en ese jugador y en lo que hizo o puede hacer en esta jugada (toques, chances, duelos, su rol). Si no participó, decí qué significa para él. Nunca cites metros, kilómetros, sprints ni velocidad: un hincha habla de toques, tiros, goles, asistencias y duelos.",
 }
+
+
+FAN_PLAYER_KEYS = ("player_id", "name", "team_id", "position", "minutes_played", "touches", "shots", "goals", "assists",
+                   "duels_won", "risk_band", "injury_concerns")  # what a fan hears about; never metres, sprints or speed
 
 
 def _favorite(context: dict, profile: ViewerProfile) -> dict | None:
@@ -31,7 +35,7 @@ def _favorite(context: dict, profile: ViewerProfile) -> dict | None:
     for key in ("players_involved", "watched_players", "risk_alerts"):
         for p in context.get(key, []):
             if p["player_id"] == profile.favorite_player_id:
-                return {**p, "involved_in_this_moment": key == "players_involved"}
+                return {**{k: p[k] for k in FAN_PLAYER_KEYS if k in p}, "involved_in_this_moment": key == "players_involved"}
     return {"player_id": profile.favorite_player_id, "involved_in_this_moment": False}
 
 
