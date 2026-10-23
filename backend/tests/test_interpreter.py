@@ -180,3 +180,26 @@ def test_risk_alerts_list_on_pitch_players_in_elevated_or_high_band(final_state)
         if p["risk_band"] in {"elevated", "high"} and p["minutes_played"] > 0
     }
     assert {a["player_id"] for a in snap["risk_alerts"]} == expected
+
+
+def test_fan_counters_per_player_match_the_event_stream(final_state, events):
+    from collections import Counter
+    snap = final_state.snapshot()
+    players = snap["players"]
+    touches, shots, goals, assists, duels = Counter(), Counter(), Counter(), Counter(), Counter()
+    for e in events:
+        pid = e.get("player_id")
+        if e["type"] in ("pass", "shot", "tackle", "interception"):
+            touches[pid] += 1
+        if e["type"] == "shot":
+            shots[pid] += 1
+        if e["type"] == "goal":
+            goals[pid] += 1
+            if e.get("assist_player_id"):
+                assists[e["assist_player_id"]] += 1
+        if e["type"] in ("tackle", "interception"):
+            duels[pid] += 1
+    for pid, p in players.items():
+        assert (p["touches"], p["shots"], p["goals"], p["assists"], p["duels_won"]) == (touches[pid], shots[pid], goals[pid], assists[pid], duels[pid])
+    assert sum(p["goals"] for p in players.values()) == sum(snap["score"].values())
+    assert any(p["touches"] > 20 for p in players.values())

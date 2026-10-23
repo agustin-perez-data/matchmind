@@ -18,6 +18,7 @@ TEAM_STAT_KEYS = (
 PLAYER_KEYS = (
     "player_id", "name", "team_id", "position", "minutes_played", "distance_m", "sprints",
     "top_speed_kmh", "acwr_live", "risk_band", "injury_concerns",
+    "touches", "shots", "goals", "assists", "duels_won",  # what a fan counts; the Narrator leans on these for a followed player
 )
 EVENT_KEYS = (
     "type", "clock", "team_id", "player_id", "player_name", "assist_player_id", "assist_player_name",

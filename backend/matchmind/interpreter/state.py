@@ -118,6 +118,7 @@ class MatchState:
         self._last_period: int | None = None
         self.momentum_series: list[dict] = []
         self._player_shots: dict[str, int] = {}
+        self._fan: dict[str, dict] = {}  # per player: what a fan counts (touches, shots, goals, assists, duels won)
         self._minute_marks: dict[int, dict] = {}  # team totals + per-player shots at the start of each minute
 
     RECENT_KEYS = ("xg", "shots", "shots_on_target", "pressures", "passes")
@@ -208,9 +209,15 @@ class MatchState:
     def _on_second_half_kickoff(self, e: dict) -> None:
         self.home_attacking_right = bool(e.get("home_attacking_right", False))
 
+    def _fan_count(self, pid: str | None, key: str) -> None:
+        if pid:
+            f = self._fan.setdefault(pid, {"touches": 0, "shots": 0, "goals": 0, "assists": 0, "duels_won": 0})
+            f[key] += 1
+
     def _on_pass(self, e: dict) -> None:
         t = self.teams[e["team_id"]]
         t["passes"] += 1
+        self._fan_count(e.get("player_id"), "touches")
         if e.get("outcome") == "complete":
             t["passes_completed"] += 1
             if self._team_frame_x(e["team_id"], float(e.get("end_x", 0.0))) > FINAL_THIRD_X:
@@ -223,6 +230,8 @@ class MatchState:
         t["xg"] += xg
         if e.get("player_id"):
             self._player_shots[e["player_id"]] = self._player_shots.get(e["player_id"], 0) + 1
+        self._fan_count(e.get("player_id"), "touches")
+        self._fan_count(e.get("player_id"), "shots")
         if e.get("outcome") in ("goal", "saved"):
             t["shots_on_target"] += 1
         self._push_threat(e["team_id"], THREAT_SHOT_BASE + THREAT_SHOT_PER_XG * xg)
@@ -234,6 +243,8 @@ class MatchState:
 
     def _on_goal(self, e: dict) -> None:
         self.teams[e["team_id"]]["goals"] += 1
+        self._fan_count(e.get("player_id"), "goals")
+        self._fan_count(e.get("assist_player_id"), "assists")
         if "score" in e:
             self.score = dict(e["score"])
         else:
@@ -246,10 +257,14 @@ class MatchState:
 
     def _on_tackle(self, e: dict) -> None:
         self.teams[e["team_id"]]["tackles"] += 1
+        self._fan_count(e.get("player_id"), "touches")
+        self._fan_count(e.get("player_id"), "duels_won")
         self._push_threat(e["team_id"], THREAT_TURNOVER)
 
     def _on_interception(self, e: dict) -> None:
         self.teams[e["team_id"]]["interceptions"] += 1
+        self._fan_count(e.get("player_id"), "touches")
+        self._fan_count(e.get("player_id"), "duels_won")
         self._push_threat(e["team_id"], THREAT_TURNOVER)
 
     def _on_foul(self, e: dict) -> None:
@@ -300,6 +315,7 @@ class MatchState:
         norm = POSITION_NORM_MPM.get(p["position"], 100.0)
         view = {k: v for k, v in p.items() if k != "mpm_recent"}
         minutes = p["minutes_played"]
+        view.update(self._fan.get(p["player_id"], {"touches": 0, "shots": 0, "goals": 0, "assists": 0, "duels_won": 0}))
         view.update({
             "acwr_pre_match": acwr(history, 0.0),
             "acwr_live": live,
