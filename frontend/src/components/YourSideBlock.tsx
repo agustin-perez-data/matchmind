@@ -15,13 +15,13 @@ type Props = {
   language: 'en' | 'es'
   ended: boolean
   teamId: string | null
-  onTeam: (id: string | null) => void
+  onChangeSide: () => void
   favoritePlayerId: string | null
   onFavorite: (id: string | null) => void
 }
 
 /** The fan's own corner: pick a side (or stay neutral) and one player to follow; their match told the fan's way. */
-export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, language, ended, teamId, onTeam, favoritePlayerId, onFavorite }: Props) {
+export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, language, ended, teamId, onChangeSide, favoritePlayerId, onFavorite }: Props) {
   const home = meta.teams[meta.home_id], away = meta.teams[meta.away_id]
   const allPlayers = useMemo(() => Object.values(meta.teams).flatMap((t) => t.players.map((p) => ({ ...p, team_id: t.team_id }))), [meta])
   const followedMeta = favoritePlayerId ? allPlayers.find((p) => p.player_id === favoritePlayerId) ?? null : null
@@ -38,10 +38,6 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
   const settled = analystCall ? verdicts.find((v) => v.msg.event_id === analystCall.event_id) ?? null : null
   const subbedOff = mine.find((e) => e.type === 'substitution' && e.player_off_id === favoritePlayerId) ?? null
 
-  const pick = (id: string | null) => {
-    onTeam(id)
-    if (id && followedMeta && followedMeta.team_id !== id) onFavorite(null) // your player must be one of yours
-  }
   const download = () => {
     if (!followedMeta || !stats) return
     downloadPlayerCard({
@@ -58,18 +54,16 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
         <span className="blk-meta">{teamId ? 'the commentary is on your side' : 'neutral: the commentary calls it straight'}</span>
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2" role="radiogroup" aria-label="your side">
-        {[home, null, away].map((t) => {
-          const id = t?.team_id ?? null
-          const on = teamId === id
-          const style = on && t ? { background: t.primary_color, color: onColor(t.primary_color), boxShadow: `0 0 0 3px ${t.primary_color}66` } : on ? { background: '#fff', color: '#0b0f1a' } : undefined
-          return (
-            <button key={id ?? 'neutral'} type="button" role="radio" aria-checked={on} onClick={() => pick(id)}
-              className={`display flex items-center justify-center gap-2 px-2 py-2.5 text-base font-black uppercase tracking-wide transition-[background,color,opacity] duration-150 ${on ? '' : 'bg-white/5 text-fg-2 hover:bg-white/12 hover:text-fg'}`} style={style}>
-              {t ? <><Crest team={t} size={26} />{t.short_name}</> : 'Neutral'}
-            </button>
-          )
-        })}
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        {teamId ? (() => { const t = meta.teams[teamId]; return (
+          <span className="display inline-flex items-center gap-2 px-3 py-1.5 text-lg font-black uppercase tracking-wide" style={{ background: t.primary_color, color: onColor(t.primary_color) }}>
+            <Crest team={t} size={26} />{t.name}
+          </span>
+        ) })() : (
+          <span className="display inline-flex items-center gap-2 border border-white/20 px-3 py-1.5 text-lg font-black uppercase tracking-wide text-fg-2">Neutral <span className="text-[11px] font-semibold tracking-[0.2em] text-muted">just watching</span></span>
+        )}
+        <button type="button" className="text-sm text-muted underline-offset-2 hover:text-fg hover:underline" onClick={onChangeSide}>change end</button>
+        <span className="sr-only">{home.short_name} or {away.short_name}</span>
       </div>
 
       <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2">

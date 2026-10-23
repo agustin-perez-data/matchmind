@@ -7,6 +7,7 @@ import { parseSpeed } from './lib/speed'
 import type { BranchSummary, ViewerProfile } from './lib/types'
 import { ControlBar } from './components/ControlBar'
 import { SeatPicker } from './components/SeatPicker'
+import { SideModal } from './components/SideModal'
 import { MatchStage } from './components/MatchStage'
 
 type Language = ViewerProfile['language']
@@ -20,7 +21,8 @@ function readUrl() {
     speed: parseSpeed(q.get('speed')),
     match: q.get('match'),
     player: q.get('player'),
-    team: q.get('team'),
+    team: q.get('team') === 'neutral' ? null : q.get('team'),
+    sideChosen: q.has('team'), // 'neutral' counts as chosen; no param means we still have to ask
     agents: q.get('agents') !== '0',
     coach: q.get('coach') !== '0',
   }
@@ -45,6 +47,8 @@ export default function App() {
   const [language, setLanguage] = useState<Language>(initial.language)
   const [favorite, setFavorite] = useState<string | null>(initial.player)
   const [team, setTeam] = useState<string | null>(initial.team)
+  const [sideChosen, setSideChosen] = useState(initial.sideChosen)
+  const [askSide, setAskSide] = useState(false)
   // agents / coach come only from the URL (dev switches: ?agents=0&coach=0 replays without LLM calls)
   const { agents, coach } = initial
   const [seat, setSeat] = useState<Seat | null>(initial.seat)
@@ -107,9 +111,20 @@ export default function App() {
     if (!matchId) return
     stadium.unlock() // a click: the browser lets audio start from here on
     setSeat(s)
-    writeUrl({ seat: s, match: matchId, lang: language, speed, team, agents: agents ? null : '0', coach: coach ? null : '0' })
+    const teamParam = s === 'fan' && sideChosen ? (team ?? 'neutral') : null
+    writeUrl({ seat: s, match: matchId, lang: language, speed, team: teamParam, agents: agents ? null : '0', coach: coach ? null : '0' })
+    if (s === 'fan' && !sideChosen) { setAskSide(true); return } // the turnstile first; the match starts once you have picked an end
     begin(s, matchId)
-  }, [matchId, language, speed, agents, coach, begin])
+  }, [matchId, language, speed, team, sideChosen, agents, coach, begin])
+
+  /** The fan picked an end (or neutral) at the turnstile. */
+  const chooseSide = useCallback((id: string | null) => {
+    setTeam(id); setSideChosen(true); setAskSide(false)
+    writeUrl({ team: id ?? 'neutral' }, true)
+    const live = state.status === 'live' || state.status === 'ended' || state.status === 'connecting'
+    if (live) send({ profile: profileForSeat('fan', language, favorite, id) })
+    else if (matchId) begin('fan', matchId, { profile: profileForSeat('fan', language, favorite, id) })
+  }, [state.status, send, begin, matchId, language, favorite])
 
   const switchSeat = useCallback((s: Seat) => {
     setSeat(s)
@@ -117,7 +132,8 @@ export default function App() {
     const { home, away } = sidesOf(matchId)
     const profile = s === 'control' ? controlProfile(language, home) : profileForSeat(s, language, favorite, team)
     send({ profile, compare: compareForSeat(s, language, away).map(profileSpec) })
-  }, [send, language, favorite, team, matchId, sidesOf])
+    if (s === 'fan' && !sideChosen) setAskSide(true)
+  }, [send, language, favorite, team, sideChosen, matchId, sidesOf])
 
   const leave = useCallback(() => {
     stop()
@@ -131,10 +147,7 @@ export default function App() {
     setFavorite(id); writeUrl({ player: id }, true)
     if (seat) send({ profile: profileForSeat(seat, language, id, team) })
   }, [send, seat, language, team])
-  const onTeam = useCallback((id: string | null) => {
-    setTeam(id); writeUrl({ team: id }, true)
-    if (seat) send({ profile: profileForSeat(seat, language, favorite, id) })
-  }, [send, seat, language, favorite])
+  const changeSide = useCallback(() => setAskSide(true), [])
 
   const meta = state.meta
   const inMatch = seat !== null && (state.status === 'live' || state.status === 'ended' || state.status === 'connecting')
@@ -158,8 +171,12 @@ export default function App() {
       {inMatch && seat && state.status === 'connecting' && <p className="display px-6 py-10 text-2xl font-bold uppercase tracking-wider text-muted">Connecting to the studio</p>}
       {inMatch && seat && meta && (
         <MatchStage seat={seat} meta={meta} state={state} branches={branches} latestCoach={latestCoach} lastGoal={lastGoal}
-          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} teamId={team} onTeam={onTeam} language={language} />
+          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} teamId={team} onChangeSide={changeSide} language={language} />
       )}
+      {askSide && (() => {
+        const row = matches.find((m) => m.match_id === matchId)
+        return row ? <SideModal home={row.home_team} away={row.away_team} onPick={chooseSide} /> : null
+      })()}
     </div>
   )
 }

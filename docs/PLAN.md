@@ -341,6 +341,13 @@ Foundry, Best Azure Cloud Native Integration.
   Spanish as a Northbridge fan ("¡Vamos, NBF!"), touch map and card for Kai
   Ferrant. Declined by Agustín: Coach alerts on the followed player (fans
   don't see the bench), "player moments" with sounds.
+  **Oct 23, the turnstile**: picking an end mid-match felt wrong, so
+  `SideModal.tsx` asks "Which end are you in?" (home wipe / Neutral / away
+  wipe, Esc = neutral) when a fan takes the seat from the entry page (the
+  stream starts only after the pick) or switches to Fan mid-match without a
+  side in the URL. URL `team=THU|NBF|neutral`; absent means ask. Inside the
+  match the Your side block only shows the end, with a quiet "change end"
+  that reopens the modal. Verified in the browser from both flows.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the
