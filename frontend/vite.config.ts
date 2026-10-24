@@ -11,6 +11,7 @@ export default defineConfig({
       '/matches': 'http://127.0.0.1:8000',
       '/health': 'http://127.0.0.1:8000',
       '/mcp': 'http://127.0.0.1:8000',
+      '/tts': 'http://127.0.0.1:8000',
       '/ws': { target: 'ws://127.0.0.1:8000', ws: true },
     },
   },
