@@ -381,6 +381,15 @@ Foundry, Best Azure Cloud Native Integration.
   14 ms cached; 11 lines voiced in a speed-150 replay. httpx moved to the
   runtime requirements. Decided after the honest "what would a winning team
   have" review: audio was the cheapest missing wow.
+  **Oct 24, voice v2**: lines are never cut (a newer line waits; only the
+  newest waiting one survives), one audio element for the app, leaving or
+  starting a match stops the voice and hard-cuts the crowd bus
+  (`stadium.cutAll`), and no stale line is spoken on re-entry. Voices are
+  configurable per language (`MATCHMIND_VOICE_ES/_EN`); defaults
+  es-AR-TomasNeural and en-GB-Ryan:DragonHDLatestNeural; expressive voices
+  get `express-as excited` on goals, HD voices get no prosody. There is no
+  rioplatense HD or expressive voice in the catalogue (es-AR has Tomas and
+  Elena only): the accent-vs-naturalness trade-off is Agustín's call.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the
