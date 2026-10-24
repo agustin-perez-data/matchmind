@@ -168,6 +168,16 @@ rioplatense Narrator mean 5.0. The two 4s flagged tactical inferences that go
 a step beyond the numbers, which is the right place for an analyst to be
 challenged. Results in `backend/eval/`.
 
+## The commentator speaks
+
+On the fan seat every narration line is voiced with **Azure AI Speech**
+neural voices: rioplatense Spanish (`es-AR`) or British English, a touch
+faster and higher on goals. The Foundry resource is a multi-service Azure AI
+Services account, so the same key speaks; `GET /tts?text&lang` synthesises a
+line once and keeps the MP3 under `data/cache/tts`, so a replay served from
+the agent cache costs no Speech calls either. The desk's sound switch mutes
+the crowd and the voice together.
+
 ## Built for several viewers at once
 
 A replay is deterministic, so every agent output is cached per (match, moment,

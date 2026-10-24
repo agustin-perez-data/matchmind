@@ -42,9 +42,10 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field, ValidationError
 
+from matchmind.api.tts import Speaker, speech_config
 from matchmind.agents.cache import AgentCache, cache_from_env, coach_key, insight_key, verdict_key
 from matchmind.agents.coach import build_coach_context
 from matchmind.agents.judge import ForecastLedger, build_judge_context, grade_forecast
@@ -121,6 +122,7 @@ def create_app(
     judge=None,
     enable_agents: bool | None = None,
     cache: AgentCache | None | bool = True,
+    speech_transport=None,
 ) -> FastAPI:
     """Build the service.
 
@@ -129,6 +131,7 @@ def create_app(
     judge:    object with `async run(context) -> dict` (verdict lane; graded forecasts get their words here).
     enable_agents: None = build the Foundry agents on startup if configured; False = never call an LLM.
     cache: an AgentCache, True = from the environment (default <data>/cache), False/None = no cache.
+    speech_transport: httpx transport for Azure Speech (tests inject a mock).
     """
     data_path = Path(data_dir) if data_dir else default_data_dir()
     catalog = MatchCatalog(data_path)
@@ -137,6 +140,7 @@ def create_app(
     mcp = build_mcp_server(registry)
     agent_cache = cache_from_env(data_path) if cache is True else (cache or None)
     agents = {"pipeline": pipeline, "coach": coach, "judge": judge, "cache": agent_cache}
+    speaker = Speaker(data_path / "cache" / "tts", transport=speech_transport)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -184,6 +188,7 @@ def create_app(
         return {"status": "ok", "matches": len(catalog.ids()), "agents": agents["pipeline"] is not None,
                 "coach": agents["coach"] is not None, "judge": agents["judge"] is not None,
                 "cache": agents["cache"].stats() if agents["cache"] is not None else None,
+                "speech": speech_config() is not None,
                 "live_sessions": registry.sessions()}
 
     @app.get("/matches")
@@ -276,6 +281,13 @@ def create_app(
             profile=profile, speed=speed, min_importance=min_importance, cache=agents["cache"], compare=compare_profiles,
         )
         await session.run()
+
+    @app.get("/tts", summary="The commentator's voice: one narration line as MP3 (Azure AI Speech, cached)")
+    async def tts(text: str = Query(..., min_length=1, max_length=600), lang: str = Query("en", pattern="^(en|es)$")) -> Response:
+        audio = await speaker.say(text, lang)
+        if audio is None:
+            raise HTTPException(status_code=503, detail="speech is not configured or synthesis failed")
+        return Response(content=audio, media_type="audio/mpeg", headers={"Cache-Control": "public, max-age=86400"})
 
     # MCP server (streamable HTTP) lives at /mcp; mounted last so API routes win.
     app.mount("/", mcp.streamable_http_app())

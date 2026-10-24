@@ -16,6 +16,7 @@ class Stadium {
   /** exposed so dev tooling can tap the signal that actually reaches the speakers */
   limiter: DynamicsCompressorNode | null = null
   enabled: boolean
+  onMute: (() => void) | null = null // the commentator's voice stops too
 
   constructor() {
     let saved: string | null = null
@@ -25,6 +26,7 @@ class Stadium {
 
   setEnabled(on: boolean) {
     this.enabled = on
+    if (!on) this.onMute?.()
     try { localStorage.setItem(KEY, on ? 'on' : 'off') } catch { /* ignore */ }
     if (on) this.unlock()
   }

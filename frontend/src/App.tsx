@@ -4,6 +4,7 @@ import { compareForSeat, controlProfile, parseSeat, profileForSeat, profileSpec,
 import { useMatchStream, type StreamOptions } from './lib/useMatchStream'
 import { soundFor, stadium } from './lib/sounds'
 import { parseSpeed } from './lib/speed'
+import { voice } from './lib/voice'
 import type { BranchSummary, ViewerProfile } from './lib/types'
 import { ControlBar } from './components/ControlBar'
 import { SeatPicker } from './components/SeatPicker'
@@ -106,6 +107,15 @@ export default function App() {
     else if (kind) stadium.whistle(kind)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastEvent])
+
+  // The commentator's voice: the fan seat hears each narration line as it lands (latest wins).
+  useEffect(() => {
+    if (seat !== 'fan') return
+    const latest = state.feed.find((f) => f.msg.kind === 'insight')
+    const text = latest && latest.msg.kind === 'insight' ? Object.values(latest.msg.viewers)[0]?.narration?.text : null
+    if (text) voice.say(text, language)
+  }, [state.feed, seat, language])
+  useEffect(() => { if (seat !== 'fan' || state.status === 'idle') voice.stop() }, [seat, state.status])
 
   const pickSeat = useCallback((s: Seat) => {
     if (!matchId) return

@@ -369,6 +369,18 @@ Foundry, Best Azure Cloud Native Integration.
   the attacking-direction labels follow the chosen half, since the teams
   swap ends and "All" mixes both ends. A touch ping (sonar ring + name
   flash, one-shot, off under reduced motion) marks each new touch.
+  **Oct 24, the commentator's voice**: `api/tts.py` (`Speaker`: Azure AI
+  Speech REST at `<region>.tts.speech.microsoft.com` with the Foundry key,
+  SSML with es-AR-TomasNeural / en-GB-RyanNeural, rate 1.06 and 1.12 +6 %
+  pitch on goals, MP3 cached under `<data>/cache/tts` by sha1 of lang+voice+
+  text), route `GET /tts` (600 chars max, 503 when unconfigured), `/health`
+  reports `speech`. `AZURE_SPEECH_REGION` (default eastus2), optional
+  `AZURE_SPEECH_KEY`. Frontend `lib/voice.ts`: the fan seat voices each new
+  narration line, latest wins, stops on leaving the seat or muting; the
+  sound switch covers crowd and voice. Measured: 2.3 s first synthesis,
+  14 ms cached; 11 lines voiced in a speed-150 replay. httpx moved to the
+  runtime requirements. Decided after the honest "what would a winning team
+  have" review: audio was the cheapest missing wow.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the
