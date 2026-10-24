@@ -25,9 +25,6 @@ export function SeatPicker({ onPick, disabled, matches, matchId, onMatch, langua
         predicts who gets hurt from workload alone and is scored against what actually happens; a Coach proposes a change and the
         engine shows the match that would have followed.
       </p>
-      <p className="mt-4 max-w-prose text-base text-fg-2">
-        <span className="text-teal">For the bench:</span> injury-risk warnings about 25 minutes ahead, from workload any club already measures, graded live against the knocks that happen. Decision support, not medical advice.
-      </p>
       <p className="display mt-10 text-xl font-extrabold uppercase tracking-wider text-muted">Matchday 9, pick a fixture</p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4" role="radiogroup" aria-label="fixture">
         {[...matches].sort((a, b) => Number(!a.match_id.startsWith('THU')) - Number(!b.match_id.startsWith('THU'))).map((m) => {
