@@ -27,15 +27,20 @@ def test_ssml_picks_the_rioplatense_voice_and_gets_excited_on_goals(monkeypatch)
     monkeypatch.delenv("MATCHMIND_VOICE_ES", raising=False)
     monkeypatch.delenv("MATCHMIND_VOICE_EN", raising=False)
     es = ssml("¡GOOOL de Northbridge! Vantham la clavó.", "es")
-    assert "es-AR-TomasNeural" in es and "xml:lang='es-AR'" in es and "rate='1.12'" in es
+    assert "es-MX-Alejo:MAI-Voice-2" in es and "xml:lang='es-MX'" in es and "<mstts:express-as style='excited'>" in es
+    assert "express-as style='excited'" in ssml("Pase largo de Thames.", "es")  # the commentator is always excited
+    monkeypatch.setenv("MATCHMIND_VOICE_ES", "es-AR-TomasNeural")
+    tomas = ssml("¡GOOOL!", "es")
+    assert "es-AR-TomasNeural" in tomas and "rate='1.12'" in tomas and "express-as" not in tomas
+    monkeypatch.delenv("MATCHMIND_VOICE_ES")
     en = ssml("A quiet spell for Thames, 55% of the ball.", "en")
     assert "en-GB-Ryan:DragonHDLatestNeural" in en and "prosody" not in en and "&" not in en  # HD voices: no prosody
     assert "&lt;b&gt;" in ssml("x <b> y", "en")  # markup is escaped, never injected
     assert ssml("hi", "xx").count("en-GB") == 2  # unknown language falls back to English
-    # an expressive voice from the environment gets a style on goals, nothing otherwise
-    monkeypatch.setenv("MATCHMIND_VOICE_ES", "es-MX-Alejo:MAI-Voice-2")
-    assert "<mstts:express-as style='excited'>" in ssml("¡Gol!", "es") and "xml:lang='es-MX'" in ssml("¡Gol!", "es")
-    assert "express-as" not in ssml("Pase largo de Thames.", "es")
+    # an English voice with a goal-only style gets it on goals, nothing otherwise
+    monkeypatch.setenv("MATCHMIND_VOICE_EN", "en-US-DavisNeural")
+    assert "<mstts:express-as style='excited'>" in ssml("GOAL!", "en")
+    assert "express-as" not in ssml("A quiet spell.", "en") and "prosody" in ssml("A quiet spell.", "en")
 
 
 def test_speaker_calls_speech_once_and_serves_the_cache_after(tmp_path, monkeypatch):

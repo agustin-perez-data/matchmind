@@ -23,12 +23,13 @@ import httpx
 
 log = logging.getLogger("matchmind.tts")
 
-# Defaults: rioplatense Spanish, British English in HD. Override per language with MATCHMIND_VOICE_ES / _EN
+# Defaults: Mexican HD voice in an excited style for Spanish (chosen by ear over the flatter es-AR voices), British English in HD. Override per language with MATCHMIND_VOICE_ES / _EN
 # (any voice from the region's list; HD voices ignore prosody, expressive voices take a style on goals).
-DEFAULT_VOICES = {"es": "es-AR-TomasNeural", "en": "en-GB-Ryan:DragonHDLatestNeural"}
+DEFAULT_VOICES = {"es": "es-MX-Alejo:MAI-Voice-2", "en": "en-GB-Ryan:DragonHDLatestNeural"}
 LOCALES = {"es": "es-AR", "en": "en-GB"}
-EXCITED_STYLE = {"es-MX-Alejo:MAI-Voice-2": "excited", "es-MX-Alejo:MAI-Voice-2-Flash": "excited",
-                 "en-US-DavisNeural": "excited", "en-US-JasonNeural": "excited", "en-US-GuyNeural": "excited",
+# Voices that always speak in a style (a commentator is excited by trade), and voices that only get it on goals.
+ALWAYS_STYLE = {"es-MX-Alejo:MAI-Voice-2": "excited", "es-MX-Alejo:MAI-Voice-2-Flash": "excited"}
+EXCITED_STYLE = {"en-US-DavisNeural": "excited", "en-US-JasonNeural": "excited", "en-US-GuyNeural": "excited",
                  "en-US-Ethan:MAI-Voice-2": "excited"}
 OUTPUT_FORMAT = "audio-48khz-96kbitrate-mono-mp3"
 MAX_CHARS = 600
@@ -54,8 +55,9 @@ def ssml(text: str, lang: str) -> str:
     excited = bool(re.search(r"GO+L|GOAL|¡|!", text))
     hd = "DragonHD" in voice or "MAI-Voice" in voice  # HD voices do their own prosody
     inner = escape(text)
-    if excited and voice in EXCITED_STYLE:
-        inner = f"<mstts:express-as style='{EXCITED_STYLE[voice]}'>{inner}</mstts:express-as>"
+    style = ALWAYS_STYLE.get(voice) or (EXCITED_STYLE.get(voice) if excited else None)
+    if style:
+        inner = f"<mstts:express-as style='{style}'>{inner}</mstts:express-as>"
     elif not hd:
         rate, pitch = ("1.12", "+6%") if excited else ("1.06", "+0%")
         inner = f"<prosody rate='{rate}' pitch='{pitch}'>{inner}</prosody>"
