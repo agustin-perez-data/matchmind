@@ -36,8 +36,8 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
 
   return (
     <section className="relative">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-2 text-xs text-muted sm:px-6">
-        <div className="flex items-stretch border border-white/20" role="radiogroup" aria-label="which half the map shows">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 px-2 text-xs text-muted sm:px-6">
+        <div className="flex items-stretch border border-white/20 bg-ink" role="radiogroup" aria-label="which half the map shows">
           <span className="blk-meta hidden items-center px-2 text-[10px] sm:flex">Map</span>
           {(['all', 1, 2] as const).map((h) => (
             <button key={String(h)} type="button" role="radio" aria-checked={half === h} onClick={() => setPick(h)}
