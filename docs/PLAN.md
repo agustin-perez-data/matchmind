@@ -386,7 +386,8 @@ Foundry, Best Azure Cloud Native Integration.
   starting a match stops the voice and hard-cuts the crowd bus
   (`stadium.cutAll`), and no stale line is spoken on re-entry. Voices are
   configurable per language (`MATCHMIND_VOICE_ES/_EN`); defaults
-  es-AR-TomasNeural and en-GB-Ryan:DragonHDLatestNeural; expressive voices
+  es-MX-Alejo:MAI-Voice-2 always in the excited style (Agustín's pick by ear,
+  Oct 24) and en-GB-Ryan:DragonHDLatestNeural; expressive voices
   get `express-as excited` on goals, HD voices get no prosody. There is no
   rioplatense HD or expressive voice in the catalogue (es-AR has Tomas and
   Elena only): the accent-vs-naturalness trade-off is Agustín's call.
