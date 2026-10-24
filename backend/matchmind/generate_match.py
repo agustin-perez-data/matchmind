@@ -97,6 +97,7 @@ def generate(
                 "pattern": team.pattern,
                 "city": team.city,
                 "style": team.style,
+                "press_intensity": team.press_intensity,
                 "players": [_public_player(p, starters) for p in team.players],
             }
             for team in (home_team, away_team)
