@@ -23,14 +23,14 @@ import httpx
 
 log = logging.getLogger("matchmind.tts")
 
-# Defaults: Mexican HD voice in an excited style for Spanish (chosen by ear over the flatter es-AR voices), British English in HD. Override per language with MATCHMIND_VOICE_ES / _EN
+# Defaults, both picked by ear: HD voices in a permanent excited style, Mexican for Spanish and American for English. Override per language with MATCHMIND_VOICE_ES / _EN
 # (any voice from the region's list; HD voices ignore prosody, expressive voices take a style on goals).
-DEFAULT_VOICES = {"es": "es-MX-Alejo:MAI-Voice-2", "en": "en-GB-Ryan:DragonHDLatestNeural"}
+DEFAULT_VOICES = {"es": "es-MX-Alejo:MAI-Voice-2", "en": "en-US-Ethan:MAI-Voice-2"}
 LOCALES = {"es": "es-AR", "en": "en-GB"}
 # Voices that always speak in a style (a commentator is excited by trade), and voices that only get it on goals.
-ALWAYS_STYLE = {"es-MX-Alejo:MAI-Voice-2": "excited", "es-MX-Alejo:MAI-Voice-2-Flash": "excited"}
-EXCITED_STYLE = {"en-US-DavisNeural": "excited", "en-US-JasonNeural": "excited", "en-US-GuyNeural": "excited",
-                 "en-US-Ethan:MAI-Voice-2": "excited"}
+ALWAYS_STYLE = {"es-MX-Alejo:MAI-Voice-2": "excited", "es-MX-Alejo:MAI-Voice-2-Flash": "excited",
+                "en-US-Ethan:MAI-Voice-2": "excited", "en-US-Ethan:MAI-Voice-2-Flash": "excited"}
+EXCITED_STYLE = {"en-US-DavisNeural": "excited", "en-US-JasonNeural": "excited", "en-US-GuyNeural": "excited"}
 OUTPUT_FORMAT = "audio-48khz-96kbitrate-mono-mp3"
 MAX_CHARS = 600
 

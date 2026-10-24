@@ -34,9 +34,12 @@ def test_ssml_picks_the_rioplatense_voice_and_gets_excited_on_goals(monkeypatch)
     assert "es-AR-TomasNeural" in tomas and "rate='1.12'" in tomas and "express-as" not in tomas
     monkeypatch.delenv("MATCHMIND_VOICE_ES")
     en = ssml("A quiet spell for Thames, 55% of the ball.", "en")
-    assert "en-GB-Ryan:DragonHDLatestNeural" in en and "prosody" not in en and "&" not in en  # HD voices: no prosody
+    assert "en-US-Ethan:MAI-Voice-2" in en and "express-as style='excited'" in en and "prosody" not in en and "&" not in en
+    monkeypatch.setenv("MATCHMIND_VOICE_EN", "en-GB-Ryan:DragonHDLatestNeural")
+    assert "prosody" not in ssml("x", "en") and "express-as" not in ssml("x", "en")  # HD voices without a style: nothing added
+    monkeypatch.delenv("MATCHMIND_VOICE_EN")
     assert "&lt;b&gt;" in ssml("x <b> y", "en")  # markup is escaped, never injected
-    assert ssml("hi", "xx").count("en-GB") == 2  # unknown language falls back to English
+    assert ssml("hi", "xx").count("en-US") == 2  # unknown language falls back to English
     # an English voice with a goal-only style gets it on goals, nothing otherwise
     monkeypatch.setenv("MATCHMIND_VOICE_EN", "en-US-DavisNeural")
     assert "<mstts:express-as style='excited'>" in ssml("GOAL!", "en")
