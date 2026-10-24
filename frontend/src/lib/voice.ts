@@ -1,36 +1,60 @@
-/** The commentator's voice: one line at a time, the latest wins, nothing queued up behind a long one. */
+/** The commentator's voice: one player for the whole app, one line at a time.
+ *
+ *  A line in progress is never cut: a newer line waits, and only the newest waiting line
+ *  survives (a fan does not need three stale lines read back to back). Leaving the seat,
+ *  muting or starting another match stops everything.
+ */
 
 import { API_BASE } from './api'
 import { stadium } from './sounds'
 
 class Voice {
-  private audio: HTMLAudioElement | null = null
+  private readonly audio: HTMLAudioElement | null = typeof Audio !== 'undefined' ? new Audio() : null
   private current = ''
+  private waiting: { text: string; lang: 'en' | 'es' } | null = null
+  private busy = false
   spoken = 0
-  played = 0 // lines that actually started playing
+  played = 0
+  interrupted = 0
   lastError: string | null = null
 
-  /** Say this line if sound is on; a newer line interrupts an older one. Repeated lines are not re-read. */
-  say(text: string, lang: 'en' | 'es'): void {
-    if (!stadium.enabled || !text || text === this.current) return
-    this.current = text
-    this.stop()
-    const url = `${API_BASE}/tts?${new URLSearchParams({ text, lang })}`
-    const audio = new Audio(url)
-    audio.preload = 'auto'
-    audio.volume = 0.95
-    this.audio = audio
-    this.spoken++
-    audio.addEventListener('playing', () => { this.played++ }, { once: true })
-    audio.addEventListener('error', () => { this.lastError = `audio error ${audio.error?.code ?? '?'} for ${url.slice(0, 60)}` })
-    void audio.play().catch((e: Error) => { this.lastError = e.message /* autoplay blocked until the first click; the next line will play */ })
+  constructor() {
+    if (!this.audio) return
+    this.audio.preload = 'auto'
+    this.audio.volume = 0.95
+    const done = () => { this.busy = false; this.next() }
+    this.audio.addEventListener('ended', done)
+    this.audio.addEventListener('error', () => { this.lastError = `audio error ${this.audio?.error?.code ?? '?'}`; done() })
+    this.audio.addEventListener('playing', () => { this.played++ })
   }
 
+  /** Say this line when the current one ends; a newer waiting line replaces an older waiting one. */
+  say(text: string, lang: 'en' | 'es'): void {
+    if (!this.audio || !stadium.enabled || !text || text === this.current) return
+    this.current = text
+    if (this.busy) { this.waiting = { text, lang }; return }
+    this.start(text, lang)
+  }
+
+  private start(text: string, lang: 'en' | 'es'): void {
+    if (!this.audio) return
+    this.busy = true
+    this.spoken++
+    this.audio.src = `${API_BASE}/tts?${new URLSearchParams({ text, lang })}`
+    void this.audio.play().catch((e: Error) => { this.lastError = e.message; this.busy = false /* autoplay blocked until the first click */ })
+  }
+
+  private next(): void {
+    const w = this.waiting
+    this.waiting = null
+    if (w && stadium.enabled) this.start(w.text, w.lang)
+  }
+
+  /** Silence now and forget what was waiting (leaving the seat, muting, another match). */
   stop(): void {
-    if (this.audio) {
-      this.audio.pause() // just pause and let go: clearing src would fire a bogus error event on the old element
-      this.audio = null
-    }
+    this.waiting = null
+    this.current = ''
+    if (this.audio && this.busy) { this.interrupted++; this.audio.pause(); this.busy = false }
   }
 }
 

@@ -23,10 +23,20 @@ import httpx
 
 log = logging.getLogger("matchmind.tts")
 
-VOICES = {"es": "es-AR-TomasNeural", "en": "en-GB-RyanNeural"}
+# Defaults: rioplatense Spanish, British English in HD. Override per language with MATCHMIND_VOICE_ES / _EN
+# (any voice from the region's list; HD voices ignore prosody, expressive voices take a style on goals).
+DEFAULT_VOICES = {"es": "es-AR-TomasNeural", "en": "en-GB-Ryan:DragonHDLatestNeural"}
 LOCALES = {"es": "es-AR", "en": "en-GB"}
-OUTPUT_FORMAT = "audio-24khz-48kbitrate-mono-mp3"
+EXCITED_STYLE = {"es-MX-Alejo:MAI-Voice-2": "excited", "es-MX-Alejo:MAI-Voice-2-Flash": "excited",
+                 "en-US-DavisNeural": "excited", "en-US-JasonNeural": "excited", "en-US-GuyNeural": "excited",
+                 "en-US-Ethan:MAI-Voice-2": "excited"}
+OUTPUT_FORMAT = "audio-48khz-96kbitrate-mono-mp3"
 MAX_CHARS = 600
+
+
+def voice_for(lang: str) -> str:
+    lang = lang if lang in DEFAULT_VOICES else "en"
+    return os.environ.get(f"MATCHMIND_VOICE_{lang.upper()}") or DEFAULT_VOICES[lang]
 
 
 def speech_config() -> dict | None:
@@ -37,18 +47,26 @@ def speech_config() -> dict | None:
 
 
 def ssml(text: str, lang: str) -> str:
-    lang = lang if lang in VOICES else "en"
+    lang = lang if lang in DEFAULT_VOICES else "en"
+    voice = voice_for(lang)
+    locale = voice.split("-")[0] + "-" + voice.split("-")[1] if voice.count("-") >= 2 else LOCALES[lang]
     text = re.sub(r"\s+", " ", text.strip())[:MAX_CHARS]
     excited = bool(re.search(r"GO+L|GOAL|¡|!", text))
-    rate, pitch = ("1.12", "+6%") if excited else ("1.06", "+0%")
+    hd = "DragonHD" in voice or "MAI-Voice" in voice  # HD voices do their own prosody
+    inner = escape(text)
+    if excited and voice in EXCITED_STYLE:
+        inner = f"<mstts:express-as style='{EXCITED_STYLE[voice]}'>{inner}</mstts:express-as>"
+    elif not hd:
+        rate, pitch = ("1.12", "+6%") if excited else ("1.06", "+0%")
+        inner = f"<prosody rate='{rate}' pitch='{pitch}'>{inner}</prosody>"
     return (
-        f"<speak version='1.0' xml:lang='{LOCALES[lang]}'>"
-        f"<voice name='{VOICES[lang]}'><prosody rate='{rate}' pitch='{pitch}'>{escape(text)}</prosody></voice></speak>"
+        f"<speak version='1.0' xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='{locale}'>"
+        f"<voice name='{voice}'>{inner}</voice></speak>"
     )
 
 
 def cache_path(cache_dir: Path, text: str, lang: str) -> Path:
-    digest = hashlib.sha1(f"{lang}:{VOICES.get(lang, VOICES['en'])}:{text.strip()}".encode("utf-8")).hexdigest()
+    digest = hashlib.sha1(f"{lang}:{voice_for(lang)}:{text.strip()}".encode("utf-8")).hexdigest()
     return cache_dir / f"{digest}.mp3"
 
 

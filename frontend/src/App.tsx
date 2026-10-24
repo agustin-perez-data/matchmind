@@ -64,6 +64,8 @@ export default function App() {
 
   const begin = useCallback((s: Seat, id: string, opts?: Partial<StreamOptions>, rows?: MatchRow[]) => {
     setSelectedBranch(null)
+    voice.stop()
+    stadium.cutAll()
     const { home, away } = sidesOf(id, rows)  // on autostart the catalogue has just arrived and is not in state yet
     const profile = s === 'control' ? controlProfile(language, home) : profileForSeat(s, language, favorite, team)
     start({ matchId: id, speed, profile, compare: compareForSeat(s, language, away), agents, coach, minImportance: s === 'fan' ? 2 : 3, ...opts })
@@ -110,11 +112,11 @@ export default function App() {
 
   // The commentator's voice: the fan seat hears each narration line as it lands (latest wins).
   useEffect(() => {
-    if (seat !== 'fan') return
+    if (seat !== 'fan' || (state.status !== 'live' && state.status !== 'ended')) return // never a stale line from the last match
     const latest = state.feed.find((f) => f.msg.kind === 'insight')
     const text = latest && latest.msg.kind === 'insight' ? Object.values(latest.msg.viewers)[0]?.narration?.text : null
     if (text) voice.say(text, language)
-  }, [state.feed, seat, language])
+  }, [state.feed, state.status, seat, language])
   useEffect(() => { if (seat !== 'fan' || state.status === 'idle') voice.stop() }, [seat, state.status])
 
   const pickSeat = useCallback((s: Seat) => {
@@ -147,6 +149,8 @@ export default function App() {
 
   const leave = useCallback(() => {
     stop()
+    voice.stop()
+    stadium.cutAll()
     setSeat(null)
     setSelectedBranch(null)
     setAskSide(false)

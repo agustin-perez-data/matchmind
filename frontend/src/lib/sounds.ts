@@ -31,6 +31,16 @@ class Stadium {
     if (on) this.unlock()
   }
 
+  /** Cut everything still ringing (a roar, a long whistle) in a few milliseconds: leaving the match. */
+  cutAll() {
+    if (!this.ctx || !this.master) return
+    const t = this.ctx.currentTime
+    this.master.gain.cancelScheduledValues(t)
+    this.master.gain.setValueAtTime(this.master.gain.value, t)
+    this.master.gain.linearRampToValueAtTime(0, t + 0.04)
+    this.master.gain.setValueAtTime(0.6, t + 0.6) // every scheduled source has finished by then; back to normal for the next match
+  }
+
   /** Create or resume the context; must run inside a user gesture at least once. */
   unlock() {
     if (!this.ctx) {
