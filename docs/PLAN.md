@@ -391,6 +391,13 @@ Foundry, Best Azure Cloud Native Integration.
   get `express-as excited` on goals, HD voices get no prosody. There is no
   rioplatense HD or expressive voice in the catalogue (es-AR has Tomas and
   Elena only): the accent-vs-naturalness trade-off is Agustín's call.
+  **Oct 24, whistles only**: Agustín found the synthetic crowd sounds
+  horrible; the roar and the groan are gone. The referee's whistle now has
+  one pattern per moment so they can be told apart: kick-off one short
+  blast, goal two quick blasts, half-time two medium blasts, full time
+  short-short-long. `stadium.whistle(pattern)` schedules blasts; `soundFor`
+  maps event types to patterns. Captured from the browser to confirm the
+  blast counts and lengths.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

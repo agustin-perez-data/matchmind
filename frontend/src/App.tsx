@@ -100,13 +100,12 @@ export default function App() {
   const [sound, setSound] = useState(stadium.enabled)
   const onSound = useCallback((on: boolean) => { stadium.setEnabled(on); setSound(on) }, [])
 
-  // Stadium sounds follow the events as they arrive (whistles and the goal roar).
+  // The referee follows the events as they arrive: one whistle pattern per moment.
   useEffect(() => {
     const e = state.lastEvent
     if (!e) return
     const kind = soundFor(e.type)
-    if (kind === 'roar') (team && e.team_id && e.team_id !== team ? stadium.groan() : stadium.roar())
-    else if (kind) stadium.whistle(kind)
+    if (kind) stadium.whistle(kind)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastEvent])
 
