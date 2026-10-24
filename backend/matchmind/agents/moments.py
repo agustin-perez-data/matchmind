@@ -164,6 +164,10 @@ def build_moment_context(
         "watched_players": watched,
         "risk_alerts": snapshot.get("risk_alerts", [])[:3],
         "last_10_minutes": snapshot.get("recent"),
+        "shape": snapshot.get("shape"),  # positional model: block height, width, compactness, lines, phase (metres)
+        "shape_last_10": snapshot.get("shape_last_10"),
+        "press_index": snapshot.get("press_index"),
+        "pressure": snapshot.get("pressure"),
         "top_shooters": snapshot.get("top_shooters", []),
         "game_state": game_state(snapshot),
         "analyst_track_record": track_record,

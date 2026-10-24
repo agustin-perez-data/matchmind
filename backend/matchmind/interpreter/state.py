@@ -118,10 +118,102 @@ class MatchState:
         self._last_period: int | None = None
         self.momentum_series: list[dict] = []
         self._player_shots: dict[str, int] = {}
+        # positional frames (synthetic, from the positional model): shape, heat and pressure
+        self._shape: dict[str, dict | None] = {self.home_id: None, self.away_id: None}
+        self._heat: dict[str, list[int]] = {}
+        self._pressure: dict | None = None
+        self._press_acc: dict[str, list[float]] = {self.home_id: [0.0, 0], self.away_id: [0.0, 0]}
+        self._block_by_minute: dict[str, dict[int, list[float]]] = {self.home_id: {}, self.away_id: {}}
+        self._frames_seen = 0
         self._fan: dict[str, dict] = {}  # per player: what a fan counts (touches, shots, goals, assists, duels won)
         self._minute_marks: dict[int, dict] = {}  # team totals + per-player shots at the start of each minute
 
     RECENT_KEYS = ("xg", "shots", "shots_on_target", "pressures", "passes")
+    HEAT_COLS, HEAT_ROWS = 12, 8
+    PRESSURE_RADIUS_M = 8.0
+
+    def apply_frame(self, frame: dict) -> None:
+        """One positional frame: team shape, per-player heat and pressure on the carrier.
+
+        Does not touch the clock, momentum or `last_event_id`: frames are a side channel.
+        """
+        players = frame.get("players") or {}
+        if not players:
+            return
+        self._frames_seen += 1
+        minute = int(frame.get("minute", self.minute))
+        carrier = frame.get("carrier")
+        poss_team = self._players[carrier]["team_id"] if carrier in self._players else None
+        by_team: dict[str, list[tuple[str, float, float]]] = {self.home_id: [], self.away_id: []}
+        for pid, (x, y) in players.items():
+            info = self._players.get(pid)
+            if info is None or info["team_id"] not in by_team:
+                continue
+            by_team[info["team_id"]].append((pid, float(x), float(y)))
+        for tid, rows in by_team.items():
+            if not rows:
+                continue
+            outfield = [(pid, x, y) for pid, x, y in rows if self._players[pid]["position"] != "GK"]
+            xs_team = [self._team_frame_x(tid, x) for _, x, _ in outfield]
+            ys = [y for _, _, y in outfield]
+            if not xs_team:
+                continue
+            cx, cy = sum(xs_team) / len(xs_team), sum(ys) / len(ys)
+            compact = sum(math.hypot((x - cx) / 100 * 105.0, (y - cy) / 100 * 68.0) for x, y in zip(xs_team, ys)) / len(xs_team)
+            lines = {}
+            for pos in ("DF", "MF", "FW"):
+                xs_pos = [self._team_frame_x(tid, x) for pid, x, _ in outfield if self._players[pid]["position"] == pos]
+                if xs_pos:
+                    lines[pos] = round(sum(xs_pos) / len(xs_pos) / 100 * 105.0, 1)
+            self._shape[tid] = {
+                "block_height_m": round(cx / 100 * 105.0, 1),
+                "width_m": round((max(ys) - min(ys)) / 100 * 68.0, 1),
+                "compactness_m": round(compact, 1),
+                "lines": lines,
+                "phase": "attacking" if poss_team == tid else "defending" if poss_team else "transition",
+            }
+            self._block_by_minute[tid].setdefault(minute, [0.0, 0])
+            self._block_by_minute[tid][minute][0] += cx / 100 * 105.0
+            self._block_by_minute[tid][minute][1] += 1
+            for pid, x, y in rows:  # heat in team frame, so both halves add up into one picture
+                xt = self._team_frame_x(tid, x)
+                col = min(self.HEAT_COLS - 1, max(0, int(xt / 100 * self.HEAT_COLS)))
+                row = min(self.HEAT_ROWS - 1, max(0, int(y / 100 * self.HEAT_ROWS)))
+                self._heat.setdefault(pid, [0] * (self.HEAT_COLS * self.HEAT_ROWS))[row * self.HEAT_COLS + col] += 1
+        if carrier in self._players and poss_team in by_team:
+            ball = players.get(carrier)
+            other = self.away_id if poss_team == self.home_id else self.home_id
+            near = sum(
+                1 for _, x, y in by_team[other]
+                if math.hypot((x - ball[0]) / 100 * 105.0, (y - ball[1]) / 100 * 68.0) <= self.PRESSURE_RADIUS_M
+            )
+            self._pressure = {"carrier": carrier, "team_in_possession": poss_team, "opponents_within_8m": near,
+                              "under_pressure": near >= 2}
+            self._press_acc[other][0] += near
+            self._press_acc[other][1] += 1
+        else:
+            self._pressure = None
+
+    def press_index(self) -> dict[str, float | None]:
+        """Mean opponents within 8 m of the carrier while each team defends (higher = presses harder)."""
+        return {tid: (round(acc[0] / acc[1], 2) if acc[1] else None) for tid, acc in self._press_acc.items()}
+
+    def shape_recent(self, minutes: int = 10) -> dict[str, dict] | None:
+        """Block height over the last `minutes` against the whole match so far, per team."""
+        if not self._frames_seen:
+            return None
+        out = {}
+        for tid, marks in self._block_by_minute.items():
+            if not marks:
+                continue
+            all_sum = sum(v[0] for v in marks.values())
+            all_n = sum(v[1] for v in marks.values())
+            recent = [v for m, v in marks.items() if m >= self.minute - minutes]
+            r_sum = sum(v[0] for v in recent)
+            r_n = sum(v[1] for v in recent)
+            if all_n and r_n:
+                out[tid] = {"block_height_m": round(r_sum / r_n, 1), "delta_vs_match_m": round(r_sum / r_n - all_sum / all_n, 1)}
+        return out or None
 
     def _mark_minute(self) -> None:
         if self.minute not in self._minute_marks:
@@ -316,6 +408,8 @@ class MatchState:
         view = {k: v for k, v in p.items() if k != "mpm_recent"}
         minutes = p["minutes_played"]
         view.update(self._fan.get(p["player_id"], {"touches": 0, "shots": 0, "goals": 0, "assists": 0, "duels_won": 0}))
+        if self._frames_seen:
+            view["heat"] = self._heat.get(p["player_id"])
         view.update({
             "acwr_pre_match": acwr(history, 0.0),
             "acwr_live": live,
@@ -363,4 +457,8 @@ class MatchState:
             "risk_alerts": alerts,
             "recent": self.recent(10),
             "top_shooters": self.top_shooters(),
+            "shape": dict(self._shape) if self._frames_seen else None,
+            "shape_last_10": self.shape_recent(10),
+            "press_index": self.press_index() if self._frames_seen else None,
+            "pressure": self._pressure,
         }

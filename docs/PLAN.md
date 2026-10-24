@@ -399,6 +399,30 @@ Foundry, Best Azure Cloud Native Integration.
   short-short-long. `stadium.whistle(pattern)` schedules blasts; `soundFor`
   maps event types to patterns. Captured from the browser to confirm the
   blast counts and lengths.
+  **Oct 24, synthetic positional data (plan approved; backend done)**:
+  the honest review said a Premier League judge expects to see players, not
+  just a ball. `sim/tracking.py` is a pure positional model: one frame per
+  match second, 22 players anchored on a 1-4-4-2 that shifts and compresses
+  with the ball, appointments at every placed event (passer, receiver,
+  defender, shooter, presser), carrier placed on the ball, own RNG stream
+  (`seed ^ 0x7A4C`), the engine and the events untouched. Frames are a side
+  channel: `MatchCatalog.frames()` builds them lazily in memory,
+  `merge_timeline` interleaves them (events first within a second), the
+  Interpreter's `apply_frame` derives team shape (block height, width,
+  compactness, lines, phase), per-player 12x8 heat grids in team frame, the
+  pressure on the carrier and a press index; the moment context carries
+  `shape`/`shape_last_10`/`press_index`/`pressure` (never the heat grid), and
+  MCP gets `get_team_shape` and `get_player_heatmap`. The socket sends frames
+  by `frame_stride(speed)` (all up to x60, every 2nd to x150, every 5th to
+  x400, none above; `?frames=all|0` overrides). Replay timing now follows a
+  wall-clock schedule instead of per-item sleeps: the Windows timer floor
+  made a x60 replay with frames take 174 s; now 95 s (match has 5,684 s), and
+  x1000 takes 5.8 s. Agent caches, event ids and risk messages are unchanged
+  (tested). Labelling rule everywhere: "positional model built from the
+  event stream", never "tracking data" without the caveat. NEXT: §5 frontend
+  (`frameRef` + `TrackingLayer` rAF loop, 22 dots, heat toggle, `ShapeBlock`,
+  pressure line in the follow card, end-card heat), §6 README "Fidelity,
+  honestly". Cut line Oct 25 15:00; deploy + video Oct 26.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

@@ -54,7 +54,8 @@ from matchmind.agents.schemas import ViewerProfile
 from matchmind.generate_match import generate, write_match
 from matchmind.interpreter.state import MatchState
 from matchmind.risk.monitor import RiskMonitor
-from matchmind.stream.replay import delay_between, load_events
+from matchmind.sim.tracking import build_tracking
+from matchmind.stream.replay import delay_between, frame_stride, load_events, merge_timeline
 from matchmind.tools.mcp_server import build_mcp_server
 from matchmind.tools.registry import LiveStateRegistry, MatchTools, current_session
 
@@ -88,6 +89,7 @@ class MatchCatalog:
 
     def __init__(self, data_dir: Path):
         self.data_dir = Path(data_dir)
+        self._frames: dict[str, list[dict]] = {}
 
     def ids(self) -> list[str]:
         return sorted(p.name[: -len("_meta.json")] for p in self.data_dir.glob("*_meta.json"))
@@ -108,10 +110,20 @@ class MatchCatalog:
         log.info("No matches in %s - generating default %s vs %s (seed %s)", self.data_dir, home, away, seed)
         write_match(*generate(home, away, seed), out_dir=self.data_dir)
 
+    def frames(self, match_id: str) -> list[dict]:
+        """Positional frames, built once per match from its events (pure, deterministic) and kept in memory."""
+        if match_id not in self._frames:
+            meta = self.meta(match_id)
+            self._frames[match_id] = build_tracking(self.events(match_id), meta) if meta else []
+        return self._frames[match_id]
+
     def final_state(self, match_id: str) -> dict:
         state = MatchState(self.meta(match_id))
-        for e in self.events(match_id):
-            state.apply(e)
+        for item in merge_timeline(self.events(match_id), self.frames(match_id)):
+            if item.get("kind") == "frame":
+                state.apply_frame(item)
+            else:
+                state.apply(item)
         return state.snapshot()
 
 
@@ -261,6 +273,7 @@ def create_app(
         coach_on: bool = Query(True, alias="coach"),
         min_importance: int = Query(3, ge=1, le=5),
         compare: str | None = Query(None, description="extra viewer profiles to compare, comma-separated mode:lang:player:team (Control room)"),
+        frames: str = Query("auto", pattern="^(auto|all|0)$", description="positional frames: auto = by speed, all = every frame, 0 = none"),
     ) -> None:
         await websocket.accept()
         meta = catalog.meta(match_id)
@@ -279,6 +292,7 @@ def create_app(
             coach=agents["coach"] if coach_on else None,
             judge=agents["judge"] if agents_on else None,
             profile=profile, speed=speed, min_importance=min_importance, cache=agents["cache"], compare=compare_profiles,
+            frames=catalog.frames(match_id), frames_mode=frames,
         )
         await session.run()
 
@@ -347,8 +361,11 @@ class _Lane:
 class StreamSession:
     """One WebSocket connection: replay loop + control reader + agent lanes + single sender."""
 
-    def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance, judge=None, cache=None, compare=None):
+    def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance, judge=None, cache=None, compare=None,
+                 frames=None, frames_mode="auto"):
         self.ws, self.meta, self.events, self.registry = websocket, meta, events, registry
+        self.frames: list[dict] = list(frames or [])  # positional frames, a side channel: never events
+        self.frames_mode = frames_mode
         self.pipeline, self.coach, self.judge, self.profile, self.speed = pipeline, coach, judge, profile, speed
         self.compare: list[ViewerProfile] = list(compare or [])  # extra viewers explained side by side (Control room)
         self.min_importance = min_importance
@@ -500,10 +517,33 @@ class StreamSession:
             prev: dict | None = None
             n = len(self.events)
             pending_risk = False
-            for i, event in enumerate(self.events, start=1):
+            i = 0
+            frame_no = 0
+            # wall-clock schedule: each item is due at the previous due time plus its delay, and we only sleep
+            # until then. The OS timer floor (~15 ms on Windows) overshoots every sleep; measuring against the
+            # clock absorbs that instead of letting it pile up over thousands of frames.
+            due = time.monotonic()
+            timeline = merge_timeline(self.events, self.frames) if self.frames_mode != "0" and self.frames else self.events
+            for item in timeline:
                 if self.closed:
                     return
-                await asyncio.sleep(delay_between(prev, event, self.speed))
+                due = max(due + delay_between(prev, item, self.speed), time.monotonic() - 1.0)  # a stall never bursts > 1 s
+                wait = due - time.monotonic()
+                if item.get("kind") != "frame":
+                    await asyncio.sleep(max(wait, 0.0))  # events always yield so the lanes can send
+                elif wait >= 0.005:
+                    await asyncio.sleep(wait)
+                prev = item
+                if item.get("kind") == "frame":
+                    # a side channel: the Interpreter learns shape/heat/pressure; nothing else sees frames
+                    state.apply_frame(item)
+                    frame_no += 1
+                    stride = 1 if self.frames_mode == "all" else frame_stride(self.speed)
+                    if stride and frame_no % stride == 0:
+                        await self.out.put(item)
+                    continue
+                event = item
+                i += 1
                 state.apply(event)
                 snapshot = state.snapshot()
                 message: dict = {"kind": "event", "event": event}
@@ -540,7 +580,6 @@ class StreamSession:
                         snapshot, self.meta, trigger="injury_concern"))
 
                 await self.out.put(message)
-                prev = event
 
             if moments is not None:
                 await moments.close(AGENT_DRAIN_TIMEOUT_S)  # the last insight may still add a forecast

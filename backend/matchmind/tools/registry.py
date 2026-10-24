@@ -239,6 +239,47 @@ class MatchTools:
                     "scorecard": None, "note": "no live risk monitor for this match yet"}
         return {"match_id": match_id, **risk}
 
+    def get_team_shape(self, match_id: str) -> dict:
+        """Team shape from the positional model (synthetic positions driven by the ball and the formation, not measured tracking): block height, width, compactness and line heights in metres per team, the phase (attacking/defending), the block height over the last 10 minutes against the match mean, and each team's press index (mean opponents within 8 m of the ball carrier while defending)."""
+        e = self._entry(match_id)
+        snap = e["snapshot"]
+        if not snap.get("shape"):
+            return {"match_id": match_id, "shape": None, "note": "no positional frames applied for this match yet"}
+        meta = e["meta"]
+        return {
+            "match_id": match_id, "minute": snap["minute"], "clock": snap["clock"],
+            "shape": {tid: {"team": self._team_name(meta, tid), **(sh or {})} for tid, sh in snap["shape"].items()},
+            "last_10_minutes": snap.get("shape_last_10"),
+            "press_index": snap.get("press_index"),
+            "pressure_now": snap.get("pressure"),
+            "note": "Positions come from a positional model built on the event stream; shape follows the model, not a tracking feed.",
+        }
+
+    def get_player_heatmap(self, match_id: str, player_id: str) -> dict:
+        """Where a player has spent the match: a 12x8 occupancy grid in team frame (columns run from own goal to the opponent's, rows from the left touchline to the right), plus the share of time in each third and a one-line reading. Positions come from the positional model, not measured tracking."""
+        e = self._entry(match_id)
+        snap, meta = e["snapshot"], e["meta"]
+        p = snap["players"].get(player_id)
+        if p is None:
+            raise KeyError(f"unknown player {player_id!r} in {match_id}")
+        grid = p.get("heat")
+        if not grid or not sum(grid):
+            return {"match_id": match_id, "player_id": player_id, "name": p["name"], "grid": None, "note": "no positional frames for this player yet"}
+        cols, rows = 12, 8
+        total = sum(grid)
+        thirds = [sum(grid[r * cols + c] for r in range(rows) for c in range(lo, hi)) / total for lo, hi in ((0, 4), (4, 8), (8, 12))]
+        lanes = [sum(grid[r * cols + c] for r in range(lo, hi) for c in range(cols)) / total for lo, hi in ((0, 3), (3, 5), (5, 8))]
+        third = ("own third", "middle third", "final third")[max(range(3), key=lambda k: thirds[k])]
+        lane = ("left", "central", "right")[max(range(3), key=lambda k: lanes[k])]
+        return {
+            "match_id": match_id, "player_id": player_id, "name": p["name"], "team": self._team_name(meta, p["team_id"]),
+            "position": p["position"], "frames": total, "grid_cols": cols, "grid_rows": rows, "grid": grid,
+            "time_by_third": {"own": round(thirds[0], 2), "middle": round(thirds[1], 2), "final": round(thirds[2], 2)},
+            "time_by_lane": {"left": round(lanes[0], 2), "central": round(lanes[1], 2), "right": round(lanes[2], 2)},
+            "reading": f"{p['name']} spent most of the match in the {lane} channel of the {third}.",
+            "note": "Positional model, not measured tracking.",
+        }
+
     def get_analyst_credibility(self, match_id: str) -> dict:
         """How the Analyst agent's 10-minute forecasts have scored so far in this match (dominance, goal odds, watched player), next to a naive baseline graded on the same windows, plus the latest verdict."""
         e = self._entry(match_id)
@@ -330,4 +371,5 @@ class MatchTools:
     def as_functions(self) -> list:
         """The tool callables, for Agent Framework function calling."""
         return [self.list_matches, self.get_match_state, self.get_player_workload, self.get_risk_alerts,
-                self.get_xg_race, self.get_risk_windows, self.get_analyst_credibility, self.simulate_intervention]
+                self.get_xg_race, self.get_risk_windows, self.get_analyst_credibility, self.get_team_shape,
+                self.get_player_heatmap, self.simulate_intervention]

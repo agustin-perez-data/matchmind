@@ -47,3 +47,32 @@ def load_events(path: Path | str) -> list[dict]:
     path = Path(path)
     with path.open("r", encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]
+
+
+# ---------------------------------------------------------------- positional frames
+
+def frame_stride(speed: float) -> int:
+    """How many positional frames to skip between the ones sent, by replay speed.
+
+    1 Hz frames at x1-x60 look fluid; faster replays send fewer so the socket and the browser
+    keep up; at x400+ (and at 0 = instant) none are sent. 0 means "send no frames".
+    """
+    if speed is None or speed <= 0:
+        return 0
+    if speed <= 60:
+        return 1
+    if speed <= 150:
+        return 2
+    if speed <= 400:
+        return 5
+    return 0
+
+
+def merge_timeline(events: list[dict], frames: list[dict]) -> list[dict]:
+    """Events and frames in one clock-ordered list: at the same second the events come first."""
+    def key(item: dict, rank: int) -> tuple[int, int, int]:
+        return (int(item["period"]), event_seconds(item), rank)
+
+    merged = [(key(e, 0), i, e) for i, e in enumerate(events)] + [(key(f, 1), i, f) for i, f in enumerate(frames)]
+    merged.sort(key=lambda t: (t[0], t[1]))
+    return [item for _, _, item in merged]
