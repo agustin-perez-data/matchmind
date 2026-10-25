@@ -18,6 +18,7 @@ import { ShapeBlock } from './ShapeBlock'
 import { PassNetwork } from './PassNetwork'
 import { AnalystRead } from './AnalystRead'
 import { ReadinessBoard } from './ReadinessBoard'
+import { decisionLog } from '../lib/bench'
 import { DecisionCard } from './DecisionCard'
 import { RiskTimeline } from './RiskTimeline'
 import { LeadTimeBlock } from './LeadTimeBlock'
@@ -38,16 +39,19 @@ type Props = {
   lastGoal: MatchEvent | null
   selectedBranch: BranchSummary | null
   onSelectBranch: (b: BranchSummary | null) => void
+  benchBranches: BranchSummary[]
+  onBranchCreated: (b: BranchSummary) => void
 }
 
 /** One match, three compositions: what each seat sees. */
-export function MatchStage({ seat, meta, state, frameRef, speed, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite, teamId, language }: Props) {
+export function MatchStage({ seat, meta, state, frameRef, speed, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, benchBranches, onBranchCreated, favoritePlayerId, onFavorite, teamId, language }: Props) {
   const keyEvent = state.keyEvents.find((e) => e.type !== 'kickoff') ?? null
   // bench: which side the board shows and which player is in focus (ringed amber on the pitch, preselected in the decision card)
   const [benchTeam, setBenchTeam] = useState(meta.home_id)
   const [benchFocus, setBenchFocus] = useState<string | null>(null)
   useEffect(() => { if (benchFocus && state.snapshot && state.snapshot.players[benchFocus]?.on_pitch === false) setBenchFocus(null) }, [benchFocus, state.snapshot])
   const rings = useMemo(() => Object.fromEntries((state.risk?.active_windows ?? []).map((w) => [w.player_id, w.level === 'high' ? '#e8405a' : '#f97316'])), [state.risk])
+  const entries = useMemo(() => decisionLog(state.feed, benchBranches, meta), [state.feed, benchBranches, meta])
   // what the lower third shows: the bench follows every agent (its Coach included); the other seats follow the latest insight
   const latestForSeat = seat === 'bench' ? state.feed[0] ?? null : state.feed.find((f) => f.msg.kind === 'insight') ?? null
   const pitch = (size: 'lg' | 'sm') => (
@@ -144,17 +148,17 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
           {/* the pitch column sets the row height; the decision card fills the right column and scrolls inside if it must */}
           <div className="scroll-quiet flex min-w-0 flex-col gap-3 lg:h-0 lg:min-h-full lg:overflow-auto">
             <DecisionCard meta={meta} snapshot={state.snapshot} risk={state.risk} coach={latestCoach} branches={branches} selected={selectedBranch} onSelect={onSelectBranch}
-              keyEvents={state.keyEvents} team={benchTeam} focus={benchFocus} ended={ended} className="lg:min-h-[300px] lg:flex-1" />
+              onBranchCreated={onBranchCreated} entries={entries} keyEvents={state.keyEvents} team={benchTeam} focus={benchFocus} ended={ended} className="lg:min-h-[300px] lg:flex-1" />
           </div>
         </div>
         {selectedBranch && <div className="enter" style={{ ['--i' as string]: 3 }}><WhatIfBand meta={meta} snapshot={state.snapshot} actualEvents={state.keyEvents} branches={branches} selected={selectedBranch} onSelect={onSelectBranch} ended={ended} timelineOnly /></div>}
         <div className="enter grid gap-3 md:grid-cols-2 lg:grid-cols-3" style={{ ['--i' as string]: 3 }}>
-          <RiskTimeline meta={meta} snapshot={state.snapshot} risk={state.risk} team={benchTeam} />
+          <RiskTimeline meta={meta} snapshot={state.snapshot} risk={state.risk} team={benchTeam} focus={benchFocus} />
           <LeadTimeBlock risk={state.risk} />
           <TeamLoadBlock meta={meta} snapshot={state.snapshot} keyEvents={state.keyEvents} />
         </div>
         <div className="enter flex flex-col gap-3" style={{ ['--i' as string]: 4 }}>
-          <BenchReport meta={meta} snapshot={state.snapshot} risk={state.risk} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} ended={ended} />
+          <BenchReport meta={meta} snapshot={state.snapshot} risk={state.risk} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} entries={entries} ended={ended} />
           <details className="blk px-4 py-2 text-sm">
             <summary className="display cursor-pointer text-base font-extrabold uppercase tracking-wider text-fg-2">How the monitor was calibrated <span className="blk-meta ml-2 normal-case">40 synthetic matches</span></summary>
             <div className="mt-2"><ReliabilityBlock risk={state.risk} alerts={state.alerts} /></div>

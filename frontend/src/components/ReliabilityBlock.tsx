@@ -1,10 +1,5 @@
-import calibration from '../data/risk_calibration.json'
+import { BINS, CALIBRATION as DATA, binFor } from '../lib/calibration'
 import type { RiskMsg, RiskWindow } from '../lib/types'
-
-type Side = { n: number; hits: number; hit_rate: number | null; mean_hazard: number | null }
-type Bin = { lo: number; hi: number; model: Side; baseline: Side }
-const DATA = calibration as { matches: number; bins: Bin[]; model: { windows: number; hits: number; base_rate: number | null }; baseline: { windows: number; hits: number; base_rate: number | null } }
-const BINS = DATA.bins
 
 const W = 320, H = 210, L = 40, B = 30, T = 12, R = 12
 const YMAX = Math.max(0.1, Math.ceil(Math.max(...BINS.map((b) => b.model.hit_rate ?? 0), ...BINS.map((b) => b.baseline.hit_rate ?? 0)) * 10) / 10)
@@ -19,7 +14,7 @@ export function ReliabilityBlock({ risk, alerts }: { risk: RiskMsg | null; alert
   const pts = BINS.filter((b) => b.model.hit_rate != null)
   const base = BINS.filter((b) => b.baseline.hit_rate != null && b.baseline.n >= 5)
   const live = alerts.map((a) => a.hazard)
-  const liveBins = BINS.map((b) => live.filter((h) => h >= b.lo && h < b.hi).length)
+  const liveBins = BINS.map((b) => live.filter((h) => binFor(h) === b).length)
   const top = BINS[BINS.length - 1], low = BINS.slice(0, -1)
   const lowRate = low.reduce((s, b) => s + b.model.hits, 0) / Math.max(1, low.reduce((s, b) => s + b.model.n, 0))
   const covered = risk?.concerns.filter((c) => c.covered).length ?? 0

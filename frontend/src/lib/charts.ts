@@ -15,3 +15,18 @@ export function niceAxis(max: number, floor = 0.5): { top: number; ticks: number
 }
 
 const round = (v: number) => Math.round(v * 100) / 100
+
+/** Lay out end-of-line labels so none overlap: keep their order by y, push each at least `minGap` below the previous, clamp. */
+export function labelLayout<T extends { y: number }>(items: T[], minGap = 9, min = -Infinity, max = Infinity): (T & { y: number })[] {
+  const sorted = [...items].sort((a, b) => a.y - b.y)
+  const out: (T & { y: number })[] = []
+  let last = -Infinity
+  for (const it of sorted) {
+    const y = Math.max(it.y, last + minGap, min)
+    out.push({ ...it, y })
+    last = y
+  }
+  // if the stack ran past the bottom, shift everything up together
+  const overflow = out.length ? out[out.length - 1].y - max : 0
+  return overflow > 0 ? out.map((o) => ({ ...o, y: o.y - overflow })) : out
+}

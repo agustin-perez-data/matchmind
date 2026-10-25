@@ -54,6 +54,7 @@ export default function App() {
   const { agents, coach } = initial
   const [seat, setSeat] = useState<Seat | null>(initial.seat)
   const [selectedBranch, setSelectedBranch] = useState<BranchSummary | null>(null)
+  const [benchBranches, setBenchBranches] = useState<BranchSummary[]>([]) // changes the bench tried itself, for the decision log
   const [loadError, setLoadError] = useState<string | null>(null)
   const { state, start, stop, send, frameRef } = useMatchStream()
 
@@ -64,6 +65,7 @@ export default function App() {
 
   const begin = useCallback((s: Seat, id: string, opts?: Partial<StreamOptions>, rows?: MatchRow[]) => {
     setSelectedBranch(null)
+    setBenchBranches([])
     voice.stop()
     stadium.cutAll()
     const { home, away } = sidesOf(id, rows)  // on autostart the catalogue has just arrived and is not in state yet
@@ -152,6 +154,7 @@ export default function App() {
     stadium.cutAll()
     setSeat(null)
     setSelectedBranch(null)
+    setBenchBranches([])
     setAskSide(false)
     setTeam(null); setSideChosen(false) // your end is for one match: next time you take the seat you are asked again
     writeUrl({ seat: null, team: null })
@@ -167,6 +170,10 @@ export default function App() {
   const inMatch = seat !== null && (state.status === 'live' || state.status === 'ended' || state.status === 'connecting')
   const branches = useMemo(() => state.feed.flatMap((f) => (f.msg.kind === 'coach' && f.msg.branch ? [f.msg.branch] : [])), [state.feed])
   const latestCoach = useMemo(() => { const f = state.feed.find((x) => x.msg.kind === 'coach'); return f && f.msg.kind === 'coach' ? f.msg : null }, [state.feed])
+  const onBranchCreated = useCallback((b: BranchSummary) => {
+    setBenchBranches((list) => (list.some((x) => x.branch_id === b.branch_id) ? list : [...list, b]))
+    setSelectedBranch(b)
+  }, [])
   const lastGoal = useMemo(() => state.keyEvents.find((e) => e.type === 'goal') ?? null, [state.keyEvents])
   const teamVars = meta ? { ['--home' as string]: meta.teams[meta.home_id].primary_color, ['--away' as string]: meta.teams[meta.away_id].primary_color } : undefined
 
@@ -185,7 +192,8 @@ export default function App() {
       {inMatch && seat && state.status === 'connecting' && <p className="display px-6 py-10 text-2xl font-bold uppercase tracking-wider text-muted">Connecting to the studio</p>}
       {inMatch && seat && meta && (
         <MatchStage seat={seat} meta={meta} state={state} frameRef={frameRef} speed={speed} branches={branches} latestCoach={latestCoach} lastGoal={lastGoal}
-          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} teamId={team} language={language} />
+          selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} benchBranches={benchBranches} onBranchCreated={onBranchCreated}
+          favoritePlayerId={favorite} onFavorite={onFavorite} teamId={team} language={language} />
       )}
       {askSide && (() => {
         const row = matches.find((m) => m.match_id === matchId)

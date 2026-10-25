@@ -1,11 +1,14 @@
 import type { RiskMsg, TrackScore } from '../lib/types'
 
 const pct = (v: number) => `${Math.round(v * 100)}%`
+/** Below this many knocks the headline is a count, not a mean: a mean of one is not a track record. */
+export const MIN_KNOCKS_FOR_MEAN = 3
 
 /** How early the monitor warned, against a minutes-only rule: the bench's own credibility number. */
 export function LeadTimeBlock({ risk }: { risk: RiskMsg | null }) {
   const m = risk?.scorecard.model, b = risk?.scorecard.baseline
   const open = risk?.active_windows.length ?? 0
+  const small = !!m && m.concerns > 0 && m.concerns < MIN_KNOCKS_FOR_MEAN
   return (
     <section className="blk blk-risk px-4 py-3">
       <div className="flex items-baseline justify-between"><h2 className="blk-title">Warning time</h2><span className="blk-meta">model vs minutes-only rule</span></div>
@@ -22,8 +25,17 @@ export function LeadTimeBlock({ risk }: { risk: RiskMsg | null }) {
       ) : (
         <>
           <div className="mt-2 grid grid-cols-[auto_1fr] items-end gap-x-4">
-            <div className="display text-[44px] font-black leading-none text-amber tabular-nums">{m.mean_lead_minutes == null ? '–' : `${m.mean_lead_minutes}'`}</div>
-            <p className="pb-1 text-sm text-fg-2">mean warning before a knock, vs <b className="text-fg">{b.mean_lead_minutes == null ? '–' : `${b.mean_lead_minutes}'`}</b> for the minutes-only rule.</p>
+            {small ? (
+              <>
+                <div className="display text-[44px] font-black leading-none text-amber tabular-nums">{m.covered} of {m.concerns}</div>
+                <p className="pb-1 text-sm text-fg-2">knock{m.concerns === 1 ? '' : 's'} warned in advance, vs <b className="text-fg">{b.covered} of {b.concerns}</b> for the minutes-only rule. A mean warning time appears from {MIN_KNOCKS_FOR_MEAN} knocks.</p>
+              </>
+            ) : (
+              <>
+                <div className="display text-[44px] font-black leading-none text-amber tabular-nums">{m.mean_lead_minutes == null ? '–' : `${m.mean_lead_minutes}'`}</div>
+                <p className="pb-1 text-sm text-fg-2">mean warning before a knock, vs <b className="text-fg">{b.mean_lead_minutes == null ? '–' : `${b.mean_lead_minutes}'`}</b> for the minutes-only rule, over {m.concerns} knocks.</p>
+              </>
+            )}
           </div>
           <table className="mt-2 w-full text-sm">
             <thead><tr className="blk-meta text-[11px]"><th className="text-left font-semibold"></th><th className="text-right font-semibold">model</th><th className="text-right font-semibold">minutes only</th></tr></thead>

@@ -559,6 +559,33 @@ Foundry, Best Azure Cloud Native Integration.
   substitution events, no Coach placeholder after the first proposal, 5 risk
   curves and 4 knock ticks, columns ending on the same line, report open at
   full time, no console errors).
+  **Oct 25, bench: five items from the second review** (plan reviewed by an
+  independent agent, 12 corrections). (1) The branch info line under the pitch
+  no longer leaks final minutes while live; the decision card shows any
+  selected branch (Coach or bench) with the same compare table, never twice.
+  (2) Decision log: `benchBranches` in App, `decisionLog(feed, benchBranches,
+  meta)` in `lib/bench.ts` merges Coach proposals (with or without a branch)
+  and the bench's simulations in match order, deduped by branch id; the card
+  lists the last six with their gated deltas, the report shows a Decisions
+  table over both sources and the JSON gains `decisions`. `nameOf` and
+  `describeBranch` moved to `lib/bench.ts` (components re-export them) so lib
+  never imports components. (3) Focus reaches the risk curve (`rt-focus`,
+  joins the top five when outside it, end labels laid out by `labelLayout`);
+  `lib/calibration.ts` maps a hazard to its calibration bin (last bin
+  inclusive of 1.0, shared with the reliability chart) and at-risk cards and
+  the focus strip show "windows opened at 0.9-1.0 saw a knock 27% of the time
+  (44 of 164, 40 synthetic matches)". (4) Warning time is a count until three
+  knocks, chips read "at risk · high" for high windows, the footer interpolates
+  the thresholds (fading 12% under own pace with 20+ minutes, fresh under 15,
+  window at 0.50 within the top five) and declares that the load model is
+  position-blind, so a goalkeeper can rank (model untouched by decision).
+  (5) Cards glide on reorder (FLIP with the Web Animations API, rects stored
+  every commit, reduced motion respected). Verified with a full-match probe:
+  one focused curve, no spoiler (max minute in the info line = live minute),
+  selected-branch section with one compare table, bench and coach log entries,
+  no double table after "Show the branch", "1 of 1 knock warned" then "1 of 2"
+  then a mean over 3, "at risk · high" seen, 12 card animations observed around
+  the samples, report table with both sources, no console errors.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

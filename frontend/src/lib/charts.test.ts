@@ -18,3 +18,16 @@ describe('niceAxis', () => {
     expect(niceAxis(0.5).top).toBe(0.5)
   })
 })
+
+import { labelLayout } from './charts'
+
+describe('labelLayout', () => {
+  it('keeps order and pushes overlapping labels apart by the gap', () => {
+    const out = labelLayout([{ id: 'a', y: 10 }, { id: 'b', y: 12 }, { id: 'c', y: 40 }], 9)
+    expect(out.map((o) => [o.id, o.y])).toEqual([['a', 10], ['b', 19], ['c', 40]])
+  })
+  it('shifts the stack up when it would run past the bottom', () => {
+    const out = labelLayout([{ id: 'a', y: 95 }, { id: 'b', y: 96 }], 9, 0, 100)
+    expect(out.map((o) => o.y)).toEqual([91, 100])
+  })
+})

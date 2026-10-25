@@ -238,8 +238,12 @@ MCP and REST clients outside any stream see the latest view. Before a demo:
   the substitutes still available and the five-changes-in-three-windows budget;
   the Coach agent proposes a substitution or a tactical change on a high-risk
   window, the engine shows the counterfactual, and the bench can try its own
-  change from the same card. Warning time is the bench's credibility number:
-  mean minutes of notice before a knock, next to a minutes-only rule.
+  change from the same card; every decision taken or tried lands in a decision
+  log and in the full-time report. Each risk score comes with its empirical
+  frequency from the calibration (how often windows like this one saw a
+  knock). Warning time is the bench's credibility number: mean minutes of
+  notice before a knock, next to a minutes-only rule, shown as a count until
+  three knocks exist.
 - **Broadcasters and fans**: the same match personalised by seat and language,
   with every agent decision traceable in the Control room.
 

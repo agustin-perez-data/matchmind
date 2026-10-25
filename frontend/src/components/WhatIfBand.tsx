@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getBranch, simulateBranch } from '../lib/api'
 import type { BranchSummary, MatchEvent, Meta, Snapshot } from '../lib/types'
-import { nameOf, scoreUpTo } from './SidePanels'
+import { describeBranch as describeIntervention } from '../lib/bench'
+import { scoreUpTo } from './SidePanels'
 import { absMinute } from './Strip'
 
 type Props = {
@@ -85,7 +86,9 @@ export function WhatIfBand({ meta, snapshot, actualEvents, branches, selected, o
 
         {timelineOnly && selected && (
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="text-fg-2">{selected.status === 'applied' ? 'Branch applied from' : 'Branch'} {selected.divergence_minute}'{selected.player_off ? ` · ${selected.player_off.name} played ${selected.player_off.minutes_branch}' instead of ${selected.player_off.minutes_actual}'` : ''}</span>
+            <span className="text-fg-2">{upTo != null
+              ? `Branch from ${selected.divergence_minute}' · live ${upTo}', outcomes hidden until full time`
+              : `${selected.status === 'applied' ? 'Branch applied from' : 'Branch'} ${selected.divergence_minute}'${selected.player_off ? ` · ${selected.player_off.name} played ${selected.player_off.minutes_branch}' instead of ${selected.player_off.minutes_actual}'` : ''}`}</span>
             <button type="button" className="btn-quiet px-2 py-0.5 text-xs" onClick={() => onSelect(null)}>Close branch</button>
           </div>
         )}
@@ -139,8 +142,4 @@ function Marks({ y, goals, knocks, x, h, stagger }: {
   )
 }
 
-export function describeIntervention(meta: Meta, b: BranchSummary): string {
-  const iv = b.intervention
-  if (iv.type === 'substitution') return `What if ${nameOf(meta, String(iv.player_off_id))} comes off at ${iv.minute}'`
-  return `What if ${meta.teams[String(iv.team_id)]?.short_name} changes tactics at ${iv.minute}'`
-}
+export { describeBranch as describeIntervention } from '../lib/bench'

@@ -110,11 +110,4 @@ function Row({ label, m, b, f }: { label: string; m: TrackScore; b: TrackScore; 
   )
 }
 
-export function nameOf(meta: Meta, playerId: string | null | undefined): string {
-  if (!playerId) return '?'
-  for (const t of Object.values(meta.teams)) {
-    const p = t.players.find((x) => x.player_id === playerId)
-    if (p) return p.name
-  }
-  return playerId
-}
+export { nameOf } from '../lib/bench'

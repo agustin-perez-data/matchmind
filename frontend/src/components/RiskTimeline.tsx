@@ -1,19 +1,24 @@
 import { useState } from 'react'
-import { topHazards } from '../lib/bench'
+import { currentHazard, topHazards } from '../lib/bench'
+import { labelLayout } from '../lib/charts'
 import type { Meta, RiskMsg, Snapshot } from '../lib/types'
 import { absMinute } from './Strip'
 
 const W = 320, H = 170, P = { l: 26, r: 64, t: 10, b: 18 }, MAX = 95
 
-type Props = { meta: Meta; snapshot: Snapshot | null; risk: RiskMsg | null; team: string }
+type Props = { meta: Meta; snapshot: Snapshot | null; risk: RiskMsg | null; team: string; focus?: string | null }
 
-/** Hazard over the match for the five most loaded players of a side: one point per workload sample, windows open at 0.5. */
-export function RiskTimeline({ meta, snapshot, risk, team }: Props) {
+/** Hazard over the match for the five most loaded players of a side (plus the focused one): one point per workload sample. */
+export function RiskTimeline({ meta, snapshot, risk, team, focus = null }: Props) {
   const [hover, setHover] = useState<number | null>(null)
   const series = risk?.hazard_series ?? {}
   const players = snapshot?.players ?? {}
   const pids = Object.values(players).filter((p) => p.team_id === team && p.on_pitch).map((p) => p.player_id)
-  const top = topHazards(series, pids, 5)
+  let drawn = topHazards(series, pids, 5)
+  // the focused player joins the picture even outside the top five, and is drawn last so he sits on top
+  const focusOk = !!focus && players[focus]?.team_id === team && players[focus]?.on_pitch && currentHazard(series, focus) != null
+  if (focusOk && !drawn.some((d) => d.pid === focus)) drawn = [...drawn.slice(0, 4), { pid: focus!, hazard: currentHazard(series, focus!)! }]
+  if (focusOk) drawn = [...drawn.filter((d) => d.pid !== focus), drawn.find((d) => d.pid === focus)!]
   const ink = team === meta.home_id ? 'var(--home-ink)' : 'var(--away-ink)'
   const x = (m: number) => P.l + (Math.min(MAX, m) / MAX) * (W - P.l - P.r)
   const y = (v: number) => P.t + (1 - v) * (H - P.t - P.b)
@@ -22,11 +27,12 @@ export function RiskTimeline({ meta, snapshot, risk, team }: Props) {
   const now = snapshot ? absMinute(snapshot) : 0
   const at = (pts: [number, number][], m: number) => [...pts].reverse().find((pt) => pt[0] <= m)?.[1]
   const surname = (pid: string) => players[pid]?.name.split(' ').slice(-1)[0] ?? pid
+  const labels = new Map(labelLayout(drawn.map((d) => { const pts = series[d.pid] ?? []; const last = pts[pts.length - 1]; return { pid: d.pid, y: last ? y(last[1]) + 3 : 0 } }), 9, P.t + 6, H - P.b - 2).map((l) => [l.pid, l.y]))
 
   return (
     <section className="blk blk-risk px-4 py-3">
-      <div className="flex items-baseline justify-between"><h2 className="blk-title">Risk over time</h2><span className="blk-meta">{meta.teams[team].short_name} · top 5 now</span></div>
-      {top.length === 0 ? (
+      <div className="flex items-baseline justify-between"><h2 className="blk-title">Risk over time</h2><span className="blk-meta">{meta.teams[team].short_name} · top 5 now{focusOk ? ' + focus' : ''}</span></div>
+      {drawn.length === 0 ? (
         <p className="mt-2 text-sm text-muted">Workload samples arrive every five match minutes; the first curve appears with the first sample.</p>
       ) : (
         <>
@@ -40,13 +46,15 @@ export function RiskTimeline({ meta, snapshot, risk, team }: Props) {
               </g>
             ))}
             {[0, 45, 90].map((m) => <text key={m} x={x(m)} y={H - 5} fontSize={8} textAnchor="middle" fill="var(--color-muted)">{m}'</text>)}
-            {top.map(({ pid }, i) => {
+            {drawn.map(({ pid }, i) => {
               const pts = series[pid] ?? []
               const last = pts[pts.length - 1]
+              const isFocus = focusOk && pid === focus
+              const opacity = focusOk ? (isFocus ? 1 : 0.35) : 1 - i * 0.14
               return (
-                <g key={pid} className="rt-line" opacity={1 - i * 0.14}>
-                  <path d={path(pts)} fill="none" stroke={ink} strokeWidth={2} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-                  {last && <text x={x(last[0]) + 4} y={y(last[1]) + 3} fontSize={8} fontFamily="Barlow Condensed" fontWeight={700} fill={ink}>{surname(pid)}</text>}
+                <g key={pid} className={`rt-line${isFocus ? ' rt-focus' : ''}`} opacity={opacity}>
+                  <path d={path(pts)} fill="none" stroke={ink} strokeWidth={isFocus ? 3 : 2} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                  {last && <text x={x(last[0]) + 4} y={labels.get(pid) ?? y(last[1]) + 3} fontSize={8} fontFamily="Barlow Condensed" fontWeight={isFocus ? 800 : 700} fill={ink}>{surname(pid)}</text>}
                   <title>{players[pid]?.name}: hazard {last?.[1].toFixed(2)}</title>
                 </g>
               )
@@ -62,8 +70,8 @@ export function RiskTimeline({ meta, snapshot, risk, team }: Props) {
           </svg>
           <div className="mt-1 text-xs text-muted">
             {hover != null
-              ? <>{Math.round(hover)}': {top.map(({ pid }) => `${surname(pid)} ${at(series[pid] ?? [], hover)?.toFixed(2) ?? '–'}`).join(' · ')}</>
-              : <>One point per workload sample (every five match minutes). Dashed: window threshold 0.5 and high 0.7. Red ticks: knocks{knocks.length ? ` (${knocks.filter((c) => c.covered).length} of ${knocks.length} inside a window)` : ''}.</>}
+              ? <>{Math.round(hover)}': {drawn.map(({ pid }) => `${surname(pid)} ${at(series[pid] ?? [], hover)?.toFixed(2) ?? '–'}`).join(' · ')}</>
+              : <>One point per workload sample (every five match minutes). Dashed: window threshold 0.5 and high 0.7. Red ticks: knocks{knocks.length ? ` (${knocks.filter((c) => c.covered).length} of ${knocks.length} inside a window)` : ''}.{focusOk ? ' Bold: the focused player.' : ''}</>}
           </div>
         </>
       )}
