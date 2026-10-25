@@ -12,14 +12,15 @@ export type CardInput = {
   minutes: number
   score: Record<string, number>
   stats: FanStats
-  points: { x: number; y: number; type: string }[]
+  points: { x: number; y: number; type: string }[] // team frame: attacking to the right
+  heat?: number[] // 12x8 occupancy grid in team frame, from the positional model
   moments: { clock: string; text: string }[]
   language: 'en' | 'es'
 }
 
 const T = {
-  en: { card: 'MATCH CARD', touches: 'TOUCHES', shots: 'SHOTS', goals: 'GOALS', assists: 'ASSISTS', xg: 'xG', key: 'KEY PASSES', duels: 'DUELS WON', min: 'MIN', moments: 'MOMENTS', league: 'MatchMind Synthetic League · fictional clubs and players' },
-  es: { card: 'FICHA DEL PARTIDO', touches: 'TOQUES', shots: 'TIROS', goals: 'GOLES', assists: 'ASISTENCIAS', xg: 'xG', key: 'PASES CLAVE', duels: 'DUELOS', min: 'MIN', moments: 'MOMENTOS', league: 'Liga sintética MatchMind · clubes y jugadores ficticios' },
+  en: { attacking: 'attacking →', heat: 'heat: positional model', card: 'MATCH CARD', touches: 'TOUCHES', shots: 'SHOTS', goals: 'GOALS', assists: 'ASSISTS', xg: 'xG', key: 'KEY PASSES', duels: 'DUELS WON', min: 'MIN', moments: 'MOMENTS', league: 'MatchMind Synthetic League · fictional clubs and players' },
+  es: { attacking: 'atacando →', heat: 'calor: modelo posicional', card: 'FICHA DEL PARTIDO', touches: 'TOQUES', shots: 'TIROS', goals: 'GOLES', assists: 'ASISTENCIAS', xg: 'xG', key: 'PASES CLAVE', duels: 'DUELOS', min: 'MIN', moments: 'MOMENTOS', league: 'Liga sintética MatchMind · clubes y jugadores ficticios' },
 }
 
 export function drawPlayerCard(c: CardInput): HTMLCanvasElement {
@@ -88,11 +89,24 @@ export function drawPlayerCard(c: CardInput): HTMLCanvasElement {
   ctx.beginPath(); ctx.arc(px + pw / 2, py + ph / 2, 24, 0, Math.PI * 2); ctx.stroke()
   ctx.strokeRect(px, py + ph * 0.21, pw * 0.165, ph * 0.58)
   ctx.strokeRect(px + pw * 0.835, py + ph * 0.21, pw * 0.165, ph * 0.58)
+  if (c.heat && c.heat.length === 96) {
+    const max = Math.max(...c.heat)
+    if (max > 0) c.heat.forEach((v, i) => {
+      if (v <= 0) return
+      const col = i % 12, row = Math.floor(i / 12)
+      ctx.fillStyle = `rgba(255, 209, 102, ${(0.08 + 0.55 * (v / max)).toFixed(3)})`
+      ctx.fillRect(px + (col / 12) * pw, py + (row / 8) * ph, pw / 12 + 0.5, ph / 8 + 0.5)
+    })
+  }
   for (const p of c.points) {
     const x = px + (p.x / 100) * pw, y = py + (p.y / 100) * ph
     ctx.fillStyle = p.type === 'shot' || p.type === 'goal' ? '#ffd166' : 'rgba(255,255,255,0.75)'
     ctx.beginPath(); ctx.arc(x, y, p.type === 'shot' || p.type === 'goal' ? 6 : 3.5, 0, Math.PI * 2); ctx.fill()
   }
+
+  ctx.fillStyle = '#9aa3b8'
+  ctx.font = '600 13px "Barlow", system-ui, sans-serif'
+  ctx.fillText(`${t.attacking}${c.heat ? ` · ${t.heat}` : ''}`, px, py + ph + 18)
 
   // right: moments
   ctx.fillStyle = '#9aa3b8'

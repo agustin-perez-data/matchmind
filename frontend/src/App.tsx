@@ -55,7 +55,7 @@ export default function App() {
   const [seat, setSeat] = useState<Seat | null>(initial.seat)
   const [selectedBranch, setSelectedBranch] = useState<BranchSummary | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const { state, start, stop, send } = useMatchStream()
+  const { state, start, stop, send, frameRef } = useMatchStream()
 
   const sidesOf = useCallback((id: string, rows: MatchRow[] = matches) => {
     const row = rows.find((m) => m.match_id === id)
@@ -184,7 +184,7 @@ export default function App() {
       )}
       {inMatch && seat && state.status === 'connecting' && <p className="display px-6 py-10 text-2xl font-bold uppercase tracking-wider text-muted">Connecting to the studio</p>}
       {inMatch && seat && meta && (
-        <MatchStage seat={seat} meta={meta} state={state} branches={branches} latestCoach={latestCoach} lastGoal={lastGoal}
+        <MatchStage seat={seat} meta={meta} state={state} frameRef={frameRef} speed={speed} branches={branches} latestCoach={latestCoach} lastGoal={lastGoal}
           selectedBranch={selectedBranch} onSelectBranch={setSelectedBranch} favoritePlayerId={favorite} onFavorite={onFavorite} teamId={team} language={language} />
       )}
       {askSide && (() => {

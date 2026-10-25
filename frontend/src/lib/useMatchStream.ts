@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { wsUrl } from './api'
 import { keep, type Touch } from './follow'
-import type { CoachMsg, Credibility, InsightMsg, MatchEvent, Meta, RiskMsg, RiskWindow, Snapshot, StreamStatus, VerdictMsg, ViewerProfile } from './types'
+import type { CoachMsg, Credibility, Frame, InsightMsg, MatchEvent, Meta, RiskMsg, RiskWindow, Snapshot, StreamStatus, VerdictMsg, ViewerProfile } from './types'
 
 export type StreamOptions = {
   matchId: string
@@ -47,6 +47,8 @@ const BALL_TRAIL = 6
 export function useMatchStream() {
   const [state, setState] = useState<StreamState>(EMPTY)
   const ws = useRef<WebSocket | null>(null)
+  // positional frames: up to one per match second, read by the tracking layer on its own animation loop; never React state
+  const frameRef = useRef<Frame | null>(null)
 
   const stop = useCallback(() => {
     ws.current?.close()
@@ -57,6 +59,8 @@ export function useMatchStream() {
   const start = useCallback((opts: StreamOptions) => {
     ws.current?.close()
     setState({ ...EMPTY, status: 'connecting' })
+    frameRef.current = null
+    let frames = 0
     const q = new URLSearchParams({
       speed: String(opts.speed), mode: opts.profile.mode, lang: opts.profile.language,
       agents: opts.agents ? '1' : '0', coach: opts.coach ? '1' : '0',
@@ -70,6 +74,13 @@ export function useMatchStream() {
 
     socket.onmessage = (m) => {
       const x = JSON.parse(m.data as string)
+      if (x.kind === 'frame') {
+        x.at = performance.now()
+        frameRef.current = x as Frame
+        frames += 1
+        if (import.meta.env.DEV) (window as unknown as { __frames?: number }).__frames = frames
+        return
+      }
       setState((s) => {
         switch (x.kind) {
           case 'meta':
@@ -112,5 +123,5 @@ export function useMatchStream() {
 
   useEffect(() => () => { ws.current?.close() }, [])
 
-  return { state, start, stop, send }
+  return { state, start, stop, send, frameRef }
 }

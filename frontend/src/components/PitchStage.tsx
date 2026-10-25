@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useCallback, useState, type RefObject } from 'react'
 import type { Seat } from '../lib/seats'
 import type { BallPoint, FeedItem } from '../lib/useMatchStream'
 import { touchPoints, type Touch } from '../lib/follow'
-import type { MatchEvent, Meta, Snapshot } from '../lib/types'
+import { attacksRight, heatCellRect, heatCells } from '../lib/tracking'
+import type { Frame, MatchEvent, Meta, Snapshot } from '../lib/types'
 import { IconChart, IconMic } from './icons'
+import { TrackingLayer } from './TrackingLayer'
 
 const W = 105, H = 68
 const sx = (x: number) => (x / 100) * W
@@ -13,12 +15,20 @@ type Props = {
   followId?: string | null
   touches?: Touch[]
   ended?: boolean
+  frameRef?: RefObject<Frame | null>
+  speed?: number
   meta: Meta; ball: BallPoint[]; shots: MatchEvent[]; lastEvent: MatchEvent | null; snapshot: Snapshot | null
   latest: FeedItem | null; keyEvent: MatchEvent | null; seat: Seat; size?: 'lg' | 'sm'; agentsOn?: boolean
 }
 
 /** Pitch in studio perspective: shot map, ball with a short trail, possession chip, and the lower third. */
-export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false, followId = null, touches = [], ended = false }: Props) {
+export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false, followId = null, touches = [], ended = false, frameRef, speed = 1 }: Props) {
+  // the positional model: while frames flow the 22 dots and the ball come from them; the event ball stands in otherwise
+  const [tracking, setTracking] = useState(false)
+  const onActive = useCallback((a: boolean) => setTracking(a), [])
+  const [heat, setHeat] = useState(false)
+  const heatGrid = followId ? snapshot?.players[followId]?.heat : undefined
+  const heatOn = heat && !!heatGrid
   // Which half the map shows. Teams swap ends at half time, so "all" mixes both ends; a half reads clean.
   // Until the viewer picks, the map follows the match: the half being played, then everything at full time.
   const [pick, setPick] = useState<1 | 2 | 'all' | null>(null)
@@ -33,6 +43,8 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
   const right = homeRight ? meta.teams[meta.away_id] : meta.teams[meta.home_id]
   const now = ball[ball.length - 1]
   const possession = possessionChip(meta, lastEvent, now, homeRight)
+  const followedTeam = followId ? snapshot?.players[followId]?.team_id ?? null : null
+  const heatRight = followedTeam ? attacksRight(meta, followedTeam, half === 'all' ? (snapshot?.period ?? 1) : half) : true
 
   return (
     <section className="relative">
@@ -45,11 +57,17 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
               {h === 1 ? '1st half' : h === 2 ? '2nd half' : 'All'}
             </button>
           ))}
+          {!!heatGrid && (
+            <button type="button" aria-pressed={heat} onClick={() => setHeat((v) => !v)} title="where your player has been, from the positional model"
+              className={`display border-l border-white/20 px-3 py-1.5 text-sm font-extrabold uppercase tracking-wider transition-[background,color] duration-150 ${heat ? 'bg-amber text-ink' : 'text-fg-2 hover:bg-white/10 hover:text-fg'}`}>
+              Heat
+            </button>
+          )}
         </div>
         {possession
           ? <span className="display text-sm font-extrabold uppercase tracking-wider" style={{ color: possession.color }}>{possession.text}</span>
           : <span>{!snapshot || snapshot.minute === 0 ? 'Waiting for kick off' : ''}</span>}
-        {size === 'lg' && <span>dots are shots sized by expected goals, ringed when they went in{followId ? '; amber: your player' : ''}</span>}
+        {size === 'lg' && <span>{heatOn ? 'amber cells: where your player has been · ' : ''}shots sized by expected goals, ringed when they went in{followId ? '; amber: your player' : ''}{tracking ? '; players: positional model' : ''}</span>}
       </div>
       <div className={`${size === 'lg' ? '-mt-3 sm:-mt-6' : '-mt-1'} px-2 sm:px-6`} style={{ perspective: '1000px' }}>
         <svg viewBox={`0 0 ${W} ${H}`} className={`mx-auto h-auto w-full ${size === 'lg' ? 'max-w-[720px]' : 'max-w-[460px]'}`} role="img"
@@ -63,6 +81,11 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
             <rect x={0} y={13.85} width={16.5} height={40.3} /><rect x={W - 16.5} y={13.85} width={16.5} height={40.3} />
             <rect x={0} y={24.84} width={5.5} height={18.32} /><rect x={W - 5.5} y={24.84} width={5.5} height={18.32} />
           </g>
+          {/* the followed player's heat: team-frame grid placed for the direction their side attacks in the shown half */}
+          {heatOn && heatCells(heatGrid).map((c) => {
+            const r = heatCellRect(c.index, heatRight)
+            return <rect key={c.index} x={sx(r.x)} y={sy(r.y)} width={sx(r.w)} height={sy(r.h)} fill="var(--color-amber)" fillOpacity={0.1 + 0.6 * c.level} />
+          })}
           {/* shot map: every shot so far, sized by xG; goals ringed in amber */}
           {shownShots.map((e, i) => {
             const age = shownShots.length - 1 - i
@@ -92,7 +115,8 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
             <polyline points={ball.map((b) => `${sx(b.x)},${sy(b.y)}`).join(' ')} fill="none" stroke="#fff" strokeWidth={0.5} strokeOpacity={0.55} strokeLinejoin="round" strokeLinecap="round" strokeDasharray="1.2 0.8" />
           )}
           {ball.slice(0, -1).map((b, i) => <circle key={i} cx={sx(b.x)} cy={sy(b.y)} r={0.6} fill="#fff" fillOpacity={0.15 + (i / ball.length) * 0.5} />)}
-          {now && <circle className="move" cx={0} cy={0} r={1.3} fill="#fff" stroke={color(now.team_id)} strokeWidth={0.5} style={{ transform: `translate(${sx(now.x)}px, ${sy(now.y)}px)` }} />}
+          {now && !tracking && <circle className="move" cx={0} cy={0} r={1.3} fill="#fff" stroke={color(now.team_id)} strokeWidth={0.5} style={{ transform: `translate(${sx(now.x)}px, ${sy(now.y)}px)` }} />}
+          {frameRef && <TrackingLayer meta={meta} frameRef={frameRef} speed={speed} followId={followId} size={size} ended={ended} onActive={onActive} />}
           <text x={2} y={H - 2} fontSize={3.2} fontFamily="Barlow Condensed" fontWeight={700} fill={homeRight ? 'var(--home-ink)' : 'var(--away-ink)'}>{left.short_name.toUpperCase()} ▸</text>
           <text x={W - 2} y={H - 2} fontSize={3.2} textAnchor="end" fontFamily="Barlow Condensed" fontWeight={700} fill={homeRight ? 'var(--away-ink)' : 'var(--home-ink)'}>◂ {right.short_name.toUpperCase()}</text>
         </svg>

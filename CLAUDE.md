@@ -19,6 +19,11 @@ current status. Read it at the start of every session and keep its
 2. **No secrets in the repo, ever.** Azure keys/endpoints go in `.env`
    (gitignored). The repo goes PUBLIC at submission time — assume everything
    committed will be read by judges and the internet.
+3. **Positions are a model, not tracking.** The 22-player frames come from
+   `sim/tracking.py`, a positional model built on the event stream. Label them
+   "positional model" in UI, docs and tool descriptions; never "tracking data"
+   without that caveat. Frames are a side channel (`kind: "frame"`), never
+   events: event ids, caches and the risk evaluation must not depend on them.
 3. **Synthetic data only.** Never introduce real Premier League club names,
    player names, logos or data — not in code, docs, UI or the demo video
    (hackathon rules prohibit third-party trademarks).

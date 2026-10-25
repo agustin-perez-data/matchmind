@@ -18,8 +18,8 @@ Monitor** grounded in sports science (ACWR).
 
 | Stage | Component | Status |
 |---|---|---|
-| 1. Ingest | Synthetic match engine + FastAPI/WebSocket live replay (configurable speed) | ✅ |
-| 2. Interpret | Interpreter agent: team stats, xG race, momentum, per-player ACWR workload | ✅ |
+| 1. Ingest | Synthetic match engine + a positional model that places the 22 players every second + FastAPI/WebSocket live replay (configurable speed) | ✅ |
+| 2. Interpret | Interpreter agent: team stats, xG race, momentum, per-player ACWR workload, team shape, heat maps and pressure on the ball | ✅ |
 | 3. Explain | Analyst agent (gpt-4o, Agent Framework): *why* a moment matters, grounded in the Interpreter's numbers, plus a 10-minute forecast that the Judge grades | ✅ |
 | 4. Render | Narrator agent (English analytical, casual, play-by-play, *relator rioplatense* 🇦🇷) + the broadcast UI (React): four seats, shot-map pitch, lower thirds, what-if timelines, stadium sound | ✅ |
 | 5. Personalize | Director agent: decides per viewer (Analyst / Casual / Commentator / Player-Focus, language) which cards to show and how loudly; the Control room shows the same moment as two viewers got it | ✅ |
@@ -63,8 +63,12 @@ The simulator outputs an event stream (`*_events.jsonl`) and match metadata
   response compares both timelines (score, xG, shots, injury concerns).
 - `POST /mcp` — MCP server (streamable HTTP) exposing `list_matches`,
   `get_match_state`, `get_player_workload`, `get_risk_alerts`, `get_xg_race`,
-  `get_risk_windows`, `get_analyst_credibility`, `simulate_intervention` to any
-  MCP client. The same functions are the agents' tools.
+  `get_risk_windows`, `get_analyst_credibility`, `get_team_shape`,
+  `get_player_heatmap`, `simulate_intervention` to any MCP client. The same
+  functions are the agents' tools.
+- `GET /ws/matches/{id}?frames=auto|all|0` — positional frames ride the same
+  socket as a side channel (`kind: "frame"`): every frame up to x60, one in two
+  to x150, one in five to x400, none above; `all` and `0` override.
 
 ## AI that gets graded, not just heard
 
@@ -171,12 +175,37 @@ challenged. Results in `backend/eval/`.
 ## The commentator speaks
 
 On the fan seat every narration line is voiced with **Azure AI Speech**
-neural voices: rioplatense Spanish (`es-AR`) or British English, a touch
-faster and higher on goals. The Foundry resource is a multi-service Azure AI
+HD voices in an excited style: a Mexican Spanish voice reading the rioplatense
+script (there is no rioplatense HD voice yet) or an American English one. The Foundry resource is a multi-service Azure AI
 Services account, so the same key speaks; `GET /tts?text&lang` synthesises a
 line once and keeps the MP3 under `data/cache/tts`, so a replay served from
 the agent cache costs no Speech calls either. The desk's sound switch mutes
 the crowd and the voice together.
+
+## Fidelity, honestly
+
+Every match is synthetic, and the players you see moving are too. The engine
+emits events with coordinates (passes, shots, tackles, interceptions, fouls)
+and no positions in between. A **positional model** (`sim/tracking.py`) then
+places the 22 players once per match second: anchored on a 1-4-4-2, the block
+shifts and compresses with the ball, defenders press the carrier, and every
+placed event becomes an appointment (the passer is at the pass, the receiver at
+its end, the shooter at the shot) so the picture never contradicts the data. It
+is deterministic per seed, runs on its own random stream and never touches the
+engine, so event ids, agent caches and the Risk Monitor evaluation are
+unchanged. From those frames the Interpreter measures **team shape** (block
+height, width, compactness, line heights, phase), per-player **heat maps**
+(12x8 grid in team frame) and **pressure on the ball carrier**; the Analyst
+reads them in its context, MCP clients ask for them, the fan seat draws them.
+
+What this is not: tracking data. A real feed comes from cameras or GPS units
+and the positions drive the events, not the other way round. The honest next
+step would be an emergent simulation, 22 agents with velocity, acceleration
+and decision rules from which passes and shots arise, validated against the
+distributions of real matches (speeds, distances, pass lengths). That is a new
+engine and would invalidate today's evaluation numbers and caches, so it is
+future work, and the UI labels positions as a positional model wherever they
+appear.
 
 ## Built for several viewers at once
 

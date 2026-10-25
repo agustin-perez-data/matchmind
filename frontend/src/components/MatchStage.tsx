@@ -1,6 +1,7 @@
+import type { RefObject } from 'react'
 import type { Seat } from '../lib/seats'
 import type { StreamState } from '../lib/useMatchStream'
-import type { BranchSummary, CoachMsg, MatchEvent, Meta } from '../lib/types'
+import type { BranchSummary, CoachMsg, Frame, MatchEvent, Meta } from '../lib/types'
 import { TopBand } from './TopBand'
 import { Momentum, XgRace } from './Strip'
 import { PitchStage } from './PitchStage'
@@ -13,6 +14,7 @@ import { ForecastLedger } from './ForecastLedger'
 import { TwoViewers } from './TwoViewers'
 import { ReliabilityBlock } from './ReliabilityBlock'
 import { BenchReport } from './BenchReport'
+import { ShapeBlock } from './ShapeBlock'
 
 type Props = {
   favoritePlayerId: string | null
@@ -22,6 +24,8 @@ type Props = {
   seat: Seat
   meta: Meta
   state: StreamState
+  frameRef: RefObject<Frame | null>
+  speed: number
   branches: BranchSummary[]
   latestCoach: CoachMsg | null
   lastGoal: MatchEvent | null
@@ -30,12 +34,12 @@ type Props = {
 }
 
 /** One match, three compositions: what each seat sees. */
-export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite, teamId, language }: Props) {
+export function MatchStage({ seat, meta, state, frameRef, speed, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite, teamId, language }: Props) {
   const keyEvent = state.keyEvents.find((e) => e.type !== 'kickoff') ?? null
   const pitch = (size: 'lg' | 'sm') => (
     <PitchStage meta={meta} ball={state.ball} shots={state.shots} lastEvent={state.lastEvent} snapshot={state.snapshot}
       latest={state.feed[0] ?? null} keyEvent={keyEvent} seat={seat} size={size} agentsOn={state.agentsOn}
-      followId={seat === 'fan' ? favoritePlayerId : null} touches={state.touches} ended={ended} />
+      followId={seat === 'fan' ? favoritePlayerId : null} touches={state.touches} ended={ended} frameRef={frameRef} speed={speed} />
   )
   const rail = <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} />
   const band = <TopBand meta={meta} snapshot={state.snapshot} status={state.status} lastGoal={lastGoal} flash={state.goalFlash} teamId={seat === 'fan' ? teamId : null} />
@@ -95,6 +99,7 @@ export function MatchStage({ seat, meta, state, branches, latestCoach, lastGoal,
             <div className="enter" style={{ ['--i' as string]: 2 }}>{ledger()}</div>
             <div className="enter" style={{ ['--i' as string]: 3 }}><XgRace meta={meta} snapshot={state.snapshot} size="lg" /></div>
             <div className="enter" style={{ ['--i' as string]: 4 }}><StatsBlock meta={meta} snapshot={state.snapshot} /></div>
+            <div className="enter" style={{ ['--i' as string]: 5 }}><ShapeBlock meta={meta} snapshot={state.snapshot} /></div>
           </aside>
         </main>
       </>

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { fanStats, playerEvents, ticker, touchPoints, type Touch } from '../lib/follow'
 import { downloadPlayerCard } from '../lib/playerCard'
+import { attacksRight, heatReading, toAbsoluteX } from '../lib/tracking'
 import type { FeedItem, VerdictItem } from '../lib/useMatchStream'
 import type { InsightMsg, Meta, Snapshot } from '../lib/types'
 import { Crest, onColor } from './Crest'
@@ -41,13 +42,22 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
   const onBall = mine.filter((e) => e.player_id === favoritePlayerId && ['pass', 'shot', 'goal', 'tackle', 'interception'].includes(e.type))
   const recent = onBall.filter((e) => (e.period === 2 ? Math.max(e.minute, 45) : e.minute) >= nowMin - 10).length
   const pace = followed && followed.minutes_played > 0 ? (onBall.length / followed.minutes_played) * 10 : 0
+  // from the positional model: squeezed on the ball right now, and where they have spent the match
+  const pressure = snapshot?.pressure ?? null
+  const squeezed = !!followed && !!pressure && pressure.carrier === favoritePlayerId && pressure.opponents_within_8m >= 2
+  const whereabouts = followed?.heat ? heatReading(followed.heat) : null
   const involvement = !followed || !followed.on_pitch || followed.minutes_played < 10 ? null : recent >= pace * 1.3 ? 'in the game' : recent <= pace * 0.6 ? 'quiet spell' : 'steady'
 
   const download = () => {
     if (!followedMeta || !stats) return
+    // the card's pitch is in team frame (attacking to the right), so touches from both halves line up with the heat
+    const points = ([1, 2] as const).flatMap((period) => {
+      const right = attacksRight(meta, followedMeta.team_id, period)
+      return touchPoints(touches.filter((t) => t.period === period), followedMeta.player_id).map((p) => ({ ...p, x: toAbsoluteX(p.x, right) }))
+    })
     downloadPlayerCard({
       meta, team: meta.teams[followedMeta.team_id], name: followedMeta.name, position: followedMeta.position, shirt: followedMeta.shirt_number,
-      minutes: followed?.minutes_played ?? 0, score: snapshot?.score ?? meta.score, stats, points: touchPoints(touches, followedMeta.player_id),
+      minutes: followed?.minutes_played ?? 0, score: snapshot?.score ?? meta.score, stats, points, heat: followed?.heat,
       moments: [...lines].reverse().filter((l) => l.big || lines.length <= 6).slice(0, 6).map((l) => ({ clock: l.clock, text: l.text })), language,
     })
   }
@@ -108,6 +118,8 @@ export function YourSideBlock({ meta, snapshot, feed, verdicts, touches, languag
               </div>
               <div className="blk-meta mt-1">{followedMeta.position} · {followed ? (followed.on_pitch ? `${followed.minutes_played}' on the pitch` : 'off the pitch') : 'warming up'}{involvement ? <span className={involvement === 'in the game' ? 'text-teal' : involvement === 'quiet spell' ? 'text-muted' : 'text-fg-2'}> · {involvement}: {recent} touch{recent === 1 ? '' : 'es'} in the last 10'</span> : null}</div>
               <div className="mt-0.5 flex items-center gap-1.5 text-xs text-amber"><span aria-hidden className="inline-block h-2 w-2 rounded-full bg-amber" />their touches light up on the pitch</div>
+              {squeezed && <div key={`${pressure?.opponents_within_8m}-${snapshot?.last_event_id}`} className="enter-fade mt-1 text-sm font-semibold text-amber">Under pressure now: {pressure?.opponents_within_8m} opponents within 8 m.</div>}
+              {whereabouts && <div className="mt-1 text-xs text-muted">{whereabouts[0].toUpperCase() + whereabouts.slice(1)} (positional model)</div>}
               {subbedOff && (
                 <p className="mt-2 border-l-2 border-amber pl-2 text-sm text-fg-2">
                   Off at {subbedOff.clock}{subName ? `, ${subName} came on` : ''}. {ended ? 'Their card is ready below.' : 'Stay with their numbers, or'}

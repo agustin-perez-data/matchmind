@@ -91,6 +91,34 @@ export type PlayerView = {
   effort_ratio: number
   effort_ratio_recent: number
   injury_concerns: number
+  heat?: number[] // 12x8 occupancy grid in team frame, from the positional model; present once frames have been applied
+}
+
+/** One second of the positional model: the ball, who carries it and where the 22 are (absolute 0-100). */
+export type Frame = {
+  kind: 'frame'
+  period: number
+  minute: number
+  second: number
+  ball: [number, number]
+  carrier: string | null
+  players: Record<string, [number, number]>
+  at?: number // wall-clock arrival (performance.now), set by the client
+}
+
+export type TeamShape = {
+  block_height_m: number
+  width_m: number
+  compactness_m: number
+  lines: Record<string, number>
+  phase: 'attacking' | 'defending' | 'transition'
+}
+
+export type Pressure = {
+  carrier: string | null
+  team_in_possession: string | null
+  opponents_within_8m: number
+  under_pressure: boolean
 }
 
 export type XgPoint = { period: number; minute: number; clock: string; team_id: string } & Record<string, number | string>
@@ -109,6 +137,10 @@ export type Snapshot = {
   momentum_series: { period: number; minute: number; value: number }[]
   xg_race: XgPoint[]
   players: Record<string, PlayerView>
+  shape?: Record<string, TeamShape> | null // positional model, null until the first frame
+  shape_last_10?: Record<string, { block_height_m: number; delta_vs_match_m: number }> | null
+  press_index?: Record<string, number | null> | null
+  pressure?: Pressure | null
   risk_alerts: { player_id: string; name: string; team_id: string; acwr_live: number; risk_band: string }[]
 }
 

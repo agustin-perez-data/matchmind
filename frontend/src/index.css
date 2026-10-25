@@ -238,6 +238,11 @@ select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-v
   transition: transform var(--dur-slow) var(--ease-out);
 }
 .move { transition: transform 260ms var(--ease-out); }
+/* the positional model: dots glide between frames (duration set inline from the replay speed) */
+.trk-dot { transition: transform 900ms linear; will-change: transform; }
+.trk-ring, .trk-num { opacity: 0; transition: opacity 150ms linear; pointer-events: none; }
+.trk-carrier .trk-ring { opacity: 1; }
+.trk-dot:hover .trk-num { opacity: 1; }
 .stagger > * { transition-delay: calc(var(--i, 0) * 60ms); }
 .flash-h, .flash-a { animation: flash 700ms var(--ease-out) 1; }
 /* a touch by the followed player: one sonar ring, then gone */
@@ -253,7 +258,7 @@ select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-v
     @starting-style { transform: none; clip-path: none; filter: none; opacity: 0; }
   }
   .draw { transition: none; }
-  .grow-x, .move { transition: none; }
+  .grow-x, .move, .trk-dot { transition: none; }
   .flash-h, .flash-a, .ping, .name-flash { animation: none; }
   .ping { opacity: 0; }
   .stagger > * { transition-delay: 0ms; }

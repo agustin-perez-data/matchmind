@@ -419,10 +419,22 @@ Foundry, Best Azure Cloud Native Integration.
   made a x60 replay with frames take 174 s; now 95 s (match has 5,684 s), and
   x1000 takes 5.8 s. Agent caches, event ids and risk messages are unchanged
   (tested). Labelling rule everywhere: "positional model built from the
-  event stream", never "tracking data" without the caveat. NEXT: §5 frontend
-  (`frameRef` + `TrackingLayer` rAF loop, 22 dots, heat toggle, `ShapeBlock`,
-  pressure line in the follow card, end-card heat), §6 README "Fidelity,
-  honestly". Cut line Oct 25 15:00; deploy + video Oct 26.
+  event stream", never "tracking data" without the caveat.
+  **Oct 25, frontend and docs done**: frames bypass React (`frameRef` in
+  `useMatchStream`, `window.__frames` in DEV); `TrackingLayer` renders the 22
+  dots once per roster and a requestAnimationFrame loop writes transforms from
+  the latest frame (glide min(900, 1000/speed) ms; carrier ringed white, the
+  followed player ringed amber with surname, numbers on hover; the layer fades
+  and the event ball returns when frames stop, e.g. above x400). Heat toggle
+  next to the half filter draws the followed player's grid from the snapshot
+  for the direction their side attacks; `ShapeBlock` on the analyst seat
+  (block height, width, compactness, last-10 delta, press index, carrier under
+  pressure); "under pressure now" and a whereabouts line in the follow card;
+  the end card draws the heat under the touches in team frame. Verified in
+  headless Edge at x60 (22 dots, 749 frames by 11:45, carrier ring, heat cells),
+  on the analyst seat, at 390 px and the card at max speed. README has the
+  "Fidelity, honestly" section and CLAUDE.md the labelling rule. Deploy + video
+  Oct 26.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the
