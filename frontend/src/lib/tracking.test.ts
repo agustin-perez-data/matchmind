@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HEAT_COLS, HEAT_ROWS, attacksRight, glideMs, heatCellRect, heatCells, heatReading, rosterKey, toAbsoluteX } from './tracking'
+import { HEAT_COLS, HEAT_ROWS, attacksRight, blockLeader, convexHull, glideMs, heatCellRect, heatCells, heatReading, lerpFrame, rosterKey, toAbsoluteX } from './tracking'
 import type { Frame } from './types'
 
 const frame = (players: string[]): Frame => ({ kind: 'frame', period: 1, minute: 0, second: 0, ball: [50, 50], carrier: null, players: Object.fromEntries(players.map((p) => [p, [50, 50] as [number, number]])) })
@@ -63,5 +63,42 @@ describe('heat', () => {
     expect(heatReading(grid)).toBe('most of the match in the left channel of the final third')
     expect(heatReading(new Array(96).fill(0))).toBeNull()
     expect(heatReading(null)).toBeNull()
+  })
+})
+
+describe('convexHull', () => {
+  it('returns the corners of a square in order and drops interior and collinear points', () => {
+    const hull = convexHull([[0, 0], [10, 0], [10, 10], [0, 10], [5, 5], [5, 0], [2, 8]])
+    expect(hull).toEqual([[0, 0], [10, 0], [10, 10], [0, 10]])
+  })
+  it('passes through fewer than three points', () => {
+    expect(convexHull([[3, 4], [1, 2]])).toEqual([[1, 2], [3, 4]])
+    expect(convexHull([])).toEqual([])
+  })
+})
+
+describe('lerpFrame', () => {
+  const a: Frame = { kind: 'frame', period: 1, minute: 0, second: 0, ball: [0, 0], carrier: null, players: { A: [0, 0], B: [10, 10] } }
+  const b: Frame = { kind: 'frame', period: 1, minute: 0, second: 1, ball: [0, 0], carrier: null, players: { A: [10, 20], C: [50, 50] } }
+  it('interpolates and places newcomers where the second frame puts them', () => {
+    expect(lerpFrame(a, b, 0.5)).toEqual({ A: [5, 10], C: [50, 50] })
+    expect(lerpFrame(null, b, 0.2)).toEqual(b.players)
+    expect(lerpFrame(a, b, 2).A).toEqual([10, 20])
+  })
+})
+
+describe('blockLeader', () => {
+  const meta = { home_id: 'THU', away_id: 'NBF' }
+  const pt = (minute: number, h: number, a: number) => ({ period: 1, minute, THU: h, NBF: a })
+  it('names the side pinned back by 8 m or more over the last five minutes', () => {
+    expect(blockLeader([pt(1, 30, 50), pt(2, 32, 48), pt(3, 31, 47)], meta)).toEqual({ text: 'pinned back', side: 'home' })
+    expect(blockLeader([pt(1, 50, 30)], meta)).toEqual({ text: 'pinned back', side: 'away' })
+    expect(blockLeader([pt(1, 40, 44), pt(2, 41, 43)], meta)).toEqual({ text: 'even', side: null })
+    expect(blockLeader([], meta)).toEqual({ text: 'even', side: null })
+  })
+  it('only looks at the last five points', () => {
+    const early = [pt(1, 10, 60), pt(2, 10, 60), pt(3, 10, 60)]
+    const late = [4, 5, 6, 7, 8].map((m) => pt(m, 45, 45))
+    expect(blockLeader([...early, ...late], meta).side).toBeNull()
   })
 })

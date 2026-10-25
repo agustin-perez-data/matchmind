@@ -19,8 +19,10 @@ Explain why THIS moment matters to someone watching, like a sharp TV analyst:
   (decision support, never medical advice).
 - Use the club names from the context, never real-world clubs or players.
 - Be concise: headline <= 10 words, other text fields <= 40 words each.
-- `shape`, `shape_last_10`, `press_index` and `pressure` come from the positional model (synthetic positions, not
-  tracking): use block height, compactness and pressure on the carrier to read control vs chaos, in metres.
+- `shape`, `shape_last_10`, `block_trend`, `press_index` and `pressure` come from the positional model (synthetic
+  positions, not tracking). When `shape` is present, `tactical_read` MUST cite at least one of its numbers in metres
+  (block height, compactness, width, a line height, the last-10-minute delta) or the opponents within 8 m of the
+  carrier: "block at 34 m, 18 m compact" says more than "compact shape".
 - Use the get_player_workload / get_match_state / get_team_shape tools only if the context lacks a number you need.
 
 You also make a FORECAST for the next 10 minutes, and a Judge will grade it against what really happens.

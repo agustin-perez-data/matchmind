@@ -66,3 +66,48 @@ export function heatReading(grid: number[] | null | undefined): string | null {
   const lane = ['left', 'central', 'right'][lanes.indexOf(Math.max(...lanes))]
   return `most of the match in the ${lane} channel of the ${third}`
 }
+
+/** Convex hull (Andrew's monotone chain), counter-clockwise, no repeated last point. Fewer than 3 points come back as given. */
+export function convexHull(pts: [number, number][]): [number, number][] {
+  const p = [...pts].sort((a, b) => a[0] - b[0] || a[1] - b[1])
+  if (p.length < 3) return p
+  const cross = (o: [number, number], a: [number, number], b: [number, number]) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+  const lower: [number, number][] = []
+  for (const q of p) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop()
+    lower.push(q)
+  }
+  const upper: [number, number][] = []
+  for (let i = p.length - 1; i >= 0; i--) {
+    const q = p[i]
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop()
+    upper.push(q)
+  }
+  lower.pop()
+  upper.pop()
+  return lower.concat(upper)
+}
+
+/** Positions between two frames at t in [0, 1]; a player missing from the first frame sits where the second puts them. */
+export function lerpFrame(a: Frame | null, b: Frame, t: number): Record<string, [number, number]> {
+  const k = Math.max(0, Math.min(1, t))
+  const out: Record<string, [number, number]> = {}
+  for (const [pid, pb] of Object.entries(b.players)) {
+    const pa = a?.players[pid] ?? pb
+    out[pid] = [pa[0] + (pb[0] - pa[0]) * k, pa[1] + (pb[1] - pa[1]) * k]
+  }
+  return out
+}
+
+export type BlockPoint = { period: number; minute: number } & Record<string, number>
+
+/** Who is pinned back: over the last five minutes with frames, a side whose block sits 8 m or more deeper than the other's. */
+export function blockLeader(series: BlockPoint[] | null | undefined, meta: Pick<Meta, 'home_id' | 'away_id'>): { text: string; side: 'home' | 'away' | null } {
+  const tail = (series ?? []).filter((p) => typeof p[meta.home_id] === 'number' && typeof p[meta.away_id] === 'number').slice(-5)
+  if (!tail.length) return { text: 'even', side: null }
+  const mean = (tid: string) => tail.reduce((s, p) => s + p[tid], 0) / tail.length
+  const diff = mean(meta.home_id) - mean(meta.away_id)
+  if (diff <= -8) return { text: 'pinned back', side: 'home' }
+  if (diff >= 8) return { text: 'pinned back', side: 'away' }
+  return { text: 'even', side: null }
+}

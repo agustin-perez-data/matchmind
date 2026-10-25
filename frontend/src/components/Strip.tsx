@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { blockLeader } from '../lib/tracking'
 import type { Meta, Snapshot } from '../lib/types'
 
 export const absMinute = (p: { period: number; minute: number }) => (p.period === 1 ? p.minute : Math.max(p.minute, 45))
@@ -68,6 +69,45 @@ export function XgRace({ meta, snapshot, size = 'sm' }: Props & { size?: 'sm' | 
   return (
     <div className="blk grid grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-2">
       <span className="blk-meta">xG race</span>{chart}{numbers}
+    </div>
+  )
+}
+
+/** Block height per team over the match: who is pinned back, and since when. From the positional model. */
+export function BlockHeightStrip({ meta, snapshot }: Props) {
+  const [hover, setHover] = useState<number | null>(null)
+  const series = snapshot?.block_series ?? []
+  const home = meta.home_id, away = meta.away_id
+  const H = 56, P = { l: 2, r: 2, t: 6, b: 4 }, maxM = 70
+  const x = (m: number) => P.l + (m / 95) * (W - P.l - P.r)
+  const y = (v: number) => P.t + (1 - Math.min(v, maxM) / maxM) * (H - P.t - P.b)
+  const path = (team: string) => {
+    const pts = series.filter((p) => typeof p[team] === 'number')
+    return pts.map((p, i) => `${i ? 'L' : 'M'} ${x(absMinute(p)).toFixed(1)} ${y(p[team]).toFixed(1)}`).join(' ')
+  }
+  const at = hover == null ? null : [...series].reverse().find((p) => absMinute(p) <= hover && typeof p[home] === 'number' && typeof p[away] === 'number')
+  const last = [...series].reverse().find((p) => typeof p[home] === 'number' && typeof p[away] === 'number')
+  const show = at ?? last
+  const lead = blockLeader(series, meta)
+  const leadColor = lead.side === 'home' ? 'var(--home-ink)' : lead.side === 'away' ? 'var(--away-ink)' : 'var(--color-muted)'
+  const leadText = lead.side ? `${meta.teams[lead.side === 'home' ? home : away].short_name} ${lead.text}` : lead.text
+  return (
+    <div className="blk grid grid-cols-[auto_1fr_auto] items-center gap-3 px-3.5 py-2" title="mean distance of the outfield players from their own goal, per minute; positional model built from the event stream">
+      <span className="blk-meta">Block height</span>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-9 w-full" preserveAspectRatio="none" role="img" aria-label="block height per team over the match, metres from own goal"
+        onMouseMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHover(Math.max(0, Math.min(95, ((e.clientX - r.left) / r.width) * 95))) }}
+        onMouseLeave={() => setHover(null)}>
+        <line x1={P.l} x2={W - P.r} y1={y(52.5)} y2={y(52.5)} stroke="var(--color-line)" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />
+        {series.length > 0 && <path d={path(home)} fill="none" stroke="var(--home-ink)" strokeWidth={2.2} vectorEffect="non-scaling-stroke" strokeLinejoin="round" />}
+        {series.length > 0 && <path d={path(away)} fill="none" stroke="var(--away-ink)" strokeWidth={2.2} strokeDasharray="6 4" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />}
+        {hover != null && <line x1={x(hover)} x2={x(hover)} y1={P.t} y2={H - P.b} stroke="#fff" strokeOpacity={0.5} vectorEffect="non-scaling-stroke" />}
+      </svg>
+      <span className="display text-right text-lg font-extrabold leading-none">
+        {show ? (
+          <span className="block text-sm tabular-nums"><span className="mr-1 text-xs font-semibold text-muted">{at ? `${Math.round(hover!)}'` : ''}</span><span style={{ color: 'var(--home-ink)' }}>{Math.round(show[home])}</span><span className="mx-1 text-xs text-muted">v</span><span style={{ color: 'var(--away-ink)' }}>{Math.round(show[away])}</span><span className="ml-0.5 text-xs text-muted">m</span></span>
+        ) : null}
+        <span className="block" style={{ color: leadColor }}>{series.length ? leadText : 'waiting for frames'}</span>
+      </span>
     </div>
   )
 }

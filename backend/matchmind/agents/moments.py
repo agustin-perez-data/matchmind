@@ -168,6 +168,7 @@ def build_moment_context(
         "shape_last_10": snapshot.get("shape_last_10"),
         "press_index": snapshot.get("press_index"),
         "pressure": snapshot.get("pressure"),
+        "block_trend": snapshot.get("block_series", [])[-5:] or None,  # block height per team over the last minutes (metres)
         "top_shooters": snapshot.get("top_shooters", []),
         "game_state": game_state(snapshot),
         "analyst_track_record": track_record,

@@ -140,6 +140,7 @@ export type Snapshot = {
   shape?: Record<string, TeamShape> | null // positional model, null until the first frame
   shape_last_10?: Record<string, { block_height_m: number; delta_vs_match_m: number }> | null
   press_index?: Record<string, number | null> | null
+  block_series?: ({ period: number; minute: number } & Record<string, number>)[] // mean block height per team per minute, metres
   pressure?: Pressure | null
   risk_alerts: { player_id: string; name: string; team_id: string; acwr_live: number; risk_band: string }[]
 }

@@ -29,6 +29,7 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
   const [livePoss, setLivePoss] = useState<BallPoint | null>(null) // from the frames: who carries the ball and where
   const onPossession = useCallback((p: BallPoint) => setLivePoss(p), [])
   const [heat, setHeat] = useState(false)
+  const [shape, setShape] = useState(seat === 'analyst') // the analyst wants the blocks by default; fans see players first
   const heatGrid = followId ? snapshot?.players[followId]?.heat : undefined
   const heatOn = heat && !!heatGrid
   // Which half the map shows. Teams swap ends at half time, so "all" mixes both ends; a half reads clean.
@@ -66,11 +67,17 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
               Heat
             </button>
           )}
+          {frameRef && (
+            <button type="button" aria-pressed={shape} onClick={() => setShape((v) => !v)} title="each side's block, the outfield players' outline, from the positional model"
+              className={`display border-l border-white/20 px-3 py-1.5 text-sm font-extrabold uppercase tracking-wider transition-[background,color] duration-150 ${shape ? 'bg-amber text-ink' : 'text-fg-2 hover:bg-white/10 hover:text-fg'}`}>
+              Shape
+            </button>
+          )}
         </div>
         {possession
           ? <span className="display text-sm font-extrabold uppercase tracking-wider" style={{ color: possession.color }}>{possession.text}</span>
           : <span>{!snapshot || snapshot.minute === 0 ? 'Waiting for kick off' : ''}</span>}
-        {size === 'lg' && <span>{heatOn ? 'amber cells: where your player has been · ' : ''}shots sized by expected goals, ringed when they went in{followId ? '; amber: your player' : ''}{tracking ? '; players: positional model' : ''}</span>}
+        {size === 'lg' && <span>{heatOn ? 'amber cells: where your player has been · ' : ''}shots sized by expected goals, ringed when they went in{followId ? '; amber: your player' : ''}{tracking ? `; players${shape ? ' and shaded blocks' : ''}: positional model` : ''}</span>}
       </div>
       <div className={`${size === 'lg' ? '-mt-3 sm:-mt-6' : '-mt-1'} px-2 sm:px-6`} style={{ perspective: '1000px' }}>
         <svg viewBox={`0 0 ${W} ${H}`} className={`mx-auto h-auto w-full ${size === 'lg' ? 'max-w-[720px]' : 'max-w-[460px]'}`} role="img"
@@ -119,7 +126,7 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
           )}
           {ball.slice(0, -1).map((b, i) => <circle key={i} cx={sx(b.x)} cy={sy(b.y)} r={0.6} fill="#fff" fillOpacity={0.15 + (i / ball.length) * 0.5} />)}
           {now && !tracking && <circle className="move" cx={0} cy={0} r={1.3} fill="#fff" stroke={color(now.team_id)} strokeWidth={0.5} style={{ transform: `translate(${sx(now.x)}px, ${sy(now.y)}px)` }} />}
-          {frameRef && <TrackingLayer meta={meta} frameRef={frameRef} speed={speed} followId={followId} size={size} ended={ended} onActive={onActive} onPossession={onPossession} />}
+          {frameRef && <TrackingLayer meta={meta} frameRef={frameRef} speed={speed} followId={followId} size={size} ended={ended} hull={shape} onActive={onActive} onPossession={onPossession} />}
           <text x={2} y={H - 2} fontSize={3.2} fontFamily="Barlow Condensed" fontWeight={700} fill={homeRight ? 'var(--home-ink)' : 'var(--away-ink)'}>{left.short_name.toUpperCase()} ▸</text>
           <text x={W - 2} y={H - 2} fontSize={3.2} textAnchor="end" fontFamily="Barlow Condensed" fontWeight={700} fill={homeRight ? 'var(--away-ink)' : 'var(--home-ink)'}>◂ {right.short_name.toUpperCase()}</text>
         </svg>

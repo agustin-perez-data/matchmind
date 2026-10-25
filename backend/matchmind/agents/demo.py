@@ -17,7 +17,8 @@ from matchmind.agents.clients import build_pipeline, foundry_configured
 from matchmind.agents.moments import build_moment_context, detect_key_moment
 from matchmind.agents.schemas import ViewerProfile
 from matchmind.interpreter.state import MatchState
-from matchmind.stream.replay import load_events
+from matchmind.sim.tracking import build_tracking
+from matchmind.stream.replay import load_events, merge_timeline
 from matchmind.tools.registry import LiveStateRegistry, MatchTools
 
 
@@ -37,7 +38,12 @@ def collect_moments(
     meta = json.loads((data_dir / f"{match_id}_meta.json").read_text(encoding="utf-8"))
     state = MatchState(meta)
     out = []
-    for e in load_events(data_dir / f"{match_id}_events.jsonl"):
+    events = list(load_events(data_dir / f"{match_id}_events.jsonl"))
+    # the same merged timeline the server streams: frames feed shape, heat and pressure into the context
+    for e in merge_timeline(events, build_tracking(events, meta)):
+        if e.get("kind") == "frame":
+            state.apply_frame(e)
+            continue
         state.apply(e)
         m = detect_key_moment(e, state.snapshot())
         if m is not None and m.importance >= min_importance:

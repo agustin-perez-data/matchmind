@@ -21,7 +21,7 @@ Monitor** grounded in sports science (ACWR).
 | 1. Ingest | Synthetic match engine + a positional model that places the 22 players every second + FastAPI/WebSocket live replay (configurable speed) | ✅ |
 | 2. Interpret | Interpreter agent: team stats, xG race, momentum, per-player ACWR workload, team shape, heat maps and pressure on the ball | ✅ |
 | 3. Explain | Analyst agent (gpt-4o, Agent Framework): *why* a moment matters, grounded in the Interpreter's numbers, plus a 10-minute forecast that the Judge grades | ✅ |
-| 4. Render | Narrator agent (English analytical, casual, play-by-play, *relator rioplatense* 🇦🇷) + the broadcast UI (React): four seats, shot-map pitch, lower thirds, what-if timelines, stadium sound | ✅ |
+| 4. Render | Narrator agent (English analytical, casual, play-by-play, *relator rioplatense* 🇦🇷) + the broadcast UI (React): four seats, a pitch with the 22 players, shaded team blocks and heat maps, block-height and momentum strips, a pass network per team, lower thirds, what-if timelines, stadium sound and voice | ✅ |
 | 5. Personalize | Director agent: decides per viewer (Analyst / Casual / Commentator / Player-Focus, language) which cards to show and how loudly; the Control room shows the same moment as two viewers got it | ✅ |
 
 The Control room's pipeline map draws every component inside the stage it
@@ -195,8 +195,13 @@ is deterministic per seed, runs on its own random stream and never touches the
 engine, so event ids, agent caches and the Risk Monitor evaluation are
 unchanged. From those frames the Interpreter measures **team shape** (block
 height, width, compactness, line heights, phase), per-player **heat maps**
-(12x8 grid in team frame) and **pressure on the ball carrier**; the Analyst
-reads them in its context, MCP clients ask for them, the fan seat draws them.
+(12x8 grid in team frame), **pressure on the ball carrier** and a per-minute
+**block height series**. The Analyst reads them in its context and cites them
+in metres ("block at 37.7 m, compact at 21.1 m"), MCP clients ask for them, the
+fan seat draws the players and the heat, and the analyst seat adds the shaded
+blocks on the pitch, the block-height strip and a pass network per team (the
+network needs no positions: it comes from passer, receiver and the pass
+coordinates in the events).
 
 What this is not: tracking data. A real feed comes from cameras or GPS units
 and the positions drive the events, not the other way round. The honest next

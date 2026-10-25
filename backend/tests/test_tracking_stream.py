@@ -65,6 +65,7 @@ def test_apply_frame_measures_shape_heat_and_pressure_in_team_frame():
     # NBF-02 at absolute (90, 30) is team-frame x 10 -> column 1, y 30 -> row 2 (both halves add up in team frame)
     assert heat[2 * 12 + 1] == 1
     assert snap["shape_last_10"]["THU"]["block_height_m"] == 36.8 and snap["shape_last_10"]["THU"]["delta_vs_match_m"] == 0.0
+    assert snap["block_series"] == [{"period": 1, "minute": 3, "THU": 36.8, "NBF": 22.8}]
 
 
 def test_snapshot_without_frames_has_no_shape_or_heat(meta, events):
@@ -73,6 +74,7 @@ def test_snapshot_without_frames_has_no_shape_or_heat(meta, events):
         state.apply(e)
     snap = state.snapshot()
     assert snap["shape"] is None and snap["pressure"] is None and snap["press_index"] is None
+    assert snap["block_series"] == []
     assert "heat" not in next(iter(snap["players"].values()))
 
 
@@ -90,6 +92,12 @@ def test_frames_through_the_interpreter_give_a_deeper_block_when_defending(event
     assert sum(att) / len(att) > sum(dfn) / len(dfn) + 1  # the block sits higher with the ball than without it
     snap = state.snapshot()
     assert sum(snap["players"]["THU-01"]["heat"]) > 5000  # the keeper plays the whole match
+    # block height per minute, period-aware: first-half stoppage (1, 45+) and the second-half restart (2, 45) both exist
+    series = snap["block_series"]
+    keys = [(p["period"], p["minute"]) for p in series]
+    assert keys == sorted(keys) and len(keys) == len(set(keys)) and len(series) > 85
+    assert (1, 45) in keys and (2, 45) in keys
+    assert all(10 <= p["THU"] <= 80 and 10 <= p["NBF"] <= 80 for p in series)
 
 
 # ---------------------------------------------------------------- websocket

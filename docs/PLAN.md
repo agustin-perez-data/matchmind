@@ -433,8 +433,29 @@ Foundry, Best Azure Cloud Native Integration.
   the end card draws the heat under the touches in team frame. Verified in
   headless Edge at x60 (22 dots, 749 frames by 11:45, carrier ring, heat cells),
   on the analyst seat, at 390 px and the card at max speed. README has the
-  "Fidelity, honestly" section and CLAUDE.md the labelling rule. Deploy + video
-  Oct 26.
+  "Fidelity, honestly" section and CLAUDE.md the labelling rule.
+  **Oct 25, analyst seat reordered + four additions**: the seat was a 470 px
+  right column (~1,300 px) next to a short left column. Now four rows:
+  momentum + block-height strip; pitch + credibility ledger; xG race, stats and
+  team shape as three equal columns; pass network + the moments rail. Scroll
+  height 1,600 px at 1500x1100 (was ~2,000). Additions: (1) `Shape` toggle on
+  the pitch (default on for the analyst) shades each side's block, a convex hull
+  of the outfield players recomputed every animation frame from positions
+  interpolated with the dots' own glide (`convexHull`, `lerpFrame`); (2) the
+  Interpreter keys block height by (period, minute) and emits `block_series`,
+  the `BlockHeightStrip` draws both teams with "pinned back" when one block sits
+  8 m deeper over the last five minutes, and the moment context carries
+  `block_trend`; (3) the demo CLI now applies frames like the server, and the
+  Analyst instruction requires one shape number in metres in `tactical_read`
+  (before: "compact defensive shape"; after: "block at 37.7 m, compact at
+  21.1 m" in 3 of 3 reads on THU-NBF-40). The insight cache was cleared because
+  it is keyed by moment and profile, not by instructions: run `warm_cache.py`
+  before the video. `evaluate_forecasts.py` still runs without frames on
+  purpose so its numbers stay comparable with the baseline; (4) `PassNetwork`
+  per team (tabs) from the event stream: nodes at mean involvement in team
+  frame, undirected links of 2+ completed passes, half filter that follows the
+  match. The flaky mid-stream control test now starts at x300 and asks for
+  maximum speed last. Deploy + video Oct 26.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

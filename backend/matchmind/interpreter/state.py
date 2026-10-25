@@ -123,7 +123,8 @@ class MatchState:
         self._heat: dict[str, list[int]] = {}
         self._pressure: dict | None = None
         self._press_acc: dict[str, list[float]] = {self.home_id: [0.0, 0], self.away_id: [0.0, 0]}
-        self._block_by_minute: dict[str, dict[int, list[float]]] = {self.home_id: {}, self.away_id: {}}
+        # block height per (period, minute): [sum of metres, frames]; period-aware so first-half stoppage never merges with 45'
+        self._block_by_minute: dict[str, dict[tuple[int, int], list[float]]] = {self.home_id: {}, self.away_id: {}}
         self._frames_seen = 0
         self._fan: dict[str, dict] = {}  # per player: what a fan counts (touches, shots, goals, assists, duels won)
         self._minute_marks: dict[int, dict] = {}  # team totals + per-player shots at the start of each minute
@@ -142,6 +143,7 @@ class MatchState:
             return
         self._frames_seen += 1
         minute = int(frame.get("minute", self.minute))
+        period = int(frame.get("period", self.period))
         carrier = frame.get("carrier")
         poss_team = self._players[carrier]["team_id"] if carrier in self._players else None
         by_team: dict[str, list[tuple[str, float, float]]] = {self.home_id: [], self.away_id: []}
@@ -172,9 +174,9 @@ class MatchState:
                 "lines": lines,
                 "phase": "attacking" if poss_team == tid else "defending" if poss_team else "transition",
             }
-            self._block_by_minute[tid].setdefault(minute, [0.0, 0])
-            self._block_by_minute[tid][minute][0] += cx / 100 * 105.0
-            self._block_by_minute[tid][minute][1] += 1
+            self._block_by_minute[tid].setdefault((period, minute), [0.0, 0])
+            self._block_by_minute[tid][(period, minute)][0] += cx / 100 * 105.0
+            self._block_by_minute[tid][(period, minute)][1] += 1
             for pid, x, y in rows:  # heat in team frame, so both halves add up into one picture
                 xt = self._team_frame_x(tid, x)
                 col = min(self.HEAT_COLS - 1, max(0, int(xt / 100 * self.HEAT_COLS)))
@@ -208,12 +210,25 @@ class MatchState:
                 continue
             all_sum = sum(v[0] for v in marks.values())
             all_n = sum(v[1] for v in marks.values())
-            recent = [v for m, v in marks.items() if m >= self.minute - minutes]
+            recent = [v for (_, m), v in marks.items() if m >= self.minute - minutes]
             r_sum = sum(v[0] for v in recent)
             r_n = sum(v[1] for v in recent)
             if all_n and r_n:
                 out[tid] = {"block_height_m": round(r_sum / r_n, 1), "delta_vs_match_m": round(r_sum / r_n - all_sum / all_n, 1)}
         return out or None
+
+    def block_series(self) -> list[dict]:
+        """Mean block height per team for every minute with frames, in clock order: who is pinned back, and since when."""
+        keys = sorted({k for marks in self._block_by_minute.values() for k in marks})
+        out = []
+        for period, minute in keys:
+            point = {"period": period, "minute": minute}
+            for tid, marks in self._block_by_minute.items():
+                acc = marks.get((period, minute))
+                if acc and acc[1]:
+                    point[tid] = round(acc[0] / acc[1], 1)
+            out.append(point)
+        return out
 
     def _mark_minute(self) -> None:
         if self.minute not in self._minute_marks:
@@ -460,5 +475,6 @@ class MatchState:
             "shape": dict(self._shape) if self._frames_seen else None,
             "shape_last_10": self.shape_recent(10),
             "press_index": self.press_index() if self._frames_seen else None,
+            "block_series": self.block_series(),
             "pressure": self._pressure,
         }

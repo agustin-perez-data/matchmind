@@ -3,7 +3,7 @@ import type { Seat } from '../lib/seats'
 import type { StreamState } from '../lib/useMatchStream'
 import type { BranchSummary, CoachMsg, Frame, MatchEvent, Meta } from '../lib/types'
 import { TopBand } from './TopBand'
-import { Momentum, XgRace } from './Strip'
+import { BlockHeightStrip, Momentum, XgRace } from './Strip'
 import { PitchStage } from './PitchStage'
 import { MomentsRail } from './MomentsRail'
 import { CoachBlock, RiskBlock, StatsBlock } from './SidePanels'
@@ -15,6 +15,7 @@ import { TwoViewers } from './TwoViewers'
 import { ReliabilityBlock } from './ReliabilityBlock'
 import { BenchReport } from './BenchReport'
 import { ShapeBlock } from './ShapeBlock'
+import { PassNetwork } from './PassNetwork'
 
 type Props = {
   favoritePlayerId: string | null
@@ -89,18 +90,24 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
     return (
       <>
         {band}
-        <main key="analyst" className="grid gap-3 px-3 pb-6 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_470px]">
-          <div className="stagger flex min-w-0 flex-col gap-3">
-            <div className="enter" style={{ ['--i' as string]: 1 }}><Momentum meta={meta} snapshot={state.snapshot} /></div>
-            <div className="enter" style={{ ['--i' as string]: 2 }}>{pitch('lg')}</div>
-            <div className="enter" style={{ ['--i' as string]: 3 }}>{rail}</div>
+        <main key="analyst" className="stagger grid gap-3 px-3 pb-6 pt-4 sm:px-6">
+          <div className="enter grid gap-3 lg:grid-cols-2" style={{ ['--i' as string]: 1 }}>
+            <Momentum meta={meta} snapshot={state.snapshot} />
+            <BlockHeightStrip meta={meta} snapshot={state.snapshot} />
           </div>
-          <aside className="stagger flex min-w-0 flex-col gap-3">
-            <div className="enter" style={{ ['--i' as string]: 2 }}>{ledger()}</div>
-            <div className="enter" style={{ ['--i' as string]: 3 }}><XgRace meta={meta} snapshot={state.snapshot} size="lg" /></div>
-            <div className="enter" style={{ ['--i' as string]: 4 }}><StatsBlock meta={meta} snapshot={state.snapshot} /></div>
-            <div className="enter" style={{ ['--i' as string]: 5 }}><ShapeBlock meta={meta} snapshot={state.snapshot} /></div>
-          </aside>
+          <div className="enter grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]" style={{ ['--i' as string]: 2 }}>
+            <div className="min-w-0">{pitch('lg')}</div>
+            <div className="min-w-0">{ledger()}</div>
+          </div>
+          <div className="enter grid gap-3 md:grid-cols-2 lg:grid-cols-3" style={{ ['--i' as string]: 3 }}>
+            <XgRace meta={meta} snapshot={state.snapshot} size="lg" />
+            <StatsBlock meta={meta} snapshot={state.snapshot} />
+            <ShapeBlock meta={meta} snapshot={state.snapshot} />
+          </div>
+          <div className="enter grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]" style={{ ['--i' as string]: 4 }}>
+            <PassNetwork meta={meta} touches={state.touches} snapshot={state.snapshot} ended={ended} />
+            <div className="min-w-0">{rail}</div>
+          </div>
         </main>
       </>
     )

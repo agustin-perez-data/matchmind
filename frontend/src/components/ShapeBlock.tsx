@@ -31,7 +31,7 @@ export function ShapeBlock({ meta, snapshot }: { meta: Meta; snapshot: Snapshot 
   const carrierName = pressure?.carrier ? snapshot?.players[pressure.carrier]?.name ?? pressure.carrier : null
   return (
     <section className="blk px-4 py-3">
-      <div className="flex items-baseline justify-between"><h2 className="blk-title">Team shape</h2><span className="blk-meta">{snapshot?.clock}</span></div>
+      <div className="flex items-baseline justify-between" title="Block height is the outfield mean distance from the own goal; compactness the mean distance to the block's centre; the press index counts opponents near the carrier while defending."><h2 className="blk-title">Team shape</h2><span className="blk-meta">{snapshot?.clock}</span></div>
       <div className="display mt-2 grid grid-cols-[1fr_auto_1fr] items-center text-sm font-extrabold uppercase tracking-wider">
         <span style={{ color: 'var(--home-ink)' }}>{home.short_name} {h.phase}</span>
         <span className="blk-meta px-3 text-xs">now</span>
@@ -51,7 +51,7 @@ export function ShapeBlock({ meta, snapshot }: { meta: Meta; snapshot: Snapshot 
           <b>{carrierName}</b> on the ball, {pressure.opponents_within_8m} opponent{pressure.opponents_within_8m === 1 ? '' : 's'} within 8 m{pressure.under_pressure ? ': under pressure' : ''}.
         </p>
       )}
-      <p className="mt-2 text-xs text-muted">Block height is the outfield mean from the own goal; compactness the mean distance to the block's centre; the press index counts opponents near the carrier while defending. Positional model built from the event stream, not tracking data.</p>
+      <p className="mt-2 text-xs text-muted">Metres, from the positional model built on the event stream, not tracking data.</p>
     </section>
   )
 }
