@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
-import { STALE_MS, glideMs, rosterKey } from '../lib/tracking'
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { STALE_MS, attacksRight, glideMs, rosterKey } from '../lib/tracking'
 import type { Frame, Meta } from '../lib/types'
 
 const W = 105, H = 68
@@ -15,6 +15,8 @@ type Props = {
   ended: boolean
   /** Called when frames start or stop flowing; the pitch hides its event-driven ball while the layer is live. */
   onActive?: (active: boolean) => void
+  /** Called when the side on the ball or the third it is in changes (rare), so the possession chip follows the frames. */
+  onPossession?: (p: { team_id: string; x: number; y: number }) => void
 }
 
 /**
@@ -24,7 +26,7 @@ type Props = {
  * latest frame from `frameRef` and writes transforms straight onto the SVG groups. React only re-renders this
  * component when the roster changes (a substitution) or the glide duration changes (speed).
  */
-export function TrackingLayer({ meta, frameRef, speed, followId, size, ended, onActive }: Props) {
+export function TrackingLayer({ meta, frameRef, speed, followId, size, ended, onActive, onPossession }: Props) {
   const [roster, setRoster] = useState<string[]>([])
   const rosterRef = useRef('')
   const els = useRef(new Map<string, SVGGElement>())
@@ -35,6 +37,9 @@ export function TrackingLayer({ meta, frameRef, speed, followId, size, ended, on
   const active = useRef(false)
   const endedRef = useRef(ended)
   endedRef.current = ended
+  const players = useMemo(() => new Map(Object.values(meta.teams).flatMap((t) => t.players.map((p) => [p.player_id, { ...p, team_id: t.team_id }] as const))), [meta])
+  const possTeam = useRef<string | null>(null)
+  const possKey = useRef('')
 
   const place = (pid: string, el: SVGGElement, f: Frame) => {
     const p = f.players[pid]
@@ -63,12 +68,22 @@ export function TrackingLayer({ meta, frameRef, speed, followId, size, ended, on
         for (const [pid, el] of els.current) place(pid, el, f)
         if (ballEl.current) ballEl.current.style.transform = `translate(${sx(f.ball[0])}px, ${sy(f.ball[1])}px)`
         carrier.current = f.carrier
+        const team = f.carrier ? players.get(f.carrier)?.team_id ?? possTeam.current : possTeam.current
+        if (team && onPossession) {
+          possTeam.current = team
+          const xTeam = attacksRight(meta, team, f.period) ? f.ball[0] : 100 - f.ball[0]
+          const key = `${team}:${xTeam < 33 ? 0 : xTeam < 66 ? 1 : 2}`
+          if (key !== possKey.current) {
+            possKey.current = key
+            onPossession({ team_id: team, x: f.ball[0], y: f.ball[1] })
+          }
+        }
       }
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [frameRef, onActive])
+  }, [frameRef, onActive, onPossession, players, meta])
 
   // a dot mounted after a substitution takes its place at once instead of waiting for the next frame
   const mount = useCallback((pid: string) => (el: SVGGElement | null) => {
@@ -78,7 +93,6 @@ export function TrackingLayer({ meta, frameRef, speed, followId, size, ended, on
     } else els.current.delete(pid)
   }, [])
 
-  const players = new Map(Object.values(meta.teams).flatMap((t) => t.players.map((p) => [p.player_id, { ...p, team_id: t.team_id }] as const)))
   const transition = `transform ${glideMs(speed)}ms linear`
   const r = size === 'lg' ? 1.4 : 1.1
 

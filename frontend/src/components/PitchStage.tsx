@@ -26,6 +26,8 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
   // the positional model: while frames flow the 22 dots and the ball come from them; the event ball stands in otherwise
   const [tracking, setTracking] = useState(false)
   const onActive = useCallback((a: boolean) => setTracking(a), [])
+  const [livePoss, setLivePoss] = useState<BallPoint | null>(null) // from the frames: who carries the ball and where
+  const onPossession = useCallback((p: BallPoint) => setLivePoss(p), [])
   const [heat, setHeat] = useState(false)
   const heatGrid = followId ? snapshot?.players[followId]?.heat : undefined
   const heatOn = heat && !!heatGrid
@@ -42,7 +44,8 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
   const left = homeRight ? meta.teams[meta.home_id] : meta.teams[meta.away_id]
   const right = homeRight ? meta.teams[meta.away_id] : meta.teams[meta.home_id]
   const now = ball[ball.length - 1]
-  const possession = possessionChip(meta, lastEvent, now, homeRight)
+  // while frames flow the chip follows the carrier in the frame (the keeper after a save, the interceptor after a pass), not the last event
+  const possession = tracking && livePoss ? possessionChip(meta, null, livePoss, homeRight) : possessionChip(meta, lastEvent, now, homeRight)
   const followedTeam = followId ? snapshot?.players[followId]?.team_id ?? null : null
   const heatRight = followedTeam ? attacksRight(meta, followedTeam, half === 'all' ? (snapshot?.period ?? 1) : half) : true
 
@@ -116,7 +119,7 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
           )}
           {ball.slice(0, -1).map((b, i) => <circle key={i} cx={sx(b.x)} cy={sy(b.y)} r={0.6} fill="#fff" fillOpacity={0.15 + (i / ball.length) * 0.5} />)}
           {now && !tracking && <circle className="move" cx={0} cy={0} r={1.3} fill="#fff" stroke={color(now.team_id)} strokeWidth={0.5} style={{ transform: `translate(${sx(now.x)}px, ${sy(now.y)}px)` }} />}
-          {frameRef && <TrackingLayer meta={meta} frameRef={frameRef} speed={speed} followId={followId} size={size} ended={ended} onActive={onActive} />}
+          {frameRef && <TrackingLayer meta={meta} frameRef={frameRef} speed={speed} followId={followId} size={size} ended={ended} onActive={onActive} onPossession={onPossession} />}
           <text x={2} y={H - 2} fontSize={3.2} fontFamily="Barlow Condensed" fontWeight={700} fill={homeRight ? 'var(--home-ink)' : 'var(--away-ink)'}>{left.short_name.toUpperCase()} ▸</text>
           <text x={W - 2} y={H - 2} fontSize={3.2} textAnchor="end" fontFamily="Barlow Condensed" fontWeight={700} fill={homeRight ? 'var(--away-ink)' : 'var(--home-ink)'}>◂ {right.short_name.toUpperCase()}</text>
         </svg>
