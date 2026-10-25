@@ -470,6 +470,39 @@ Foundry, Best Azure Cloud Native Integration.
   for the ledger's verdicts. Measured with agents on at 1920 px: both columns
   end at the same line, ledger 529 px with 8 graded calls visible. Deploy +
   video Oct 26.
+  **Oct 25, analyst seat backlog (review + full-match simulation, pending)**.
+  Bugs: (B1) React key warning in `LowerThird` (fragments in a list without
+  keys); (B2) on analyst/fan seats the lower third takes `feed[0]`, so when the
+  latest item is a Coach proposal the title reads "Coach: proposes a change"
+  with an empty body for minutes (seen 64'-82'): non-bench seats should use the
+  latest insight; (B3) the half-time headline shows the stoppage clock (46:59)
+  while the match clock already reads 45:19: show "HT"; (B4) the compact pass
+  network follows the current half and is empty for minutes after the restart
+  ("1 of 2 passes, 0 links"): default to the whole match in compact mode; (B5)
+  substitutes overlap the player they replaced in the network (12 over 9): fade
+  off-pitch players or offset; (B6) Team shape at full time still says
+  "attacking/defending" and "X on the ball": show a full-time state; (B7) the
+  block strip says "pinned back" from 2-3 points at 03:21: require 5 points.
+  Interpreter: (A4) both teams read "transition" in 17 of 43 samples because
+  the carrier is unknown between touches: keep the last possession team.
+  Rigour: (A2) credibility shows 100%/0% with 1 call graded: fractions or
+  "small sample" until 3-4 verdicts; (A3) the momentum meter says "balanced"
+  while xG says 0.84 v 0.45: label its window ("last 10 min"); (A5) the block
+  strip label uses a 5-minute mean while the numbers show the last point ("40 v
+  38 m, Northbridge pinned back"; "31 v 50 m, even"): show the same quantity,
+  smooth, or draw the home-minus-away difference as a diverging area.
+  Content: (A1) `tactical_read` is never rendered (the metres the Analyst now
+  cites never reach the screen): a persistent "Analyst's read" card under the
+  pitch with the last read, key stat and live forecast; (A6) xG race: nice
+  ticks (0, 0.5, 1.0) and goal markers; (A7) pass network: legend for node size
+  and link width, an insight line ("most connected pair"), keeper node;
+  (A9) the stretched ledger could list pending calls with their grading minute;
+  (A10) stats as rates (xG per shot, pressures per 100 opponent passes);
+  (A8) a second channel besides colour for the two sides on dots and hulls;
+  (A11) check the lower third's wipe-in does not leave the band empty on each
+  new insight. Simulation facts: 43 samples at x90, no broken text, no
+  horizontal overflow, 22 dots throughout, hulls always >= 3 points, chip =
+  carrier in 100% of samples, one console warning (B1).
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the
