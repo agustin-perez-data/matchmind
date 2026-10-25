@@ -238,7 +238,10 @@ def test_websocket_streams_risk_summaries_and_alerts(client, meta):
     risk = [m for m in msgs if m["kind"] == "risk"]
     assert len(risk) >= 10  # one per 5-minute physical sample batch
     assert risk[-1]["scorecard"]["model"]["concerns"] == risk[-1]["scorecard"]["baseline"]["concerns"] >= 1
-    assert all({"minute", "clock", "active_windows", "hazards_top", "scorecard"} <= set(m) for m in risk)
+    assert all({"minute", "clock", "active_windows", "hazards_top", "scorecard", "hazard_series"} <= set(m) for m in risk)
+    assert len(risk[-1]["hazard_series"]) >= 22 and all(len(pts) >= 1 for pts in risk[-1]["hazard_series"].values())
+    end = msgs[-1]
+    assert end["kind"] == "end" and len(end["hazard_series"]) >= 22
     alerts = [m for m in msgs if m["kind"] == "risk_alert"]
     assert alerts and all({"player_id", "name", "level", "hazard", "open_minute"} <= set(a) for a in alerts)
     assert "fatigue" not in str(msgs)

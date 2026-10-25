@@ -80,6 +80,7 @@ export type PlayerView = {
   name: string
   team_id: string
   position: string
+  shirt_number: number
   on_pitch: boolean
   minutes_played: number
   distance_m: number
@@ -347,6 +348,7 @@ export type RiskMsg = {
   recent_alerts: RiskWindow[]
   concerns: { player_id: string; name: string; minute: number; clock: string; covered: boolean; lead_minutes: number | null; baseline_covered: boolean; detail: string }[]
   scorecard: { model: TrackScore; baseline: TrackScore; horizon_minutes: number; baseline_rule: string }
+  hazard_series?: Record<string, [number, number][]> // [minute, hazard] per player, one point per workload sample
   note: string
 }
 

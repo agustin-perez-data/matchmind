@@ -12,11 +12,12 @@ type Props = {
   selected: BranchSummary | null
   onSelect: (b: BranchSummary | null) => void
   ended: boolean
+  timelineOnly?: boolean // the bench keeps the form in its decision card and mounts this only to draw a selected branch
 }
 
 const W = 1100, PL = 112, PR = 340, MAX = 96, Y1 = 30, Y2 = 78
 
-export function WhatIfBand({ meta, snapshot, actualEvents, branches, selected, onSelect, ended }: Props) {
+export function WhatIfBand({ meta, snapshot, actualEvents, branches, selected, onSelect, ended, timelineOnly = false }: Props) {
   const [branchEvents, setBranchEvents] = useState<MatchEvent[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,6 +48,7 @@ export function WhatIfBand({ meta, snapshot, actualEvents, branches, selected, o
   const knocks = (evs: MatchEvent[] | null) => (evs ?? []).filter((e) => e.type === 'injury_concern' && (upTo == null || absMinute(e) <= upTo)).map((e) => ({ minute: absMinute(e), name: e.player_name ?? '' }))
   const goalsOf = (side: BranchSummary['actual']) => side.goals.filter((g) => upTo == null || absMinute(g) <= upTo)
   const title = selected ? describeIntervention(meta, selected) : 'What if the bench had acted?'
+  if (timelineOnly && !selected) return null
 
   return (
     <section className="relative border-t-[3px] border-teal bg-gradient-to-r from-ink to-[#0f1626]">
@@ -81,7 +83,13 @@ export function WhatIfBand({ meta, snapshot, actualEvents, branches, selected, o
           <p className="max-w-prose text-base text-fg-2">Same seed, same match until the change, then the engine plays it out. Pick a player to take off, or open a Coach proposal, and the second timeline draws next to the real one.</p>
         )}
 
-        <form className="flex flex-wrap items-end gap-2 text-sm" onSubmit={(e) => { e.preventDefault(); void run() }}>
+        {timelineOnly && selected && (
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <span className="text-fg-2">{selected.status === 'applied' ? 'Branch applied from' : 'Branch'} {selected.divergence_minute}'{selected.player_off ? ` · ${selected.player_off.name} played ${selected.player_off.minutes_branch}' instead of ${selected.player_off.minutes_actual}'` : ''}</span>
+            <button type="button" className="btn-quiet px-2 py-0.5 text-xs" onClick={() => onSelect(null)}>Close branch</button>
+          </div>
+        )}
+        {!timelineOnly && <form className="flex flex-wrap items-end gap-2 text-sm" onSubmit={(e) => { e.preventDefault(); void run() }}>
           <label className="flex flex-col gap-0.5 text-[11px] uppercase tracking-wider text-muted">Team
             <select value={form.team_id} onChange={(e) => setForm({ ...form, team_id: e.target.value, player_off_id: '' })}>
               {[h, a].map((t) => <option key={t} value={t}>{meta.teams[t].name}</option>)}
@@ -104,7 +112,7 @@ export function WhatIfBand({ meta, snapshot, actualEvents, branches, selected, o
             </select>
           )}
           {error && <span className="basis-full text-bad">{error}</span>}
-        </form>
+        </form>}
       </div>
     </section>
   )

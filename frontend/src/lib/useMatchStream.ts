@@ -106,8 +106,11 @@ export function useMatchStream() {
             return { ...s, alerts: [x, ...s.alerts].slice(0, 40) }
           case 'verdict':
             return { ...s, verdicts: [{ id: `verdict-${x.event_id}`, at: Date.now(), msg: x }, ...s.verdicts].slice(0, 40), credibility: x.credibility ?? s.credibility }
-          case 'end':
-            return { ...s, status: 'ended', snapshot: x.state, credibility: x.credibility ?? s.credibility }
+          case 'end': {
+            // the last workload batch lands after full time and never gets its own risk message: merge the final summary here
+            const risk = x.risk ? ({ ...(s.risk ?? { kind: 'risk', minute: x.state.minute, clock: x.state.clock, hazards_top: [], recent_alerts: [], concerns: [], note: '' }), ...x.risk, kind: 'risk', clock: x.state.clock, hazard_series: x.hazard_series ?? s.risk?.hazard_series } as RiskMsg) : s.risk
+            return { ...s, status: 'ended', snapshot: x.state, credibility: x.credibility ?? s.credibility, risk }
+          }
           default:
             return s
         }

@@ -17,12 +17,14 @@ type Props = {
   ended?: boolean
   frameRef?: RefObject<Frame | null>
   speed?: number
+  rings?: Record<string, string>
   meta: Meta; ball: BallPoint[]; shots: MatchEvent[]; lastEvent: MatchEvent | null; snapshot: Snapshot | null
   latest: FeedItem | null; keyEvent: MatchEvent | null; seat: Seat; size?: 'lg' | 'sm'; agentsOn?: boolean
 }
 
 /** Pitch in studio perspective: shot map, ball with a short trail, possession chip, and the lower third. */
-export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false, followId = null, touches = [], ended = false, frameRef, speed = 1 }: Props) {
+export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false, followId = null, touches = [], ended = false, frameRef, speed = 1, rings }: Props) {
+  const who = seat === 'fan' ? 'your player' : 'the focused player'
   // the positional model: while frames flow the 22 dots and the ball come from them; the event ball stands in otherwise
   const [tracking, setTracking] = useState(false)
   const onActive = useCallback((a: boolean) => setTracking(a), [])
@@ -62,7 +64,7 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
             </button>
           ))}
           {!!heatGrid && (
-            <button type="button" aria-pressed={heat} onClick={() => setHeat((v) => !v)} title="where your player has been, from the positional model"
+            <button type="button" aria-pressed={heat} onClick={() => setHeat((v) => !v)} title={`where ${who} has been, from the positional model`}
               className={`display border-l border-white/20 px-3 py-1.5 text-sm font-extrabold uppercase tracking-wider transition-[background,color] duration-150 ${heat ? 'bg-amber text-ink' : 'text-fg-2 hover:bg-white/10 hover:text-fg'}`}>
               Heat
             </button>
@@ -77,7 +79,7 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
         {possession
           ? <span className="display text-sm font-extrabold uppercase tracking-wider" style={{ color: possession.color }}>{possession.text}</span>
           : <span>{!snapshot || snapshot.minute === 0 ? 'Waiting for kick off' : ''}</span>}
-        {size === 'lg' && <span>{heatOn ? 'amber cells: where your player has been · ' : ''}shots sized by expected goals, ringed when they went in{followId ? '; amber: your player' : ''}{tracking ? `; players${shape ? ' and shaded blocks' : ''}: positional model (away outlined white${shape ? ', dashed block' : ''})` : ''}</span>}
+        {size === 'lg' && <span>{heatOn ? `amber cells: where ${who} has been · ` : ''}shots sized by expected goals, ringed when they went in{followId ? `; amber: ${who}` : ''}{rings && Object.keys(rings).length ? '; dashed ring: open risk window' : ''}{tracking ? `; players${shape ? ' and shaded blocks' : ''}: positional model (away outlined white${shape ? ', dashed block' : ''})` : ''}</span>}
       </div>
       <div className={`${size === 'lg' ? '-mt-3 sm:-mt-6' : '-mt-1'} px-2 sm:px-6`} style={{ perspective: '1000px' }}>
         <svg viewBox={`0 0 ${W} ${H}`} className={`mx-auto h-auto w-full ${size === 'lg' ? 'max-w-[720px]' : 'max-w-[460px]'}`} role="img"
@@ -126,7 +128,7 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
           )}
           {ball.slice(0, -1).map((b, i) => <circle key={i} cx={sx(b.x)} cy={sy(b.y)} r={0.6} fill="#fff" fillOpacity={0.15 + (i / ball.length) * 0.5} />)}
           {now && !tracking && <circle className="move" cx={0} cy={0} r={1.3} fill="#fff" stroke={color(now.team_id)} strokeWidth={0.5} style={{ transform: `translate(${sx(now.x)}px, ${sy(now.y)}px)` }} />}
-          {frameRef && <TrackingLayer meta={meta} frameRef={frameRef} speed={speed} followId={followId} size={size} ended={ended} hull={shape} onActive={onActive} onPossession={onPossession} />}
+          {frameRef && <TrackingLayer meta={meta} frameRef={frameRef} speed={speed} followId={followId} size={size} ended={ended} hull={shape} rings={rings} onActive={onActive} onPossession={onPossession} />}
           <text x={2} y={H - 2} fontSize={3.2} fontFamily="Barlow Condensed" fontWeight={700} fill={homeRight ? 'var(--home-ink)' : 'var(--away-ink)'}>{left.short_name.toUpperCase()} ▸</text>
           <text x={W - 2} y={H - 2} fontSize={3.2} textAnchor="end" fontFamily="Barlow Condensed" fontWeight={700} fill={homeRight ? 'var(--away-ink)' : 'var(--home-ink)'}>◂ {right.short_name.toUpperCase()}</text>
         </svg>

@@ -529,6 +529,36 @@ Foundry, Best Azure Cloud Native Integration.
   and FT stamps, 11+ network nodes from the first minute, fractions then
   percentages, 3 goal markers for 3 goals, ticks 0/0.5/1/1.5, columns ending on
   the same line at 1920 and 1500 px), fan seat regression clean.
+  **Oct 25, bench seat rebuilt as a readiness board** (skeleton A chosen by
+  Agustín; plan reviewed by an independent agent, 15 corrections folded in).
+  Backend: `RiskMonitor.series` keeps [minute, hazard] per player per workload
+  sample (same-minute points deduped: the batch after full time can land on
+  the last regular minute); `risk` messages and the `end` message carry
+  `hazard_series`; `summary()` unchanged so the MCP tool stays small. The
+  client merges the final summary and series from `end` into `state.risk`
+  (before, the last batch never reached the UI). Frontend: `ReadinessBoard`
+  (XI sorted by hazard with the number, ACWR live vs pre, effort vs own pace,
+  state chip at risk/fading/fresh/steady, open window since; team tabs;
+  substitutes available with like-for-like highlighted; subbed-off list; the
+  5-in-3 budget as information, never a block on counterfactuals since a branch
+  can diverge before the real changes); the pitch at `lg` with the focused
+  player ringed amber and open windows as dashed rings (orange elevated, red
+  high); `DecisionCard` (Coach proposal + branch compare, "try a change" form
+  with player on, minute that follows the match until edited, budget as it
+  stood at that minute, Coach proposals list); `WhatIfBand` in timeline-only
+  mode under the pitch when a branch is selected; `RiskTimeline` (top-5
+  hazard step lines, 0.5/0.7 thresholds, knock ticks); `LeadTimeBlock`
+  (mean warning time vs the minutes-only rule, coverage, precision, top-3;
+  "no knock yet" with open windows before the first knock); `TeamLoadBlock`
+  (block height by half, press index, recent effort, metres per minute,
+  changes used); Bench report collapsed until full time; calibration chart
+  inside a closed details; `CoachBlock` removed (markup lives in
+  `DecisionCard`). Helpers in `lib/bench.ts` with vitest. Verified: backend
+  176 tests, vitest 44, a full-match probe with agents on (11 cards always,
+  7 substitutes then fewer after each change, budget text following the
+  substitution events, no Coach placeholder after the first proposal, 5 risk
+  curves and 4 knock ticks, columns ending on the same line, report open at
+  full time, no console errors).
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

@@ -15,6 +15,8 @@ type Props = {
   ended: boolean
   /** Shade each side's block (convex hull of the outfield players). */
   hull?: boolean
+  /** Extra dashed ring per player, keyed by id (the bench rings players with an open risk window). */
+  rings?: Record<string, string>
   /** Called when frames start or stop flowing; the pitch hides its event-driven ball while the layer is live. */
   onActive?: (active: boolean) => void
   /** Called when the side on the ball or the third it is in changes (rare), so the possession chip follows the frames. */
@@ -30,7 +32,7 @@ type Props = {
  * recomputed every animation frame from positions interpolated with the same linear timing as the dots' CSS
  * transition, so the shaded block moves with its players instead of jumping.
  */
-export function TrackingLayer({ meta, frameRef, speed, followId, size, ended, hull = false, onActive, onPossession }: Props) {
+export function TrackingLayer({ meta, frameRef, speed, followId, size, ended, hull = false, rings, onActive, onPossession }: Props) {
   const [roster, setRoster] = useState<string[]>([])
   const rosterRef = useRef('')
   const els = useRef(new Map<string, SVGGElement>())
@@ -152,6 +154,7 @@ export function TrackingLayer({ meta, frameRef, speed, followId, size, ended, hu
           <g key={pid} ref={mount(pid)} className="trk-dot" style={{ transition }}>
             <circle className="trk-ring" r={r + 1.0} fill="none" stroke="#fff" strokeWidth={0.45} />
             {followed && <circle r={r + 1.2} fill="none" stroke="var(--color-amber)" strokeWidth={0.55} />}
+            {rings?.[pid] && <circle className="trk-risk" r={r + 1.6} fill="none" stroke={rings[pid]} strokeWidth={0.5} strokeDasharray="1.1 0.7" />}
             {/* a second channel besides colour: the home side outlined dark, the away side outlined white; keepers carry a white centre dot */}
             <circle r={r} fill={fill} stroke={home ? '#0b0f1a' : '#fff'} strokeWidth={0.3} />
             {p?.position === 'GK' && <circle className="trk-gk" r={0.45} fill="#fff" />}

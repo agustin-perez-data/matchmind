@@ -38,10 +38,10 @@ export function BenchReport({ meta, snapshot, risk, feed, verdicts, credibility,
   }
   if (!ended) {
     return (
-      <section className="blk blk-coach px-4 py-3">
-        <div className="flex items-baseline justify-between"><h2 className="blk-title">Bench report</h2><span className="blk-meta">at full time</span></div>
+      <details className="blk blk-coach px-4 py-2 text-sm">
+        <summary className="display cursor-pointer text-base font-extrabold uppercase tracking-wider text-fg-2">Bench report <span className="blk-meta ml-2 normal-case">at full time</span></summary>
         <p className="mt-2 text-sm text-muted">Knocks and warnings, the Coach's proposals with their branches, and the Analyst's credibility, in one page and one file when the whistle goes.</p>
-      </section>
+      </details>
     )
   }
   return (

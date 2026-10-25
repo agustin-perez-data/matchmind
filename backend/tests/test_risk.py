@@ -177,3 +177,21 @@ def test_track_windows_keep_hits_for_calibration(meta, events):
     windows = monitor.model_track.windows()
     assert windows and all({"player_id", "open_minute", "hazard", "level", "hit"} <= set(w) for w in windows)
     assert sum(1 for w in windows if w["hit"]) == monitor.model_track.scorecard()["true_alerts"]
+
+
+def test_hazard_series_keeps_one_point_per_sample_in_clock_order(meta, events):
+    monitor = RiskMonitor(meta)
+    state = MatchState(meta)
+    for e in events:
+        state.apply(e)
+        monitor.observe(e, state.snapshot())
+    series = monitor.hazard_series()
+    assert len(series) >= 22  # every player who got a workload sample
+    for pid, pts in series.items():
+        minutes = [m for m, _ in pts]
+        assert minutes == sorted(minutes) and len(set(minutes)) == len(minutes), pid
+        assert all(0.0 <= h <= 1.0 for _, h in pts)
+    hazards = monitor.summary()["hazards"]
+    for pid, h in hazards.items():
+        assert series[pid][-1][1] == h
+    assert "fatigue" not in str(series) and "susceptib" not in str(series)

@@ -1,4 +1,4 @@
-import type { BranchSummary, CoachMsg, Meta, RiskMsg, RiskWindow, Snapshot, TrackScore } from '../lib/types'
+import type { BranchSummary, Meta, RiskMsg, RiskWindow, Snapshot, TrackScore } from '../lib/types'
 import { absMinute } from './Strip'
 
 /** Goals of one timeline up to a match minute (keeps the live viewer spoiler-free). */
@@ -107,40 +107,6 @@ function Row({ label, m, b, f }: { label: string; m: TrackScore; b: TrackScore; 
       <td className="py-1 text-right tabular-nums">{f(m)}</td>
       <td className="py-1 text-right tabular-nums text-muted">{f(b)}</td>
     </tr>
-  )
-}
-
-export function CoachBlock({ meta, coach, onShowBranch, snapshot, ended }: { meta: Meta; coach: CoachMsg | null; onShowBranch: (b: BranchSummary) => void; snapshot: Snapshot | null; ended: boolean }) {
-  const p = coach?.proposal, b = coach?.branch
-  const h = meta.home_id, a = meta.away_id
-  const upTo = ended || !snapshot ? null : absMinute(snapshot)
-  const sa = b ? scoreUpTo(b.actual, h, a, upTo) : null, sb = b ? scoreUpTo(b.branch, h, a, upTo) : null
-  const what = !coach ? null : !p ? 'No decision' : p.action === 'hold' ? `Hold, no change at ${coach.clock}`
-    : p.action === 'substitution' ? `${nameOf(meta, p.player_off_id)} off at ${p.minute}'${p.player_on_id ? `, ${nameOf(meta, p.player_on_id)} on` : ''}`
-      : `Tactics at ${p.minute}': press ${p.press_intensity ?? 'same'}, ${p.style ?? 'same style'}`
-  return (
-    <section className="blk blk-coach px-4 py-3">
-      <div className="flex items-baseline justify-between"><h2 className="blk-title">Coach</h2><span className="blk-meta">{coach ? `proposal at ${coach.clock}` : 'on the bench'}</span></div>
-      {!coach && <p className="mt-2 text-sm text-muted">Wakes up on high-risk windows and knocks, proposes a change and lets the engine replay the match with it.</p>}
-      {coach && (
-        <div key={coach.clock} className="enter">
-          <div className="display mt-1.5 text-2xl font-extrabold leading-tight">{what}</div>
-          {p && <p className="mt-1 text-sm text-fg-2">{p.rationale}</p>}
-          {b && (
-            <>
-              <dl className="mt-2 grid grid-cols-[auto_1fr_1fr] gap-x-4 gap-y-0.5 text-[15px]">
-                <dt></dt><dd className="blk-meta text-[11px]">as played</dd><dd className="blk-meta text-[11px]">with the change</dd>
-                <dt className="text-fg-2">{upTo == null ? 'final score' : `score at ${upTo}'`}</dt><dd className="display text-2xl font-extrabold">{sa![h]} - {sa![a]}</dd><dd className="display text-2xl font-extrabold">{sb![h]} - {sb![a]}</dd>
-                {upTo == null && <><dt className="text-fg-2">knocks</dt><dd className="display text-2xl font-extrabold">{b.actual.injury_concerns_total}</dd><dd className="display text-2xl font-extrabold text-teal">{b.branch.injury_concerns_total}</dd></>}
-              </dl>
-              {upTo != null && <p className="mt-1 text-xs text-muted">Full-time outcomes stay hidden until the final whistle, no spoilers.</p>}
-              <button className="btn btn-teal mt-2 text-sm" onClick={() => onShowBranch(b)}>Show the branch</button>
-            </>
-          )}
-          {coach.errors.length > 0 && <p className="mt-1 text-xs text-bad">{coach.errors.join('; ')}</p>}
-        </div>
-      )}
-    </section>
   )
 }
 

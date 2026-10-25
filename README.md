@@ -21,7 +21,7 @@ Monitor** grounded in sports science (ACWR).
 | 1. Ingest | Synthetic match engine + a positional model that places the 22 players every second + FastAPI/WebSocket live replay (configurable speed) | ✅ |
 | 2. Interpret | Interpreter agent: team stats, xG race, momentum, per-player ACWR workload, team shape, heat maps and pressure on the ball | ✅ |
 | 3. Explain | Analyst agent (gpt-4o, Agent Framework): *why* a moment matters, grounded in the Interpreter's numbers, plus a 10-minute forecast that the Judge grades | ✅ |
-| 4. Render | Narrator agent (English analytical, casual, play-by-play, *relator rioplatense* 🇦🇷) + the broadcast UI (React): four seats, a pitch with the 22 players, shaded team blocks and heat maps, block-height and momentum strips, a pass network per team, lower thirds, what-if timelines, stadium sound and voice | ✅ |
+| 4. Render | Narrator agent (English analytical, casual, play-by-play, *relator rioplatense* 🇦🇷) + the broadcast UI (React): four seats, a pitch with the 22 players, shaded team blocks and heat maps, block-height and momentum strips, a pass network per team, a bench readiness board with risk curves and team load, lower thirds, what-if timelines, stadium sound and voice | ✅ |
 | 5. Personalize | Director agent: decides per viewer (Analyst / Casual / Commentator / Player-Focus, language) which cards to show and how loudly; the Control room shows the same moment as two viewers got it | ✅ |
 
 The Control room's pipeline map draws every component inside the stage it
@@ -233,9 +233,13 @@ MCP and REST clients outside any stream see the latest view. Before a demo:
   already track (GPS distance, sprints, 28-day load, ACWR) into warnings with
   a lead time, and keeps an honest scorecard of how often it was right. Nothing
   in the method depends on the data being synthetic.
-- **The coaching bench**: the Coach agent proposes a substitution or a tactical
-  change on a high-risk window, and the engine shows the counterfactual before
-  the decision is made.
+- **The coaching bench**: a readiness board of the XI (hazard, ACWR live vs
+  pre-match, recent effort against the player's own pace, open risk windows),
+  the substitutes still available and the five-changes-in-three-windows budget;
+  the Coach agent proposes a substitution or a tactical change on a high-risk
+  window, the engine shows the counterfactual, and the bench can try its own
+  change from the same card. Warning time is the bench's credibility number:
+  mean minutes of notice before a knock, next to a minutes-only rule.
 - **Broadcasters and fans**: the same match personalised by seat and language,
   with every agent decision traceable in the Control room.
 

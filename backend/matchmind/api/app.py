@@ -491,6 +491,7 @@ class StreamSession:
             "recent_alerts": summary["recent_alerts"],
             "concerns": summary["concerns"],
             "scorecard": summary["scorecard"],
+            "hazard_series": monitor.hazard_series(),
             "note": summary["note"],
         }
 
@@ -588,6 +589,7 @@ class StreamSession:
                 if lane is not None:
                     await lane.close(AGENT_DRAIN_TIMEOUT_S)
             await self.out.put({"kind": "end", "state": state.snapshot(), "risk": monitor.summary(),
+                                "hazard_series": monitor.hazard_series(),
                                 "credibility": self.ledger.summary() if moments is not None else None})
             await self.out.put(None)
             await sender

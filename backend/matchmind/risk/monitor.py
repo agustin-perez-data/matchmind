@@ -107,6 +107,10 @@ class Track:
         self._alerts.append(window)
         return {k: v for k, v in window.items() if k != "hit"}
 
+    def last_hazard(self, player_id: str) -> float | None:
+        last = self._last.get(player_id)
+        return last[1] if last else None
+
     def _rank(self, player_id: str, minute: int) -> tuple[int | None, int]:
         recent = {pid: h for pid, (m, h) in self._last.items() if minute - m <= self.ranking_window}
         if player_id not in recent:
@@ -177,6 +181,8 @@ class RiskMonitor:
         self.recent_alerts: list[dict] = []
         self.concerns: list[dict] = []
         self.minute = 0
+        # hazard per player over the match, one point per workload sample: what the bench draws as a curve
+        self.series: dict[str, list[list[float]]] = {}
 
     @staticmethod
     def _minute(event: dict) -> int:
@@ -196,6 +202,12 @@ class RiskMonitor:
                                             position=p["position"], clock=event.get("clock"),
                                             minutes_played=p["minutes_played"], acwr_live=p["acwr_live"],
                                             effort_ratio_recent=p.get("effort_ratio_recent"))
+            pts = self.series.setdefault(pid, [])
+            point = [t, self.model_track.last_hazard(pid)]
+            if pts and pts[-1][0] == t:
+                pts[-1] = point  # the batch after full time can land on the same minute as the last regular one
+            else:
+                pts.append(point)
             if alert:
                 self.recent_alerts.append(alert)
                 return [alert]
@@ -209,6 +221,10 @@ class RiskMonitor:
 
     def active_windows(self) -> list[dict]:
         return self.model_track.active(self.minute)
+
+    def hazard_series(self) -> dict[str, list[list[float]]]:
+        """[minute, hazard] pairs per player in sample order. Not part of summary(): the agents' tool output stays small."""
+        return {pid: [list(pt) for pt in pts] for pid, pts in self.series.items()}
 
     def hazards(self) -> dict[str, float]:
         """Latest model hazard per player recently observed on the pitch."""
