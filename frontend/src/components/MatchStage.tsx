@@ -45,8 +45,8 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
   const rail = <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} />
   const band = <TopBand meta={meta} snapshot={state.snapshot} status={state.status} lastGoal={lastGoal} flash={state.goalFlash} teamId={seat === 'fan' ? teamId : null} />
   const ended = state.status === 'ended'
-  const ledger = (compact = false) => (
-    <ForecastLedger meta={meta} snapshot={state.snapshot} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} agentsOn={state.agentsOn} ended={ended} compact={compact} />
+  const ledger = (compact = false, className = '') => (
+    <ForecastLedger meta={meta} snapshot={state.snapshot} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} agentsOn={state.agentsOn} ended={ended} compact={compact} className={className} />
   )
   const whatIf = <WhatIfBand meta={meta} snapshot={state.snapshot} actualEvents={state.keyEvents} branches={branches} selected={selectedBranch} onSelect={onSelectBranch} ended={ended} />
 
@@ -96,9 +96,14 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
             <BlockHeightStrip meta={meta} snapshot={state.snapshot} />
           </div>
           <div className="enter grid gap-3 lg:grid-cols-[minmax(0,1fr)_470px]" style={{ ['--i' as string]: 2 }}>
-            <div className="flex min-w-0 flex-col gap-3">{pitch('lg')}{rail}</div>
             <div className="flex min-w-0 flex-col gap-3">
-              {ledger(true)}
+              {pitch('lg')}
+              <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} defaultOpen />
+            </div>
+            {/* the pitch column sets the row height (h-0 + min-h-full keeps this column out of the measurement);
+                the ledger fills what is left and scrolls inside, the pass network keeps its size at the bottom */}
+            <div className="flex min-w-0 flex-col gap-3 lg:h-0 lg:min-h-full">
+              {ledger(true, 'lg:min-h-[260px] lg:flex-1 lg:overflow-auto scroll-quiet')}
               <PassNetwork meta={meta} touches={state.touches} snapshot={state.snapshot} ended={ended} compact />
             </div>
           </div>

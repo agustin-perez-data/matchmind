@@ -10,6 +10,7 @@ type Props = {
   agentsOn: boolean
   ended: boolean
   compact?: boolean
+  className?: string // layout hook: the analyst seat lets the ledger fill its column and scroll inside
 }
 
 const VERDICT: Record<string, { label: string; color: string }> = {
@@ -20,7 +21,7 @@ const VERDICT: Record<string, { label: string; color: string }> = {
 const pct = (v: number | null | undefined) => (v == null ? '–' : `${Math.round(v * 100)}%`)
 
 /** The Analyst's 10-minute calls and what the Judge made of them: credibility earned, not asserted. */
-export function ForecastLedger({ meta, snapshot, feed, verdicts, credibility, agentsOn, ended, compact = false }: Props) {
+export function ForecastLedger({ meta, snapshot, feed, verdicts, credibility, agentsOn, ended, compact = false, className = '' }: Props) {
   const judgedIds = new Set(verdicts.map((v) => v.msg.event_id))
   const pending = feed
     .filter((f): f is FeedItem & { msg: InsightMsg } => f.msg.kind === 'insight' && !!f.msg.analyst?.forecast && f.msg.moment.kind !== 'full_time' && !judgedIds.has(f.msg.event_id))
@@ -30,7 +31,7 @@ export function ForecastLedger({ meta, snapshot, feed, verdicts, credibility, ag
   const beats = a != null && n != null ? a - n : null
 
   return (
-    <section className="blk px-4 py-3" style={{ borderTopColor: '#ffd166' }}>
+    <section className={`blk px-4 py-3 ${className}`} style={{ borderTopColor: '#ffd166' }}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="blk-title">Analyst credibility</h2>
         <span className="blk-meta">{credibility?.judged ? `${credibility.judged} call${credibility.judged > 1 ? 's' : ''} graded` : agentsOn ? 'graded 10 minutes after each call' : 'agents off'}</span>

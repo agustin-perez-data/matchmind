@@ -1,16 +1,18 @@
+import { useState } from 'react'
 import { sentence } from './PitchStage'
 import type { Seat } from '../lib/seats'
 import type { FeedItem } from '../lib/useMatchStream'
 import type { MatchEvent, Meta } from '../lib/types'
 import { describe } from './PitchStage'
 
-type Props = { meta: Meta; feed: FeedItem[]; keyEvents: MatchEvent[]; agentsOn: boolean; seat: Seat }
+type Props = { meta: Meta; feed: FeedItem[]; keyEvents: MatchEvent[]; agentsOn: boolean; seat: Seat; defaultOpen?: boolean }
 
 /** Earlier moments, compact and seat-aware: what the agents said and the key events, newest first. */
-export function MomentsRail({ meta, feed, keyEvents, agentsOn, seat }: Props) {
+export function MomentsRail({ meta, feed, keyEvents, agentsOn, seat, defaultOpen = false }: Props) {
+  const [open, setOpen] = useState(defaultOpen) // controlled so re-renders on every feed update never flip it back
   const earlier = feed.slice(1).filter((f) => (seat === 'bench' ? true : f.msg.kind === 'insight')).slice(0, 12)
   return (
-    <details className="blk px-4 py-2 text-sm">
+    <details className="blk px-4 py-2 text-sm" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="display cursor-pointer text-base font-extrabold uppercase tracking-wider text-fg-2">
         Earlier moments <span className="blk-meta ml-2 normal-case">{agentsOn ? `${feed.length} agent calls` : 'agents off'} · {keyEvents.length} key events</span>
       </summary>

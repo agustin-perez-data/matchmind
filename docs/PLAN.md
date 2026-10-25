@@ -462,7 +462,13 @@ Foundry, Best Azure Cloud Native Integration.
   the right; the three numeric blocks). Node positions come from the positional
   model's heat centroid per player (team frame) instead of the mean pass
   coordinates, which all drift to the centre circle early in a match; links
-  still come from the passes, and the footer says which is which. Deploy +
+  still come from the passes, and the footer says which is which. Column
+  balance: the pitch column sets the row height (the right column is
+  `lg:h-0 lg:min-h-full`), the compact ledger fills what is left (min 260 px,
+  scrolls inside if needed) and the network keeps its size at the bottom; the
+  moments rail opens by default on the analyst seat so the row is tall enough
+  for the ledger's verdicts. Measured with agents on at 1920 px: both columns
+  end at the same line, ledger 529 px with 8 graded calls visible. Deploy +
   video Oct 26.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
