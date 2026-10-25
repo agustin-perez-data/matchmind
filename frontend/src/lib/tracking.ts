@@ -100,15 +100,29 @@ export function lerpFrame(a: Frame | null, b: Frame, t: number): Record<string, 
 }
 
 export type BlockPoint = { period: number; minute: number } & Record<string, number>
+export type BlockDiff = { period: number; minute: number; diff: number }
 
-/** Who is pinned back: over the last five minutes with frames, a side whose block sits 8 m or more deeper than the other's. */
-export function blockLeader(series: BlockPoint[] | null | undefined, meta: Pick<Meta, 'home_id' | 'away_id'>): { text: string; side: 'home' | 'away' | null } {
-  const tail = (series ?? []).filter((p) => typeof p[meta.home_id] === 'number' && typeof p[meta.away_id] === 'number').slice(-5)
-  if (!tail.length) return { text: 'even', side: null }
-  const mean = (tid: string) => tail.reduce((s, p) => s + p[tid], 0) / tail.length
-  const diff = mean(meta.home_id) - mean(meta.away_id)
-  if (diff <= -8) return { text: 'pinned back', side: 'home' }
-  if (diff >= 8) return { text: 'pinned back', side: 'away' }
+/** Home block minus away block per minute (metres), smoothed with a trailing mean so the strip reads calmly. Causal: no look-ahead. */
+export function blockDiffSeries(series: BlockPoint[] | null | undefined, meta: Pick<Meta, 'home_id' | 'away_id'>, window = 3): BlockDiff[] {
+  const raw = (series ?? [])
+    .filter((p) => typeof p[meta.home_id] === 'number' && typeof p[meta.away_id] === 'number')
+    .map((p) => ({ period: p.period, minute: p.minute, diff: p[meta.home_id] - p[meta.away_id] }))
+  return raw.map((p, i) => {
+    const win = raw.slice(Math.max(0, i - window + 1), i + 1)
+    return { ...p, diff: win.reduce((s, q) => s + q.diff, 0) / win.length }
+  })
+}
+
+export type BlockLeader = { text: 'settling' | 'even' | 'pinned back'; side: 'home' | 'away' | null }
+
+/** Who is pinned back: the last smoothed difference, once at least `minPoints` minutes of frames exist. +8 m means the home
+ *  block sits higher, so the away side is pinned back; -8 m the reverse. */
+export function blockLeader(diff: BlockDiff[] | null | undefined, minPoints = 5): BlockLeader {
+  const d = diff ?? []
+  if (d.length < minPoints) return { text: 'settling', side: null }
+  const last = d[d.length - 1].diff
+  if (last >= 8) return { text: 'pinned back', side: 'away' }
+  if (last <= -8) return { text: 'pinned back', side: 'home' }
   return { text: 'even', side: null }
 }
 

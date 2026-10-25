@@ -217,14 +217,20 @@ class ForecastLedger:
 
     def summary(self) -> dict:
         """Running credibility: the Analyst's mean score next to the naive baseline's, on the same windows."""
+        def graded(key: str, who: str) -> list[float]:
+            return [j[who][key] for j in self.judged if j[who].get(key) is not None]
+
         def mean(key: str, who: str) -> float | None:
-            vals = [j[who][key] for j in self.judged if j[who].get(key) is not None]
+            vals = graded(key, who)
             return round(sum(vals) / len(vals), 3) if vals else None
         comps = ("overall", "dominance", "goal", "watch")
         return {
             "judged": len(self.judged), "pending": len(self.pending), "horizon_min": self.horizon,
             "analyst": {k: mean(k, "scores") for k in comps},
             "naive": {k: mean(k, "naive_scores") for k in comps},
+            # how many verdicts each mean rests on: a dimension is ungraded when a forecast names nobody or xG ties
+            "counts": {"analyst": {k: len(graded(k, "scores")) for k in comps},
+                       "naive": {k: len(graded(k, "naive_scores")) for k in comps}},
         }
 
 

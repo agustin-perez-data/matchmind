@@ -199,9 +199,10 @@ height, width, compactness, line heights, phase), per-player **heat maps**
 **block height series**. The Analyst reads them in its context and cites them
 in metres ("block at 37.7 m, compact at 21.1 m"), MCP clients ask for them, the
 fan seat draws the players and the heat, and the analyst seat adds the shaded
-blocks on the pitch, the block-height strip and a pass network per team (the
-network needs no positions: it comes from passer, receiver and the pass
-coordinates in the events).
+blocks on the pitch, a block-height difference strip, the Analyst's read in
+metres kept on screen, goal markers on the xG race, pressing rates and a pass
+network per team (links come from passer and receiver in the events; nodes
+sit where the positional model has each player on average).
 
 What this is not: tracking data. A real feed comes from cameras or GPS units
 and the positions drive the events, not the other way round. The honest next

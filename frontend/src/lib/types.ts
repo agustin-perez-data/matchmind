@@ -60,6 +60,7 @@ export type MatchEvent = {
 
 export type TeamStats = {
   passes: number
+  passes_completed?: number
   pass_accuracy: number
   possession_pct: number
   shots: number
@@ -121,7 +122,7 @@ export type Pressure = {
   under_pressure: boolean
 }
 
-export type XgPoint = { period: number; minute: number; clock: string; team_id: string } & Record<string, number | string>
+export type XgPoint = { period: number; minute: number; clock: string; team_id: string; goal?: boolean } & Record<string, number | string | boolean | undefined>
 
 export type Snapshot = {
   match_id: string
@@ -170,12 +171,15 @@ export type AnalystInsight = {
 
 export type ForecastScores = { dominance: number | null; goal: number | null; watch: number | null; overall: number | null }
 
+export type ScoreDim = 'overall' | 'dominance' | 'goal' | 'watch'
+
 export type Credibility = {
   judged: number
   pending: number
   horizon_min: number
   analyst: ForecastScores
   naive: ForecastScores
+  counts?: { analyst: Record<ScoreDim, number>; naive: Record<ScoreDim, number> } // verdicts behind each mean (a dimension can be ungraded)
 }
 
 export type VerdictMsg = {

@@ -3,7 +3,7 @@ import type { Seat } from '../lib/seats'
 import type { StreamState } from '../lib/useMatchStream'
 import type { BranchSummary, CoachMsg, Frame, MatchEvent, Meta } from '../lib/types'
 import { TopBand } from './TopBand'
-import { BlockHeightStrip, Momentum, XgRace } from './Strip'
+import { BlockDiffStrip, Momentum, XgRace } from './Strip'
 import { PitchStage } from './PitchStage'
 import { MomentsRail } from './MomentsRail'
 import { CoachBlock, RiskBlock, StatsBlock } from './SidePanels'
@@ -16,6 +16,7 @@ import { ReliabilityBlock } from './ReliabilityBlock'
 import { BenchReport } from './BenchReport'
 import { ShapeBlock } from './ShapeBlock'
 import { PassNetwork } from './PassNetwork'
+import { AnalystRead } from './AnalystRead'
 
 type Props = {
   favoritePlayerId: string | null
@@ -37,16 +38,18 @@ type Props = {
 /** One match, three compositions: what each seat sees. */
 export function MatchStage({ seat, meta, state, frameRef, speed, branches, latestCoach, lastGoal, selectedBranch, onSelectBranch, favoritePlayerId, onFavorite, teamId, language }: Props) {
   const keyEvent = state.keyEvents.find((e) => e.type !== 'kickoff') ?? null
+  // what the lower third shows: the bench follows every agent (its Coach included); the other seats follow the latest insight
+  const latestForSeat = seat === 'bench' ? state.feed[0] ?? null : state.feed.find((f) => f.msg.kind === 'insight') ?? null
   const pitch = (size: 'lg' | 'sm') => (
     <PitchStage meta={meta} ball={state.ball} shots={state.shots} lastEvent={state.lastEvent} snapshot={state.snapshot}
-      latest={state.feed[0] ?? null} keyEvent={keyEvent} seat={seat} size={size} agentsOn={state.agentsOn}
+      latest={latestForSeat} keyEvent={keyEvent} seat={seat} size={size} agentsOn={state.agentsOn}
       followId={seat === 'fan' ? favoritePlayerId : null} touches={state.touches} ended={ended} frameRef={frameRef} speed={speed} />
   )
-  const rail = <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} />
+  const rail = <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} shownId={latestForSeat?.id} />
   const band = <TopBand meta={meta} snapshot={state.snapshot} status={state.status} lastGoal={lastGoal} flash={state.goalFlash} teamId={seat === 'fan' ? teamId : null} />
   const ended = state.status === 'ended'
-  const ledger = (compact = false, className = '') => (
-    <ForecastLedger meta={meta} snapshot={state.snapshot} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} agentsOn={state.agentsOn} ended={ended} compact={compact} className={className} />
+  const ledger = (compact = false, className = '', fill = false) => (
+    <ForecastLedger meta={meta} snapshot={state.snapshot} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} agentsOn={state.agentsOn} ended={ended} compact={compact} className={className} fill={fill} />
   )
   const whatIf = <WhatIfBand meta={meta} snapshot={state.snapshot} actualEvents={state.keyEvents} branches={branches} selected={selectedBranch} onSelect={onSelectBranch} ended={ended} />
 
@@ -93,24 +96,25 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
         <main key="analyst" className="stagger grid gap-3 px-3 pb-6 pt-4 sm:px-6">
           <div className="enter grid gap-3 lg:grid-cols-2" style={{ ['--i' as string]: 1 }}>
             <Momentum meta={meta} snapshot={state.snapshot} />
-            <BlockHeightStrip meta={meta} snapshot={state.snapshot} />
+            <BlockDiffStrip meta={meta} snapshot={state.snapshot} />
           </div>
           <div className="enter grid gap-3 lg:grid-cols-[minmax(0,1fr)_470px]" style={{ ['--i' as string]: 2 }}>
             <div className="flex min-w-0 flex-col gap-3">
               {pitch('lg')}
-              <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} defaultOpen />
+              <AnalystRead meta={meta} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} agentsOn={state.agentsOn} ended={ended} />
+              <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} shownId={latestForSeat?.id} />
             </div>
             {/* the pitch column sets the row height (h-0 + min-h-full keeps this column out of the measurement);
-                the ledger fills what is left and scrolls inside, the pass network keeps its size at the bottom */}
-            <div className="flex min-w-0 flex-col gap-3 lg:h-0 lg:min-h-full">
-              {ledger(true, 'lg:min-h-[260px] lg:flex-1 lg:overflow-auto scroll-quiet')}
+                the full ledger fills what is left and the column scrolls as a whole, the pass network keeps its size at the bottom */}
+            <div className="scroll-quiet flex min-w-0 flex-col gap-3 lg:h-0 lg:min-h-full lg:overflow-auto">
+              {ledger(false, 'lg:min-h-[220px] lg:flex-1 lg:shrink-0 lg:overflow-auto scroll-quiet', true)}
               <PassNetwork meta={meta} touches={state.touches} snapshot={state.snapshot} ended={ended} compact />
             </div>
           </div>
           <div className="enter grid gap-3 md:grid-cols-2 lg:grid-cols-3" style={{ ['--i' as string]: 3 }}>
             <XgRace meta={meta} snapshot={state.snapshot} size="lg" />
             <StatsBlock meta={meta} snapshot={state.snapshot} />
-            <ShapeBlock meta={meta} snapshot={state.snapshot} />
+            <ShapeBlock meta={meta} snapshot={state.snapshot} ended={ended} />
           </div>
         </main>
       </>

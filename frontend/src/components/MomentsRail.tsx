@@ -5,12 +5,13 @@ import type { FeedItem } from '../lib/useMatchStream'
 import type { MatchEvent, Meta } from '../lib/types'
 import { describe } from './PitchStage'
 
-type Props = { meta: Meta; feed: FeedItem[]; keyEvents: MatchEvent[]; agentsOn: boolean; seat: Seat; defaultOpen?: boolean }
+type Props = { meta: Meta; feed: FeedItem[]; keyEvents: MatchEvent[]; agentsOn: boolean; seat: Seat; defaultOpen?: boolean; shownId?: string | null }
 
 /** Earlier moments, compact and seat-aware: what the agents said and the key events, newest first. */
-export function MomentsRail({ meta, feed, keyEvents, agentsOn, seat, defaultOpen = false }: Props) {
+export function MomentsRail({ meta, feed, keyEvents, agentsOn, seat, defaultOpen = false, shownId = null }: Props) {
   const [open, setOpen] = useState(defaultOpen) // controlled so re-renders on every feed update never flip it back
-  const earlier = feed.slice(1).filter((f) => (seat === 'bench' ? true : f.msg.kind === 'insight')).slice(0, 12)
+  // everything except the item the lower third is showing right now (which is not always feed[0]: a Coach call can be newer)
+  const earlier = feed.filter((f) => f.id !== (shownId ?? feed[0]?.id)).filter((f) => (seat === 'bench' ? true : f.msg.kind === 'insight')).slice(0, 12)
   return (
     <details className="blk px-4 py-2 text-sm" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="display cursor-pointer text-base font-extrabold uppercase tracking-wider text-fg-2">

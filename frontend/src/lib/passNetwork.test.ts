@@ -37,7 +37,7 @@ describe('passNetwork', () => {
     expect(passNetwork([pass('THU-01', 'THU-02'), second], 'THU', meta, 2).passes).toBe(1)
   })
 
-  it('ignores the other team and players with no passes, and caps the edges', () => {
+  it('ignores the other team and players without a pass or a model position, and caps the edges', () => {
     const touches: Touch[] = [pass('NBF-01', 'NBF-02', { team_id: 'NBF' })]
     for (let i = 0; i < 40; i++) for (let k = 0; k < 2; k++) touches.push(pass(`THU-${i}`, `THU-${i + 1}`))
     const net = passNetwork(touches, 'THU', meta)
@@ -51,5 +51,13 @@ describe('passNetwork with model positions', () => {
     const net = passNetwork([pass('THU-01', 'THU-02')], 'THU', meta, 'all', { 'THU-01': [70, 30], 'THU-02': null })
     expect(net.nodes.find((x) => x.pid === 'THU-01')).toMatchObject({ x: 70, y: 30, passes: 1 })
     expect(net.nodes.find((x) => x.pid === 'THU-02')).toMatchObject({ x: 40, y: 60 })
+  })
+
+  it('adds a player the model places even before their first pass, and flags players off the pitch', () => {
+    const net = passNetwork([pass('THU-01', 'THU-02')], 'THU', meta, 'all', { 'THU-01': [70, 30], 'THU-09': [8, 50], 'THU-03': null }, { 'THU-01': false })
+    expect(net.nodes.find((x) => x.pid === 'THU-09')).toEqual({ pid: 'THU-09', x: 8, y: 50, passes: 0, onPitch: true })
+    expect(net.nodes.find((x) => x.pid === 'THU-01')?.onPitch).toBe(false)
+    expect(net.nodes.find((x) => x.pid === 'THU-02')?.onPitch).toBe(true)
+    expect(net.nodes.some((x) => x.pid === 'THU-03')).toBe(false)
   })
 })

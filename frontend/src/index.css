@@ -213,7 +213,8 @@ select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-v
 }
 .wipe-in-left {
   transition: clip-path var(--dur-slow) var(--ease-out), opacity var(--dur-slow) var(--ease-out), filter var(--dur-slow) var(--ease-out);
-  @starting-style { clip-path: inset(0 100% 0 0); opacity: 0; filter: blur(3px); }
+  /* readable from the first frame: a new title must never leave the band empty, so it starts half-visible and sharpens */
+  @starting-style { clip-path: inset(0 100% 0 0); opacity: 0.45; filter: blur(2px); }
 }
 .slide-in-left {
   transition: transform var(--dur-slow) var(--ease-out), opacity var(--dur-slow) var(--ease-out);

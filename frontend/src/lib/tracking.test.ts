@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HEAT_COLS, HEAT_ROWS, attacksRight, blockLeader, convexHull, glideMs, heatCellRect, heatCells, heatCentroid, heatReading, lerpFrame, rosterKey, toAbsoluteX } from './tracking'
+import { HEAT_COLS, HEAT_ROWS, attacksRight, blockDiffSeries, blockLeader, convexHull, glideMs, heatCellRect, heatCells, heatCentroid, heatReading, lerpFrame, rosterKey, toAbsoluteX } from './tracking'
 import type { Frame } from './types'
 
 const frame = (players: string[]): Frame => ({ kind: 'frame', period: 1, minute: 0, second: 0, ball: [50, 50], carrier: null, players: Object.fromEntries(players.map((p) => [p, [50, 50] as [number, number]])) })
@@ -87,19 +87,28 @@ describe('lerpFrame', () => {
   })
 })
 
-describe('blockLeader', () => {
+describe('block difference', () => {
   const meta = { home_id: 'THU', away_id: 'NBF' }
   const pt = (minute: number, h: number, a: number) => ({ period: 1, minute, THU: h, NBF: a })
-  it('names the side pinned back by 8 m or more over the last five minutes', () => {
-    expect(blockLeader([pt(1, 30, 50), pt(2, 32, 48), pt(3, 31, 47)], meta)).toEqual({ text: 'pinned back', side: 'home' })
-    expect(blockLeader([pt(1, 50, 30)], meta)).toEqual({ text: 'pinned back', side: 'away' })
-    expect(blockLeader([pt(1, 40, 44), pt(2, 41, 43)], meta)).toEqual({ text: 'even', side: null })
-    expect(blockLeader([], meta)).toEqual({ text: 'even', side: null })
+  it('smooths home minus away with a trailing window and skips minutes missing a side', () => {
+    const d = blockDiffSeries([pt(1, 40, 30), pt(2, 46, 30), { period: 1, minute: 3, THU: 50 }, pt(4, 52, 30)], meta)
+    expect(d.map((p) => p.minute)).toEqual([1, 2, 4])
+    expect(d.map((p) => Math.round(p.diff * 100) / 100)).toEqual([10, 13, 16]) // 10; (10+16)/2; (10+16+22)/3
   })
-  it('only looks at the last five points', () => {
-    const early = [pt(1, 10, 60), pt(2, 10, 60), pt(3, 10, 60)]
-    const late = [4, 5, 6, 7, 8].map((m) => pt(m, 45, 45))
-    expect(blockLeader([...early, ...late], meta).side).toBeNull()
+  it('is settling before five minutes, then names the side pinned back by 8 m or more', () => {
+    const away = [1, 2, 3, 4, 5].map((m) => pt(m, 50, 32)) // home 18 m higher: away pinned back
+    expect(blockLeader(blockDiffSeries(away.slice(0, 4), meta))).toEqual({ text: 'settling', side: null })
+    expect(blockLeader(blockDiffSeries(away, meta))).toEqual({ text: 'pinned back', side: 'away' })
+    expect(blockLeader(blockDiffSeries([1, 2, 3, 4, 5].map((m) => pt(m, 30, 45)), meta))).toEqual({ text: 'pinned back', side: 'home' })
+    expect(blockLeader(blockDiffSeries([1, 2, 3, 4, 5].map((m) => pt(m, 40, 44)), meta))).toEqual({ text: 'even', side: null })
+    expect(blockLeader([])).toEqual({ text: 'settling', side: null })
+  })
+  it('reads the smoothed last value, so one outlier minute does not flip it', () => {
+    const steady = [1, 2, 3, 4, 5, 6].map((m) => pt(m, 40, 41))
+    const spike = [...steady, pt(7, 70, 30)] // raw +40, smoothed (−1 −1 +40)/3 ≈ 12.7 → still pinned back; two steady minutes later it is even again
+    expect(blockLeader(blockDiffSeries(spike, meta)).side).toBe('away')
+    expect(blockLeader(blockDiffSeries([...spike, pt(8, 40, 41), pt(9, 40, 41)], meta)).side).toBe('away')
+    expect(blockLeader(blockDiffSeries([...spike, pt(8, 40, 41), pt(9, 40, 41), pt(10, 40, 41)], meta)).side).toBeNull()
   })
 })
 

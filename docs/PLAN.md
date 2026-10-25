@@ -503,6 +503,32 @@ Foundry, Best Azure Cloud Native Integration.
   new insight. Simulation facts: 43 samples at x90, no broken text, no
   horizontal overflow, 22 dots throughout, hulls always >= 3 points, chip =
   carrier in 100% of samples, one console warning (B1).
+  **Oct 25, the 18 items shipped** (plan reviewed by an independent agent first,
+  14 corrections folded in). Interpreter: `phase` follows the side that last had
+  the ball (`_last_poss_team`), so a loose ball no longer reads "transition" for
+  both sides; `pressure` still needs a real carrier. `xg_race` points carry
+  `goal`; `ForecastLedger.summary()` adds per-side `counts` per dimension.
+  Frontend: lower third keyed rows, per-seat source (bench follows every agent,
+  the others the latest insight; the rail skips the item shown), HT/FT stamps;
+  compact pass network always whole match, off-pitch players faded, keeper
+  from the first frames, legend + "Most connected"; Team shape full-time
+  state; `BlockDiffStrip` (home minus away, 3-minute trailing mean, "settling"
+  under five minutes, 8 m rule) replaces the two raw lines; "Analyst's read"
+  card under the pitch shows `tactical_read`, key stat and the live call (the
+  analyst lower third keeps headline + why only); credibility shows fractions
+  until 3 graded calls and the big number waits for 3; momentum labelled
+  "last ~5'" with the decay in its tooltip; xG race on a nice axis with goal
+  markers; stats add xG per shot and pressures per 100 opponent passes; away
+  side outlined white with a dashed block, keepers a white centre dot; the
+  lower-third bar starts half-visible (it was invisible for 50-90 ms per new
+  title). Layout: the full ledger fills the right column (which scrolls as a
+  whole; min 220 px) above the fixed network; the rail is closed again by
+  default since the read card now fills the pitch column. Verified: backend
+  175 tests, vitest 37, two full-match probes with agents on (no console
+  errors, 0 double-transition samples, no Coach titles on the analyst seat, HT
+  and FT stamps, 11+ network nodes from the first minute, fractions then
+  percentages, 3 goal markers for 3 goals, ticks 0/0.5/1/1.5, columns ending on
+  the same line at 1920 and 1500 px), fan seat regression clean.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the

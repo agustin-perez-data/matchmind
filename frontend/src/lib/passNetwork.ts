@@ -4,7 +4,7 @@ import type { Touch } from './follow'
 import { attacksRight, toAbsoluteX } from './tracking'
 import type { Meta } from './types'
 
-export type NetNode = { pid: string; x: number; y: number; passes: number } // team frame, attacking right; passes = involvements
+export type NetNode = { pid: string; x: number; y: number; passes: number; onPitch: boolean } // team frame, attacking right; passes = involvements
 export type NetEdge = { from: string; to: string; count: number } // undirected: from < to
 export type PassNet = { nodes: NetNode[]; edges: NetEdge[]; passes: number; completed: number }
 
@@ -16,7 +16,7 @@ export const MAX_EDGES = 25
  * the positional model's heat centroid spreads players by role, where pass means all drift to the centre circle.
  */
 export function passNetwork(touches: Touch[], teamId: string, meta: Pick<Meta, 'home_id'>, half: 1 | 2 | 'all' = 'all',
-                            positions?: Record<string, [number, number] | null | undefined>): PassNet {
+                            positions?: Record<string, [number, number] | null | undefined>, onPitch?: Record<string, boolean>): PassNet {
   const acc = new Map<string, { sx: number; sy: number; n: number }>()
   const pairs = new Map<string, number>()
   let passes = 0, completed = 0
@@ -39,10 +39,15 @@ export function passNetwork(touches: Touch[], teamId: string, meta: Pick<Meta, '
       pairs.set(key, (pairs.get(key) ?? 0) + 1)
     }
   }
-  const nodes = [...acc.entries()].map(([pid, a]) => {
+  const nodes: NetNode[] = [...acc.entries()].map(([pid, a]) => {
     const at = positions?.[pid]
-    return { pid, x: at ? at[0] : a.sx / a.n, y: at ? at[1] : a.sy / a.n, passes: a.n }
-  }).sort((a, b) => a.pid.localeCompare(b.pid))
+    return { pid, x: at ? at[0] : a.sx / a.n, y: at ? at[1] : a.sy / a.n, passes: a.n, onPitch: onPitch?.[pid] ?? true }
+  })
+  // players the positional model already places but who have not passed yet (the keeper early on) appear with no links
+  for (const [pid, at] of Object.entries(positions ?? {})) {
+    if (at && !acc.has(pid)) nodes.push({ pid, x: at[0], y: at[1], passes: 0, onPitch: onPitch?.[pid] ?? true })
+  }
+  nodes.sort((a, b) => a.pid.localeCompare(b.pid))
   const edges = [...pairs.entries()]
     .filter(([, count]) => count >= MIN_EDGE)
     .map(([key, count]) => { const [from, to] = key.split('|'); return { from, to, count } })

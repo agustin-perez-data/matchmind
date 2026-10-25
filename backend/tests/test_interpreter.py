@@ -54,6 +54,12 @@ def test_shots_on_target_counts_goals_and_saves(final_state, events):
 
 # ---------------------------------------------------------------- xG race
 
+def test_xg_race_marks_the_goals(final_state):
+    snap = final_state.snapshot()
+    assert sum(1 for p in snap["xg_race"] if p["goal"]) == sum(snap["score"].values())
+    assert all(isinstance(p["goal"], bool) for p in snap["xg_race"])
+
+
 def test_xg_race_is_cumulative_and_ends_at_totals(final_state, meta):
     race = final_state.snapshot()["xg_race"]
     home, away = meta["teams"].keys()

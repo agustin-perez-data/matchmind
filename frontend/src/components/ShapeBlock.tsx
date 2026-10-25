@@ -1,7 +1,7 @@
 import type { Meta, Snapshot } from '../lib/types'
 
 /** Team shape from the positional model: how high, how wide and how tight each block is, and who presses. */
-export function ShapeBlock({ meta, snapshot }: { meta: Meta; snapshot: Snapshot | null }) {
+export function ShapeBlock({ meta, snapshot, ended = false }: { meta: Meta; snapshot: Snapshot | null; ended?: boolean }) {
   const sh = snapshot?.shape
   const h = sh?.[meta.home_id], a = sh?.[meta.away_id]
   if (!h || !a) {
@@ -32,11 +32,15 @@ export function ShapeBlock({ meta, snapshot }: { meta: Meta; snapshot: Snapshot 
   return (
     <section className="blk px-4 py-3">
       <div className="flex items-baseline justify-between" title="Block height is the outfield mean distance from the own goal; compactness the mean distance to the block's centre; the press index counts opponents near the carrier while defending."><h2 className="blk-title">Team shape</h2><span className="blk-meta">{snapshot?.clock}</span></div>
-      <div className="display mt-2 grid grid-cols-[1fr_auto_1fr] items-center text-sm font-extrabold uppercase tracking-wider">
-        <span style={{ color: 'var(--home-ink)' }}>{home.short_name} {h.phase}</span>
-        <span className="blk-meta px-3 text-xs">now</span>
-        <span className="text-right" style={{ color: 'var(--away-ink)' }}>{away.short_name} {a.phase}</span>
-      </div>
+      {ended ? (
+        <div className="display mt-2 text-center text-sm font-extrabold uppercase tracking-wider text-fg-2">full time · final shape</div>
+      ) : (
+        <div className="display mt-2 grid grid-cols-[1fr_auto_1fr] items-center text-sm font-extrabold uppercase tracking-wider">
+          <span style={{ color: 'var(--home-ink)' }}>{home.short_name} {h.phase}</span>
+          <span className="blk-meta px-3 text-xs">now</span>
+          <span className="text-right" style={{ color: 'var(--away-ink)' }}>{away.short_name} {a.phase}</span>
+        </div>
+      )}
       <dl className="mt-1">
         {rows.map(([label, hv, av]) => (
           <div key={label} className="display grid grid-cols-[1fr_auto_1fr] items-center border-b border-line py-0.5 text-[26px] font-extrabold leading-tight last:border-0">
@@ -46,7 +50,7 @@ export function ShapeBlock({ meta, snapshot }: { meta: Meta; snapshot: Snapshot 
           </div>
         ))}
       </dl>
-      {carrierName && pressure && (
+      {!ended && carrierName && pressure && (
         <p className={`mt-2 text-sm ${pressure.under_pressure ? 'text-amber' : 'text-fg-2'}`}>
           <b>{carrierName}</b> on the ball, {pressure.opponents_within_8m} opponent{pressure.opponents_within_8m === 1 ? '' : 's'} within 8 m{pressure.under_pressure ? ': under pressure' : ''}.
         </p>

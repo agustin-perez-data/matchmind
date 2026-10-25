@@ -126,6 +126,7 @@ class MatchState:
         # block height per (period, minute): [sum of metres, frames]; period-aware so first-half stoppage never merges with 45'
         self._block_by_minute: dict[str, dict[tuple[int, int], list[float]]] = {self.home_id: {}, self.away_id: {}}
         self._frames_seen = 0
+        self._last_poss_team: str | None = None  # phase follows the side that last had the ball; the ball in flight does not reset it
         self._fan: dict[str, dict] = {}  # per player: what a fan counts (touches, shots, goals, assists, duels won)
         self._minute_marks: dict[int, dict] = {}  # team totals + per-player shots at the start of each minute
 
@@ -146,6 +147,9 @@ class MatchState:
         period = int(frame.get("period", self.period))
         carrier = frame.get("carrier")
         poss_team = self._players[carrier]["team_id"] if carrier in self._players else None
+        if poss_team:
+            self._last_poss_team = poss_team
+        phase_team = poss_team or self._last_poss_team  # pressure below still needs a real carrier
         by_team: dict[str, list[tuple[str, float, float]]] = {self.home_id: [], self.away_id: []}
         for pid, (x, y) in players.items():
             info = self._players.get(pid)
@@ -172,7 +176,7 @@ class MatchState:
                 "width_m": round((max(ys) - min(ys)) / 100 * 68.0, 1),
                 "compactness_m": round(compact, 1),
                 "lines": lines,
-                "phase": "attacking" if poss_team == tid else "defending" if poss_team else "transition",
+                "phase": "attacking" if phase_team == tid else "defending" if phase_team else "transition",
             }
             self._block_by_minute[tid].setdefault((period, minute), [0.0, 0])
             self._block_by_minute[tid][(period, minute)][0] += cx / 100 * 105.0
@@ -344,6 +348,7 @@ class MatchState:
         self._push_threat(e["team_id"], THREAT_SHOT_BASE + THREAT_SHOT_PER_XG * xg)
         self.xg_race.append({
             "period": self.period, "minute": self.minute, "clock": self.clock, "team_id": e["team_id"],
+            "goal": e.get("outcome") == "goal",  # lets a chart mark the goals on the race
             self.home_id: round(self.teams[self.home_id]["xg"], 3),
             self.away_id: round(self.teams[self.away_id]["xg"], 3),
         })

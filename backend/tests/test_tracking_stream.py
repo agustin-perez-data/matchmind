@@ -68,6 +68,21 @@ def test_apply_frame_measures_shape_heat_and_pressure_in_team_frame():
     assert snap["block_series"] == [{"period": 1, "minute": 3, "THU": 36.8, "NBF": 22.8}]
 
 
+def test_phase_follows_the_last_side_in_possession_when_the_ball_is_loose():
+    state = MatchState(_meta())
+    state.apply({"event_id": 1, "period": 1, "minute": 0, "second": 0, "type": "kickoff", "team_id": "THU", "home_attacking_right": True})
+    players = {"THU-01": [5, 50], "THU-02": [20, 20], "THU-03": [20, 80], "THU-04": [40, 50], "THU-05": [60, 50],
+               "NBF-01": [95, 50], "NBF-02": [90, 30], "NBF-03": [90, 70], "NBF-04": [70, 50], "NBF-05": [63, 50]}
+    state.apply_frame({"kind": "frame", "period": 1, "minute": 3, "second": 0, "carrier": "THU-05", "players": players})
+    state.apply_frame({"kind": "frame", "period": 1, "minute": 3, "second": 1, "carrier": None, "players": players})
+    snap = state.snapshot()
+    assert snap["shape"]["THU"]["phase"] == "attacking" and snap["shape"]["NBF"]["phase"] == "defending"
+    assert snap["pressure"] is None  # no carrier, nobody to press
+    fresh = MatchState(_meta())
+    fresh.apply_frame({"kind": "frame", "period": 1, "minute": 0, "second": 0, "carrier": None, "players": players})
+    assert {s["phase"] for s in fresh.snapshot()["shape"].values()} == {"transition"}  # only before the first carrier
+
+
 def test_snapshot_without_frames_has_no_shape_or_heat(meta, events):
     state = MatchState(meta)
     for e in events[:50]:
@@ -81,15 +96,21 @@ def test_snapshot_without_frames_has_no_shape_or_heat(meta, events):
 def test_frames_through_the_interpreter_give_a_deeper_block_when_defending(events, meta):
     state = MatchState(meta)
     att, dfn = [], []
+    both_transition, seen_carrier = 0, False
     for item in merge_timeline(events, build_tracking(events, meta)):
         if item.get("kind") == "frame":
             state.apply_frame(item)
+            seen_carrier = seen_carrier or item.get("carrier") is not None
             sh = state.snapshot()["shape"]
+            if seen_carrier and all(s["phase"] == "transition" for s in sh.values()):
+                both_transition += 1
             for tid, s in sh.items():
                 (att if s["phase"] == "attacking" else dfn if s["phase"] == "defending" else []).append(s["block_height_m"])
         else:
             state.apply(item)
-    assert sum(att) / len(att) > sum(dfn) / len(dfn) + 1  # the block sits higher with the ball than without it
+    assert both_transition == 0  # the ball in flight keeps the last side's phase
+    margin = sum(att) / len(att) - sum(dfn) / len(dfn)
+    assert margin > 1, margin  # the block sits higher with the ball than without it
     snap = state.snapshot()
     assert sum(snap["players"]["THU-01"]["heat"]) > 5000  # the keeper plays the whole match
     # block height per minute, period-aware: first-half stoppage (1, 45+) and the second-half restart (2, 45) both exist

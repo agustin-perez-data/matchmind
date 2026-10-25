@@ -132,6 +132,9 @@ def test_credibility_is_a_running_mean_next_to_the_baseline():
     assert s["judged"] == 2 and s["pending"] == 0 and s["horizon_min"] == 10
     assert s["analyst"] == {"overall": 0.75, "dominance": 0.5, "goal": 1.0, "watch": 1.0}
     assert s["naive"] == {"overall": 0.5, "dominance": 0.0, "goal": 1.0, "watch": None}
+    assert s["counts"] == {"analyst": {"overall": 2, "dominance": 2, "goal": 2, "watch": 1},
+                           "naive": {"overall": 2, "dominance": 2, "goal": 2, "watch": 0}}
+    assert s["counts"]["analyst"]["overall"] == s["judged"]
     assert ForecastLedger().summary()["analyst"]["overall"] is None
 
 

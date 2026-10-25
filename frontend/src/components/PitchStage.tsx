@@ -1,9 +1,9 @@
-import { useCallback, useState, type RefObject } from 'react'
+import { Fragment, useCallback, useState, type ReactNode, type RefObject } from 'react'
 import type { Seat } from '../lib/seats'
 import type { BallPoint, FeedItem } from '../lib/useMatchStream'
 import { touchPoints, type Touch } from '../lib/follow'
 import { attacksRight, heatCellRect, heatCells } from '../lib/tracking'
-import type { Frame, MatchEvent, Meta, Snapshot } from '../lib/types'
+import type { Frame, InsightMsg, MatchEvent, Meta, Snapshot } from '../lib/types'
 import { IconChart, IconMic } from './icons'
 import { TrackingLayer } from './TrackingLayer'
 
@@ -77,7 +77,7 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
         {possession
           ? <span className="display text-sm font-extrabold uppercase tracking-wider" style={{ color: possession.color }}>{possession.text}</span>
           : <span>{!snapshot || snapshot.minute === 0 ? 'Waiting for kick off' : ''}</span>}
-        {size === 'lg' && <span>{heatOn ? 'amber cells: where your player has been · ' : ''}shots sized by expected goals, ringed when they went in{followId ? '; amber: your player' : ''}{tracking ? `; players${shape ? ' and shaded blocks' : ''}: positional model` : ''}</span>}
+        {size === 'lg' && <span>{heatOn ? 'amber cells: where your player has been · ' : ''}shots sized by expected goals, ringed when they went in{followId ? '; amber: your player' : ''}{tracking ? `; players${shape ? ' and shaded blocks' : ''}: positional model (away outlined white${shape ? ', dashed block' : ''})` : ''}</span>}
       </div>
       <div className={`${size === 'lg' ? '-mt-3 sm:-mt-6' : '-mt-1'} px-2 sm:px-6`} style={{ perspective: '1000px' }}>
         <svg viewBox={`0 0 ${W} ${H}`} className={`mx-auto h-auto w-full ${size === 'lg' ? 'max-w-[720px]' : 'max-w-[460px]'}`} role="img"
@@ -149,6 +149,11 @@ function possessionChip(meta: Meta, last: MatchEvent | null, now: BallPoint | un
 /** A headline as a sentence: one full stop, never two. */
 export function sentence(s: string) { return s.replace(/[.!?…]+$/, '') + '.' }
 
+/** The clock to print next to an insight: the break moments carry stoppage clocks that read oddly once the next period runs. */
+export function stamp(insight: Pick<InsightMsg, 'clock' | 'moment'>): string {
+  return insight.moment.kind === 'half_time' ? 'HT' : insight.moment.kind === 'full_time' ? 'FT' : insight.clock
+}
+
 export function describe(e: MatchEvent): string {
   switch (e.type) {
     case 'shot': return `${e.player_name}, ${e.outcome === 'saved' ? 'shot saved' : e.outcome === 'blocked' ? 'shot blocked' : 'shot off target'}`
@@ -168,22 +173,27 @@ function LowerThird({ meta, latest, keyEvent, seat, agentsOn }: { meta: Meta; la
   const insight = latest?.msg.kind === 'insight' ? latest.msg : null
   const coach = latest?.msg.kind === 'coach' ? latest.msg : null
   const v = insight ? Object.values(insight.viewers)[0] : null
-  const title = insight ? `${v?.decision?.headline ?? insight.moment.summary.replace(/^\d+:\d+\s*/, '')} · ${insight.clock}`
+  const title = insight ? `${v?.decision?.headline ?? insight.moment.summary.replace(/^\d+:\d+\s*/, '')} · ${stamp(insight)}`
     : coach ? `Coach: ${coach.proposal?.action === 'hold' ? 'holding' : 'proposes a change'} · ${coach.clock}`
       : keyEvent ? `${describe(keyEvent)} · ${keyEvent.clock}` : null
   if (!title) return null
   const key = `${latest?.id ?? 'events'}-${seat}`  // agent outputs animate in; plain event titles just update
   const h = meta.home_id, a = meta.away_id
   const narration = insight && v?.narration ? <><span className="tag"><IconMic />{v.narration.language === 'es' ? 'Relator' : 'Narrator'}</span><span className={seat === 'fan' ? 'display text-2xl font-semibold leading-tight sm:text-[28px]' : ''}>{v.narration.text}</span></> : null
-  const analysis = insight?.analyst ? <><span className="tag tag-w"><IconChart />Analyst</span><span><b>{sentence(insight.analyst.headline)}</b> {insight.analyst.why_it_matters}{seat === 'analyst' ? <span className="text-muted"> {insight.analyst.key_stat}</span> : null}{seat === 'analyst' && insight.analyst.forecast && insight.moment.kind !== 'full_time' ? <span className="mt-1 block text-base text-amber">Next 10': {insight.analyst.forecast.claim}</span> : null}</span></> : null
+  // the analyst seat has its own read card for the key stat and the live call; the bench keeps them here
+  const analysis = insight?.analyst ? <><span className="tag tag-w"><IconChart />Analyst</span><span><b>{sentence(insight.analyst.headline)}</b> {insight.analyst.why_it_matters}{seat === 'bench' ? <span className="text-muted"> {insight.analyst.key_stat}</span> : null}{seat === 'bench' && insight.analyst.forecast && insight.moment.kind !== 'full_time' ? <span className="mt-1 block text-base text-amber">Next 10': {insight.analyst.forecast.claim}</span> : null}</span></> : null
   const bench = coach?.proposal ? <><span className="tag tag-t">Coach</span><span>{coach.proposal.rationale}{coach.branch ? ` With the change: ${coach.branch.branch.score[h]}-${coach.branch.branch.score[a]}, knocks ${coach.branch.actual.injury_concerns_total} to ${coach.branch.branch.injury_concerns_total}.` : ''}</span></> : null
-  const rows = seat === 'fan' ? [narration, analysis] : seat === 'analyst' ? [analysis, narration] : [bench, analysis, narration]
+  const rows: { key: string; node: ReactNode }[] = seat === 'fan'
+    ? [{ key: 'narration', node: narration }, { key: 'analysis', node: analysis }]
+    : seat === 'analyst' ? [{ key: 'analysis', node: analysis }, { key: 'narration', node: narration }]
+      : [{ key: 'bench', node: bench }, { key: 'analysis', node: analysis }, { key: 'narration', node: narration }]
+  const shown = rows.filter((r) => r.node).slice(0, 2)
   return (
     <div key={key} className="relative -mt-6 px-2 sm:-mt-10 sm:px-6">
       <div className="lt-bar wipe-in-left inline-block px-5 py-1 text-2xl sm:text-[36px]">{title}</div>
-      {rows.some(Boolean) ? (
+      {shown.length ? (
         <div className="lt-sub enter grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-2 px-5 py-3 text-base leading-snug sm:text-lg">
-          {rows.filter(Boolean).slice(0, 2)}
+          {shown.map((r) => <Fragment key={r.key}>{r.node}</Fragment>)}
         </div>
       ) : agentsOn && !latest ? (
         <div className="lt-sub enter px-5 py-2 text-sm text-muted">{seat === 'fan' ? 'Relator warming up: the first call comes with the first chance, goal or knock.' : 'Agents warming up: the first read comes with the first key moment.'}</div>

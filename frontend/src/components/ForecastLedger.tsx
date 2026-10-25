@@ -1,5 +1,5 @@
 import type { FeedItem, VerdictItem } from '../lib/useMatchStream'
-import type { Credibility, InsightMsg, Meta, Snapshot } from '../lib/types'
+import type { Credibility, InsightMsg, Meta, ScoreDim, Snapshot } from '../lib/types'
 
 type Props = {
   meta: Meta
@@ -10,6 +10,7 @@ type Props = {
   agentsOn: boolean
   ended: boolean
   compact?: boolean
+  fill?: boolean // the list grows with its container instead of scrolling inside (the analyst column scrolls as a whole)
   className?: string // layout hook: the analyst seat lets the ledger fill its column and scroll inside
 }
 
@@ -19,9 +20,21 @@ const VERDICT: Record<string, { label: string; color: string }> = {
   missed: { label: 'Missed', color: '#e8405a' },
 }
 const pct = (v: number | null | undefined) => (v == null ? '–' : `${Math.round(v * 100)}%`)
+/** Below this many graded calls a mean is shown as a count, not a percentage: 100% of one call is not a track record. */
+export const MIN_SAMPLE = 3
+const BINARY: ScoreDim[] = ['dominance', 'watch']
+/** A score with its sample size: a fraction for binary dimensions, "n=k" for Brier-based ones, a percentage from MIN_SAMPLE on. */
+export function shown(score: number | null | undefined, n: number, dim: ScoreDim): string {
+  if (n >= MIN_SAMPLE) return pct(score)
+  if (n === 0 || score == null) return '–'
+  return BINARY.includes(dim) ? `${Math.round(score * n)} of ${n}` : `n=${n}`
+}
 
 /** The Analyst's 10-minute calls and what the Judge made of them: credibility earned, not asserted. */
-export function ForecastLedger({ meta, snapshot, feed, verdicts, credibility, agentsOn, ended, compact = false, className = '' }: Props) {
+export function ForecastLedger({ meta, snapshot, feed, verdicts, credibility, agentsOn, ended, compact = false, fill = false, className = '' }: Props) {
+  const judged = credibility?.judged ?? 0
+  const count = (who: 'analyst' | 'naive', dim: ScoreDim) => credibility?.counts?.[who][dim] ?? judged
+  const small = judged > 0 && judged < MIN_SAMPLE
   const judgedIds = new Set(verdicts.map((v) => v.msg.event_id))
   const pending = feed
     .filter((f): f is FeedItem & { msg: InsightMsg } => f.msg.kind === 'insight' && !!f.msg.analyst?.forecast && f.msg.moment.kind !== 'full_time' && !judgedIds.has(f.msg.event_id))
@@ -34,26 +47,28 @@ export function ForecastLedger({ meta, snapshot, feed, verdicts, credibility, ag
     <section className={`blk px-4 py-3 ${className}`} style={{ borderTopColor: '#ffd166' }}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="blk-title">Analyst credibility</h2>
-        <span className="blk-meta">{credibility?.judged ? `${credibility.judged} call${credibility.judged > 1 ? 's' : ''} graded` : agentsOn ? 'graded 10 minutes after each call' : 'agents off'}</span>
+        <span className="blk-meta">{judged ? (small ? `${judged} of ${MIN_SAMPLE} calls graded · small sample` : `${judged} call${judged > 1 ? 's' : ''} graded`) : agentsOn ? 'graded 10 minutes after each call' : 'agents off'}</span>
       </div>
 
       <div className="mt-2 grid grid-cols-[auto_1fr] items-end gap-x-4">
-        <div className="display text-[44px] font-black leading-none tabular-nums" style={{ color: beats == null ? 'var(--color-fg)' : beats >= 0 ? 'var(--color-teal)' : 'var(--color-bad)' }}>{pct(a)}</div>
+        <div className="display text-[44px] font-black leading-none tabular-nums" style={{ color: beats == null || small ? 'var(--color-fg)' : beats >= 0 ? 'var(--color-teal)' : 'var(--color-bad)' }}>{small ? '–' : pct(a)}</div>
         <div className="pb-1 text-sm text-fg-2">
-          {credibility?.judged
+          {judged >= MIN_SAMPLE
             ? <>forecast score, vs <b className="text-fg">{pct(n)}</b> for a naive call (the xG leader keeps dominating, base-rate goal odds, the top shooter so far), on the same windows.</>
-            : <>Every Analyst read ends with a call for the next 10 minutes: who creates more, the odds of a goal, who to watch. Code grades it against what happens; the Judge explains.</>}
+            : judged
+              ? <>Scores appear after {MIN_SAMPLE} graded calls; {judged} so far. Each call is graded against a naive one (xG leader, base-rate goal odds, top shooter) on the same window.</>
+              : <>Every Analyst read ends with a call for the next 10 minutes: who creates more, the odds of a goal, who to watch. Code grades it against what happens; the Judge explains.</>}
         </div>
       </div>
       {credibility?.judged ? (
         <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
-          <Part label="Who dominates" a={credibility.analyst.dominance} n={credibility.naive.dominance} />
-          <Part label="Goal odds" a={credibility.analyst.goal} n={credibility.naive.goal} />
-          <Part label="Player to watch" a={credibility.analyst.watch} n={credibility.naive.watch} />
+          <Part label="Who dominates" a={shown(credibility.analyst.dominance, count('analyst', 'dominance'), 'dominance')} n={shown(credibility.naive.dominance, count('naive', 'dominance'), 'dominance')} />
+          <Part label="Goal odds" a={shown(credibility.analyst.goal, count('analyst', 'goal'), 'goal')} n={shown(credibility.naive.goal, count('naive', 'goal'), 'goal')} />
+          <Part label="Player to watch" a={shown(credibility.analyst.watch, count('analyst', 'watch'), 'watch')} n={shown(credibility.naive.watch, count('naive', 'watch'), 'watch')} />
         </dl>
       ) : null}
 
-      <ul className="scroll-quiet mt-3 max-h-[380px] space-y-2 overflow-auto">
+      <ul className={`mt-3 space-y-2 ${fill ? '' : 'scroll-quiet max-h-[380px] overflow-auto'}`}>
         {pending.map((f) => {
           const fc = f.msg.analyst!.forecast!
           const issued = Number(f.msg.clock.split(':')[0])
@@ -88,11 +103,11 @@ export function ForecastLedger({ meta, snapshot, feed, verdicts, credibility, ag
   )
 }
 
-function Part({ label, a, n }: { label: string; a: number | null; n: number | null }) {
+function Part({ label, a, n }: { label: string; a: string; n: string }) {
   return (
     <div className="border-t border-line pt-1">
       <dt className="blk-meta text-[10px]">{label}</dt>
-      <dd className="display text-xl font-extrabold tabular-nums">{pct(a)} <span className="text-sm font-semibold text-muted">vs {pct(n)}</span></dd>
+      <dd className="display text-xl font-extrabold tabular-nums">{a} <span className="text-sm font-semibold text-muted">vs {n}</span></dd>
     </div>
   )
 }

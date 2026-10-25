@@ -18,10 +18,13 @@ export function StatsBlock({ meta, snapshot }: { meta: Meta; snapshot: Snapshot 
     ['shots', String(th.shots), String(ta.shots)],
     ['pass accuracy', `${Math.round(th.pass_accuracy * 100)}%`, `${Math.round(ta.pass_accuracy * 100)}%`],
     ['pressures', String(th.pressures), String(ta.pressures)],
+    // rates, which is what an analyst compares: quality per shot, and pressing intensity against the ball the opponent has
+    ['xG per shot', th.shots ? (th.xg / th.shots).toFixed(2) : '–', ta.shots ? (ta.xg / ta.shots).toFixed(2) : '–'],
+    ['pressures per 100 opp. passes', ta.passes ? String(Math.round((th.pressures / ta.passes) * 100)) : '–', th.passes ? String(Math.round((ta.pressures / th.passes) * 100)) : '–'],
   ]
   return (
     <section className="blk px-4 py-3">
-      <div className="flex items-baseline justify-between"><h2 className="blk-title">Match stats</h2><span className="blk-meta">{snapshot?.clock}</span></div>
+      <div className="flex items-baseline justify-between" title="pressures per 100 opponent passes is a PPDA-style pressing rate: higher means the side presses more"><h2 className="blk-title">Match stats</h2><span className="blk-meta">{snapshot?.clock}</span></div>
       <dl className="mt-2">
         {rows.map(([label, h, a]) => (
           <div key={label} className="display grid grid-cols-[1fr_auto_1fr] items-center border-b border-line py-0.5 text-[26px] font-extrabold leading-tight last:border-0">

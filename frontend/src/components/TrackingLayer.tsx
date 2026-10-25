@@ -140,17 +140,21 @@ export function TrackingLayer({ meta, frameRef, speed, followId, size, ended, hu
         <polygon key={tid} ref={(el) => { hullEls.current[tid] = el }} className="trk-hull" points=""
           fill={tid === meta.home_id ? 'var(--home)' : 'var(--away)'} fillOpacity={0.16}
           stroke={tid === meta.home_id ? 'var(--home-ink)' : 'var(--away-ink)'} strokeWidth={0.45} strokeOpacity={0.8} strokeLinejoin="round"
+          strokeDasharray={tid === meta.home_id ? undefined : '1.4 0.9'}
           style={{ display: hull ? undefined : 'none' }} />
       ))}
       {roster.map((pid) => {
         const p = players.get(pid)
-        const fill = p?.team_id === meta.home_id ? 'var(--home)' : 'var(--away)'
+        const home = p?.team_id === meta.home_id
+        const fill = home ? 'var(--home)' : 'var(--away)'
         const followed = pid === followId
         return (
           <g key={pid} ref={mount(pid)} className="trk-dot" style={{ transition }}>
-            <circle className="trk-ring" r={r + 0.8} fill="none" stroke="#fff" strokeWidth={0.45} />
+            <circle className="trk-ring" r={r + 1.0} fill="none" stroke="#fff" strokeWidth={0.45} />
             {followed && <circle r={r + 1.2} fill="none" stroke="var(--color-amber)" strokeWidth={0.55} />}
-            <circle r={r} fill={fill} stroke={p?.position === 'GK' ? '#fff' : '#0b0f1a'} strokeWidth={p?.position === 'GK' ? 0.35 : 0.25} />
+            {/* a second channel besides colour: the home side outlined dark, the away side outlined white; keepers carry a white centre dot */}
+            <circle r={r} fill={fill} stroke={home ? '#0b0f1a' : '#fff'} strokeWidth={0.3} />
+            {p?.position === 'GK' && <circle className="trk-gk" r={0.45} fill="#fff" />}
             {followed && p && (
               <text y={-(r + 2)} textAnchor="middle" fontSize={2.8} fontFamily="Barlow Condensed" fontWeight={800} fill="var(--color-amber)" stroke="#0b0f1a" strokeWidth={0.5} style={{ paintOrder: 'stroke' }}>
                 {p.name.split(' ').slice(-1)[0].toUpperCase()}
