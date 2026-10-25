@@ -11,7 +11,12 @@ export type PassNet = { nodes: NetNode[]; edges: NetEdge[]; passes: number; comp
 export const MIN_EDGE = 2
 export const MAX_EDGES = 25
 
-export function passNetwork(touches: Touch[], teamId: string, meta: Pick<Meta, 'home_id'>, half: 1 | 2 | 'all' = 'all'): PassNet {
+/**
+ * `positions`, when given, places a node there (team frame) instead of at the mean of its pass coordinates:
+ * the positional model's heat centroid spreads players by role, where pass means all drift to the centre circle.
+ */
+export function passNetwork(touches: Touch[], teamId: string, meta: Pick<Meta, 'home_id'>, half: 1 | 2 | 'all' = 'all',
+                            positions?: Record<string, [number, number] | null | undefined>): PassNet {
   const acc = new Map<string, { sx: number; sy: number; n: number }>()
   const pairs = new Map<string, number>()
   let passes = 0, completed = 0
@@ -34,7 +39,10 @@ export function passNetwork(touches: Touch[], teamId: string, meta: Pick<Meta, '
       pairs.set(key, (pairs.get(key) ?? 0) + 1)
     }
   }
-  const nodes = [...acc.entries()].map(([pid, a]) => ({ pid, x: a.sx / a.n, y: a.sy / a.n, passes: a.n })).sort((a, b) => a.pid.localeCompare(b.pid))
+  const nodes = [...acc.entries()].map(([pid, a]) => {
+    const at = positions?.[pid]
+    return { pid, x: at ? at[0] : a.sx / a.n, y: at ? at[1] : a.sy / a.n, passes: a.n }
+  }).sort((a, b) => a.pid.localeCompare(b.pid))
   const edges = [...pairs.entries()]
     .filter(([, count]) => count >= MIN_EDGE)
     .map(([key, count]) => { const [from, to] = key.split('|'); return { from, to, count } })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { HEAT_COLS, HEAT_ROWS, attacksRight, blockLeader, convexHull, glideMs, heatCellRect, heatCells, heatReading, lerpFrame, rosterKey, toAbsoluteX } from './tracking'
+import { HEAT_COLS, HEAT_ROWS, attacksRight, blockLeader, convexHull, glideMs, heatCellRect, heatCells, heatCentroid, heatReading, lerpFrame, rosterKey, toAbsoluteX } from './tracking'
 import type { Frame } from './types'
 
 const frame = (players: string[]): Frame => ({ kind: 'frame', period: 1, minute: 0, second: 0, ball: [50, 50], carrier: null, players: Object.fromEntries(players.map((p) => [p, [50, 50] as [number, number]])) })
@@ -100,5 +100,18 @@ describe('blockLeader', () => {
     const early = [pt(1, 10, 60), pt(2, 10, 60), pt(3, 10, 60)]
     const late = [4, 5, 6, 7, 8].map((m) => pt(m, 45, 45))
     expect(blockLeader([...early, ...late], meta).side).toBeNull()
+  })
+})
+
+describe('heatCentroid', () => {
+  it('weights cell centres by occupancy', () => {
+    const grid = new Array(HEAT_COLS * HEAT_ROWS).fill(0)
+    grid[0] = 1 // column 0 row 0: centre (4.17, 6.25)
+    grid[HEAT_COLS * HEAT_ROWS - 1] = 3 // column 11 row 7: centre (95.83, 93.75)
+    const c = heatCentroid(grid)!
+    expect(c[0]).toBeCloseTo((4.1667 + 3 * 95.8333) / 4, 2)
+    expect(c[1]).toBeCloseTo((6.25 + 3 * 93.75) / 4, 2)
+    expect(heatCentroid(new Array(96).fill(0))).toBeNull()
+    expect(heatCentroid(undefined)).toBeNull()
   })
 })

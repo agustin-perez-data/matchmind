@@ -45,3 +45,11 @@ describe('passNetwork', () => {
     expect(net.edges).toHaveLength(MAX_EDGES)
   })
 })
+
+describe('passNetwork with model positions', () => {
+  it('places a node at the given position and keeps the pass mean for the others', () => {
+    const net = passNetwork([pass('THU-01', 'THU-02')], 'THU', meta, 'all', { 'THU-01': [70, 30], 'THU-02': null })
+    expect(net.nodes.find((x) => x.pid === 'THU-01')).toMatchObject({ x: 70, y: 30, passes: 1 })
+    expect(net.nodes.find((x) => x.pid === 'THU-02')).toMatchObject({ x: 40, y: 60 })
+  })
+})

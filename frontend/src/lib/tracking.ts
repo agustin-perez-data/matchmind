@@ -111,3 +111,17 @@ export function blockLeader(series: BlockPoint[] | null | undefined, meta: Pick<
   if (diff >= 8) return { text: 'pinned back', side: 'away' }
   return { text: 'even', side: null }
 }
+
+/** Where a player has been on average: the occupancy-weighted centre of their heat grid, team frame 0-100 (own goal at x=0). */
+export function heatCentroid(grid: number[] | null | undefined): [number, number] | null {
+  if (!grid || grid.length !== HEAT_COLS * HEAT_ROWS) return null
+  let sx = 0, sy = 0, n = 0
+  grid.forEach((v, i) => {
+    if (v <= 0) return
+    const col = i % HEAT_COLS, row = Math.floor(i / HEAT_COLS)
+    sx += v * ((col + 0.5) / HEAT_COLS) * 100
+    sy += v * ((row + 0.5) / HEAT_ROWS) * 100
+    n += v
+  })
+  return n > 0 ? [sx / n, sy / n] : null
+}

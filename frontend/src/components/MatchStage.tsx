@@ -95,18 +95,17 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
             <Momentum meta={meta} snapshot={state.snapshot} />
             <BlockHeightStrip meta={meta} snapshot={state.snapshot} />
           </div>
-          <div className="enter grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]" style={{ ['--i' as string]: 2 }}>
-            <div className="min-w-0">{pitch('lg')}</div>
-            <div className="min-w-0">{ledger()}</div>
+          <div className="enter grid gap-3 lg:grid-cols-[minmax(0,1fr)_470px]" style={{ ['--i' as string]: 2 }}>
+            <div className="flex min-w-0 flex-col gap-3">{pitch('lg')}{rail}</div>
+            <div className="flex min-w-0 flex-col gap-3">
+              {ledger(true)}
+              <PassNetwork meta={meta} touches={state.touches} snapshot={state.snapshot} ended={ended} compact />
+            </div>
           </div>
           <div className="enter grid gap-3 md:grid-cols-2 lg:grid-cols-3" style={{ ['--i' as string]: 3 }}>
             <XgRace meta={meta} snapshot={state.snapshot} size="lg" />
             <StatsBlock meta={meta} snapshot={state.snapshot} />
             <ShapeBlock meta={meta} snapshot={state.snapshot} />
-          </div>
-          <div className="enter grid gap-3 lg:grid-cols-[minmax(0,1fr)_440px]" style={{ ['--i' as string]: 4 }}>
-            <PassNetwork meta={meta} touches={state.touches} snapshot={state.snapshot} ended={ended} />
-            <div className="min-w-0">{rail}</div>
           </div>
         </main>
       </>

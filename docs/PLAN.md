@@ -455,7 +455,15 @@ Foundry, Best Azure Cloud Native Integration.
   per team (tabs) from the event stream: nodes at mean involvement in team
   frame, undirected links of 2+ completed passes, half filter that follows the
   match. The flaky mid-stream control test now starts at x300 and asks for
-  maximum speed last. Deploy + video Oct 26.
+  maximum speed last.
+  **Oct 25, pass network moved beside the pitch**: Agustín wanted it in the
+  empty space under the credibility ledger. The analyst seat is now three rows
+  (strips; pitch + rail on the left, compact ledger + compact pass network on
+  the right; the three numeric blocks). Node positions come from the positional
+  model's heat centroid per player (team frame) instead of the mean pass
+  coordinates, which all drift to the centre circle early in a match; links
+  still come from the passes, and the footer says which is which. Deploy +
+  video Oct 26.
   **Feature list agreed Oct 22 (time is not the constraint)**: 1 forecast +
   Judge (done) · 2 demo robustness (insight cache per moment+profile,
   per-viewer registry sessions) · 3 "same moment, two viewers" in the
