@@ -27,14 +27,12 @@ Monitor** grounded in sports science (ACWR).
 The Control room's pipeline map draws every component inside the stage it
 serves, so the five stages are visible in the product, not only in this table.
 
-## Architecture (target)
+## Architecture
 
-- **Azure AI Foundry** — model hosting (gpt-4o / gpt-4.1-mini) + evals
-- **Microsoft Agent Framework** — multi-agent orchestration (Interpreter,
-  Analyst, Narrator, Director, Load & Risk Monitor)
-- **MCP server** — match-state tools exposed to agents
-- **Azure Container Apps** (backend) + **Azure Static Web Apps** (frontend)
-- Built with **GitHub Copilot** assistance
+Five Agent Framework agents on a Microsoft Foundry project, a FastAPI streamer with an MCP server, and a
+React frontend, deployed on Azure Container Apps and Static Web Apps. The full picture, with what each
+service does for the product, is in [Deployed on Azure](#deployed-on-azure) and in
+[`infra/README.md`](infra/README.md).
 
 ## Quickstart
 
@@ -140,7 +138,10 @@ Honest reading: ten minutes of football are noisy, the naive rule is hard to
 beat on "who dominates", and the Analyst only edges ahead overall after it was
 given the recent window, its own graded record and a rule against reading
 possession as dominance. The loop is real but small (+0.03 overall in the
-ablation). The numbers are in `backend/eval/`.
+ablation), and that is the honest reading of it: the Analyst does not forecast
+much better than a sensible rule, but the system knows how much to trust it,
+shows that number next to the rule's, and feeds its own grades back. The
+numbers are in `backend/eval/`.
 
 ## Agents
 
@@ -246,6 +247,15 @@ MCP and REST clients outside any stream see the latest view. Before a demo:
   three knocks exist.
 - **Broadcasters and fans**: the same match personalised by seat and language,
   with every agent decision traceable in the Control room.
+
+A Monday with it, concretely: a performance analyst opens the bench seat on
+Saturday's match. The readiness board says the left back was in a high-risk
+window from the 61st minute and the knock came in the 78th: seventeen minutes
+of notice the staff did not act on. The Coach's proposal from that window, a
+like-for-like change, is still in the decision log with the re-simulated
+outcome next to it. The calibration says windows like that one see a knock
+27 % of the time. The conversation with the head coach is now about a number
+and a timestamp, not an opinion.
 
 ## Orchestration
 

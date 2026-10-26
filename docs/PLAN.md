@@ -79,7 +79,6 @@ latent state generates). This keeps the prediction honest, not circular.
 - **Frontend**: React + Vite + Tailwind. Agent feed, risk panel with live
   calibration, **what-if view with two timelines**, simple 2D SVG pitch, mode /
   language selector. Deploy: **Azure Static Web Apps**.
-- Mention **GitHub Copilot** usage in the pitch (judges look for it).
 
 ## 3. Judging rubric strategy (5 × 20%)
 
