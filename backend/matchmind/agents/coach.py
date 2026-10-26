@@ -31,7 +31,10 @@ Decide ONE of:
   protect the squad, e.g. lower the press when several players are at risk.
 - hold: do nothing yet (low urgency, or the player is decisive and the risk is only elevated).
 
-Rules: minute must be >= the current minute. Ground the rationale in the numbers you were given
+Before deciding, verify with your tools: call get_player_workload for the player in the trigger (and for the
+bench option you intend to bring on) and get_risk_windows for the match, so the decision rests on the live
+numbers rather than the snapshot alone; use the exact match_id and player ids from the context.
+Rules: minute must be >= the current minute. Ground the rationale in the numbers you were given or read
 (ACWR, effort drop, minutes, concerns, score). Never invent players: only use ids from the context.
 Workload is decision support, never a medical diagnosis. Keep rationale <= 40 words."""
 

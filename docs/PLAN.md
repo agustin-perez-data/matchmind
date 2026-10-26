@@ -608,6 +608,27 @@ to it makes the point.
 
 ## 6. Current status / handoff notes
 
+- **Azure deployment (Oct 26)**: plan in `infra/README.md` (purposes, SLOs, runbook, not-used list).
+  Code: `agents/clients.py` reaches the Foundry *project* keyless (`FoundryChatClient`, identity on Azure,
+  `az login` locally; key fallback kept), `agents/observability.py` (microsoft-opentelemetry → App Insights,
+  per-moment span, `matchmind.*` metrics), `/health` with `ready/draining/auth/project/telemetry/replica`,
+  resumable replay (`?from=<event_id>`, client reconnect with backoff, status `reconnecting`), agent cache
+  merge-on-miss for two replicas on one share, domain events to Event Grid (`api/events.py`), the report
+  consumer (`reports/consume.py`) and the nightly job (`jobs/nightly.py`), Foundry evaluations
+  (`evaluate_groundedness --foundry`, `evaluate_coach`), hosted agents (`infra/register_scout.py`,
+  `infra/register_judge.py`; runtime `MATCHMIND_JUDGE=foundry`), Content Safety groundedness guardrail
+  (`agents/guardrails.py`, `MATCHMIND_GUARDRAILS=1`, drawn in the Control room). Infra: `infra/acr.bicep`,
+  `infra/main.bicep` (Consumption-only environment, UAMIs + roles, Key Vault, Storage, Event Grid, jobs,
+  SWA, Foundry project + App Insights connection, web test, alerts, workbook, budget), `infra/deploy.ps1`,
+  `.github/workflows/deploy.yml` (OIDC), `infra/smoke.py`, `backend/loadtest/stream_load.py`.
+  Measured on the project: groundedness (Foundry grader) 7/8 passed on 8 items; the Coach's first
+  tool-use evaluation scored tool_call_accuracy 2/5 on all 6 situations because the Coach never called its
+  tools (the context already carried the workload), so the instructions now ask it to verify with
+  `get_player_workload` / `get_risk_windows` before deciding (re-evaluated; numbers in the README).
+  Subscription facts: ACR Tasks not permitted (pipeline builds the image); the workload-profile Container
+  Apps environment sat in "Waiting" for 50 min and was deleted (quota 1 environment per region); the
+  Consumption-only environment is used instead. Deployed URLs go in the README once the pipeline is green.
+
 - **Ground-truth injury model (Oct 21)**: `engine._maybe_injury_concern` is
   now convex in fatigue + congestion spike (pre-match ACWR > 1.3) x latent
   susceptibility 0.5-1.0, drawn from a separate RNG stream (`_flavour_rng`

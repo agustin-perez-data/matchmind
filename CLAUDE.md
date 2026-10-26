@@ -75,10 +75,36 @@ MATCHMIND_LIVE=1 .venv/Scripts/python -m pytest tests/test_live.py
 .venv/Scripts/python -m matchmind.agents.evaluate_forecasts --matches 10 --instructions prompts/analyst_v2.txt --label v2 --out eval/forecasts_v2.json
 # Risk Monitor offline evaluation (no LLM): model vs naive baseline over N simulated matches
 .venv/Scripts/python -m matchmind.risk.evaluate --matches 40
+# Foundry project evaluations (keyless through the project; needs `az login` + Foundry User on the project)
+FOUNDRY_PROJECT_ENDPOINT=https://matchmind-foundry.services.ai.azure.com/api/projects/matchmind   .venv/Scripts/python -m matchmind.agents.evaluate_groundedness --foundry --limit 8      # also on the project's grader
+FOUNDRY_PROJECT_ENDPOINT=... .venv/Scripts/python -m matchmind.agents.evaluate_coach --limit 6  # Coach tool use, graded
+FOUNDRY_PROJECT_ENDPOINT=... ../backend/.venv/Scripts/python ../infra/register_judge.py           # hosted Judge from the same code
+# Deployed API checks
+MATCHMIND_API_URL=https://<fqdn> .venv/Scripts/python ../infra/smoke.py
+.venv/Scripts/python -m loadtest.stream_load --api https://<fqdn> --viewers 25 --speed 300
 ```
 
 Tests never call Foundry: `create_app(..., enable_agents=False)` or inject a
 fake pipeline. Keep it that way — `backend/.env` exists on dev machines.
+
+## Azure deployment (see `infra/README.md` for purposes, SLOs, runbook)
+
+- Infrastructure is code: `infra/acr.bicep`, `infra/main.bicep` (idempotent; `bootstrap=true` deploys a
+  placeholder image the first time), `infra/deploy.ps1` (one-time bootstrap: providers, ACR, platform,
+  data upload, GitHub secrets), `.github/workflows/deploy.yml` (every push to `main`: OIDC login, image
+  build to ACR, Bicep, warm job, frontend to Static Web Apps, agent registration, smoke test).
+- The deployed API runs keyless: `FOUNDRY_PROJECT_ENDPOINT` + the user-assigned identity
+  (`AZURE_CLIENT_ID`). Locally `backend/.env` keeps the key fallback. `/health` reports `auth`, `project`,
+  `telemetry`, `ready`, `draining`, `replica`.
+- Replays are per-process: sticky sessions, max 2 replicas, and the stream resumes with `?from=<event_id>`
+  (the client reconnects by itself). The agent cache lives on the Azure Files share and merges on a miss.
+- Optional runtime switches: `MATCHMIND_JUDGE=foundry` (hosted Judge agent), `MATCHMIND_GUARDRAILS=1`
+  (Content Safety groundedness on every uncached moment), `MATCHMIND_EVENTGRID_ENDPOINT` (domain events),
+  `MATCHMIND_STORAGE_ACCOUNT` (jobs). All off locally by default.
+- Subscription gotchas: ACR Tasks (`az acr build`) is not permitted (the pipeline builds); a
+  workload-profile Container Apps environment sat in "Waiting" for an hour (use the Consumption-only one);
+  the environment quota is 1 per region; Git Bash needs `MSYS_NO_PATHCONV=1` for `/subscriptions/...` scopes.
+- Never commit `backend/.env`, `.azure/`, or any key; the Speech key lives in Key Vault only.
 
 On Windows the `.venv/Scripts/python` prefix matters: the global `python` has
 none of the project dependencies installed.

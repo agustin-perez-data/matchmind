@@ -255,6 +255,50 @@ structured outputs. Middleware records every agent run and tool call into a
 trace that the Control room seat renders as swimlanes. If the workflow fails,
 the moment is served through direct calls and the trace says so.
 
+## Deployed on Azure
+
+Live: **<<WEB_URL>>** (frontend) and **<<API_URL>>** (API: `/health`, `/matches`, `/ws`, `/mcp`, `/docs`).
+Everything is code in `infra/` and deploys on every push to `main` through GitHub Actions with OpenID
+Connect (no cloud secret stored anywhere). `infra/README.md` has the per-service purposes, the SLOs, the
+runbook and the list of what was deliberately not used.
+
+```
+ GitHub Actions (OIDC) ─ build ─► ACR ─► Bicep ─► warm job ─► health ─► Static Web Apps
+ Browser ── WSS, sticky, resumable ──► Container App matchmind-api (1-2 replicas, probes, 120 s grace)
+     │  managed identity ──► Foundry project "matchmind": gpt-4o / gpt-4.1-mini, Traces, Evaluations,
+     │                        Agents (matchmind-scout + our MCP server, matchmind-judge), Content Safety, Speech
+     │  OpenTelemetry ──► Application Insights (workbook, web test, alerts, budget)
+     │  /data ◄── Azure Files (matches, warmed agent cache, voice cache)
+     └─ Event Grid ──► queue ──► Job matchmind-report ──► Blob reports/   ·   Jobs matchmind-warm, matchmind-nightly
+```
+
+### Microsoft Foundry, used as the control plane
+
+| What | How MatchMind uses it |
+|---|---|
+| Model deployments | gpt-4.1-mini for the Narrator, Director and Judge (many short calls), gpt-4o for the Analyst and Coach |
+| Keyless Agent Framework agents | `FoundryChatClient` on the project endpoint with the app's managed identity (`/health` says `auth: project`); structured outputs for every agent, function tools for the Analyst and Coach |
+| Observability > Traces | Every agent run and tool call (gen_ai spans) plus a `moment` span per key moment, through `microsoft-opentelemetry` and the project's Application Insights connection |
+| Evaluations | `evaluate_groundedness --foundry` posts the same items the local grader scores to the project's groundedness evaluator (7 of 8 items passed on the first run; the local grader gave the Analyst a 3.5 mean and the Narrator 4.75 on the same items); `evaluate_coach` runs the Coach on real bench situations and grades tool-call accuracy, task adherence and intent resolution |
+| Graded, then improved | The first Coach run scored tool-call accuracy **2/5 on all 6 situations (0/6 passed)**: it never called its tools. The instructions now ask it to verify with `get_player_workload` / `get_risk_windows` before deciding; the rerun scored **5/5 on all 6 (6/6 passed; task adherence and intent resolution unchanged at pass)** |
+| Hosted agents | `matchmind-scout`: a prompt agent whose only tool is this API's MCP server (read-only, never `simulate_intervention`), for the Foundry playground; `matchmind-judge` v1: the Judge registered from the same code with `to_prompt_agent` and usable at runtime (`MATCHMIND_JUDGE=foundry`) |
+| Content Safety | Groundedness detection on every uncached Narrator line against the moment's facts; the verdict is in the Control room trace (English-tuned; Spanish results are indicative) |
+| Speech | The commentator voice, from the same resource, key in Key Vault |
+
+### Azure cloud native
+
+| Concern | What is in place |
+|---|---|
+| Compute | Container Apps, single revision, sticky sessions, startup/readiness/liveness probes on `/health` (503 while not ready or draining), 120 s termination grace, HTTP scaling 1-2 replicas at 20 concurrent streams |
+| Resilience | A replay is per-process: the client reconnects with `?from=<event_id>` and the server rebuilds the state silently; verified by killing the process mid-replay (viewer resumed and reached full time with zero console errors) |
+| State | Azure Files share for matches and caches; the agent cache merges with the file on a miss and before each write, so two replicas converge |
+| Events | CloudEvents to Event Grid when a high risk window opens and at full time; a queue-triggered job (KEDA, scales from 0) writes durable bench reports to Blob; at-least-once delivery, idempotent blob names |
+| Automation | Jobs on the same image and identity: warm after every deploy, event-driven report, nightly match of the day + evaluations to Blob |
+| Identity and secrets | Two user-assigned identities with scoped roles (Foundry User, OpenAI User, Cognitive Services User, Key Vault Secrets User, AcrPull/AcrPush, EventGrid Data Sender, Storage Queue/Blob); the only key (Speech) is a Key Vault reference; Event Grid local auth off; pinned non-root image from a lock file |
+| Operations | Log Analytics capped at 1 GB/day, workbook (requests, moment latency by cache hit, cache ratio, tokens by agent, Foundry dependencies, viewers), availability web test from 3 locations, alerts on availability, failed requests and restarts, USD 30 budget |
+| Delivery | Bicep, idempotent; GitHub Actions with OIDC; smoke test of health, catalogue, a full replay, a resume and MCP after each deploy |
+| Measured | <<LOAD_LINE>> |
+
 ## Responsible AI note
 
 The Load & Risk Monitor is **decision support, not medical advice**. It flags
