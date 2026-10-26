@@ -30,17 +30,11 @@ export function SeatPicker({ onPick, onQuick, disabled, matches, matchId, onMatc
   const fixtures = menuFixtures(matches)
   const home = headline?.home_team ?? FALLBACK_HOME
   const away = headline?.away_team ?? FALLBACK_AWAY
-  const sel = matches.find((m) => m.match_id === matchId)
 
   return (
     <section className="enter mx-auto w-full max-w-7xl px-5 pb-14 pt-5 sm:px-8 sm:pt-8">
-      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+      <header>
         <div className="display text-xl font-black uppercase tracking-wide">MatchMind <span className="ml-1 text-xs font-semibold normal-case tracking-normal text-muted">synthetic league, fictional clubs</span></div>
-        <nav className="hidden flex-wrap gap-x-5 text-sm text-muted sm:flex" aria-label="about this project">
-          <span>Running on Microsoft Foundry and Azure Container Apps</span>
-          <a className="underline-offset-4 hover:text-fg hover:underline" href={REPO} target="_blank" rel="noreferrer">GitHub</a>
-          <a className="underline-offset-4 hover:text-fg hover:underline" href={`${REPO}/blob/main/infra/README.md`} target="_blank" rel="noreferrer">Architecture</a>
-        </nav>
       </header>
 
       <div className="mt-6 grid items-center gap-8 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_minmax(420px,46%)] lg:gap-12">
@@ -51,17 +45,12 @@ export function SeatPicker({ onPick, onQuick, disabled, matches, matchId, onMatc
             scored against what actually happens. A Risk Monitor warns who is about to get hurt; a Coach proposes a change and the
             engine shows the match that would have followed.
           </p>
-          <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
+          <div className="mt-7">
             <button type="button" onClick={onQuick} disabled={disabled}
-              className="btn btn-amber display px-7 py-3 text-xl font-black uppercase tracking-wide transition-[filter,transform] duration-150 active:scale-[0.985] disabled:cursor-wait disabled:opacity-60">
+              className="btn btn-amber display cursor-pointer px-7 py-3 text-xl font-black uppercase tracking-wide transition-[filter,transform] duration-150 active:scale-[0.985] disabled:cursor-wait disabled:opacity-60">
               {disabled ? 'Loading the fixture list' : 'Watch the derby'}
             </button>
-            <span className="text-sm text-fg-2">
-              <span className="inline-flex items-center gap-1.5 align-middle"><Crest team={home as never} size={20} />{home.short_name}</span>
-              <span className="mx-1 text-muted">v</span>
-              <span className="inline-flex items-center gap-1.5 align-middle"><Crest team={away as never} size={20} />{away.short_name}</span>
-              <span className="text-muted">, fan seat, about 90 seconds</span>
-            </span>
+            <p className="mt-3 text-sm text-muted">Fan seat, about 90 seconds. Other seats and fixtures below.</p>
           </div>
         </div>
         <PreviewLoop home={home} away={away} line="Ferrant cuts inside and fires from 14 metres: 1-0" verdict="Called it · 66 %" />
@@ -121,26 +110,26 @@ export function SeatPicker({ onPick, onQuick, disabled, matches, matchId, onMatc
         {SEAT_ORDER.map((seat, i) => {
           const s = SEATS[seat]
           return (
-            <button key={seat} type="button" disabled={disabled} onClick={() => onPick(seat)} style={{ ['--i' as string]: i + 1, borderTopColor: s.rule }}
-              className="enter blk group flex flex-col items-start px-5 pb-5 pt-4 text-left transition-[transform,background] duration-200 ease-out hover:bg-ink-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber active:scale-[0.985] disabled:opacity-60">
+            <button key={seat} type="button" disabled={disabled} onClick={() => onPick(seat)} style={{ ['--i' as string]: i + 1, ['--seat' as string]: s.rule, borderTopColor: s.rule }}
+              className="seat-card enter blk group flex cursor-pointer flex-col items-start px-5 pb-5 pt-4 text-left transition-[transform,background,box-shadow] duration-200 ease-out hover:-translate-y-1 hover:bg-ink-2 hover:shadow-[0_0_0_1px_var(--seat),0_18px_40px_rgba(0,0,0,.45)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber active:translate-y-0 active:scale-[0.99] disabled:cursor-wait disabled:opacity-60">
               <span className="flex items-baseline gap-2">
                 <span className="display text-4xl font-black uppercase leading-none" style={{ color: s.rule }}>{s.label}</span>
                 {s.start && <span className="display text-sm font-extrabold uppercase tracking-wide text-amber">start here</span>}
               </span>
               <span className="mt-2 text-base leading-snug text-fg">{s.promise}</span>
               <span className="mt-3 text-sm leading-snug text-fg-2"><span className="text-muted">In the first 30 seconds: </span>{s.firstThirtySeconds}</span>
-              <span className="display mt-5 text-lg font-extrabold uppercase tracking-wide transition-[color] duration-150 group-hover:text-fg" style={{ color: s.rule }}>Take the {s.label.toLowerCase()} seat{sel && seat !== 'fan' ? '' : ''}</span>
+              <span className="btn display mt-5 text-base font-extrabold uppercase tracking-wide transition-[filter,transform] duration-150 group-hover:brightness-110 group-hover:translate-x-0.5" style={{ background: s.rule, color: '#0b0f1a' }}>Take the {s.label.toLowerCase()} seat</span>
             </button>
           )
         })}
       </div>
 
       <footer className="mt-14 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 border-t border-line pt-4 text-sm text-muted">
-        <span>Every club, player and number here is synthetic. No real competition, club or person appears.</span>
+        <span>Every club, player and number here is synthetic. No real competition, club or person appears. Running on Microsoft Foundry and Azure Container Apps.</span>
         <span className="flex flex-wrap gap-x-5">
+          <a className="underline-offset-4 hover:text-fg hover:underline" href={REPO} target="_blank" rel="noreferrer">GitHub</a>
           <a className="underline-offset-4 hover:text-fg hover:underline" href={`${REPO}#ai-that-gets-graded-not-just-heard`} target="_blank" rel="noreferrer">How it is graded</a>
           <a className="underline-offset-4 hover:text-fg hover:underline" href={`${REPO}/blob/main/infra/README.md`} target="_blank" rel="noreferrer">Architecture</a>
-          <a className="underline-offset-4 hover:text-fg hover:underline" href={REPO} target="_blank" rel="noreferrer">Source</a>
         </span>
       </footer>
     </section>
