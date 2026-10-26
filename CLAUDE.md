@@ -2,7 +2,11 @@
 
 Hackathon project: "Inside the Game: Developer Hackathon" (Microsoft × Premier
 League). Solo entry by Agustín Pérez. **Submission deadline: Oct 27, 2026,
-11:59 PM PT — no extensions.**
+11:59 PM Pacific — the end of that day, not its start.** The event page states
+the hacking period as Oct 6 to Oct 27, 2026, 11:59 PM Pacific; registration
+closed Oct 20. In Buenos Aires that cutoff is **04:59 on Oct 28** (Pacific is
+UTC-7 in October, Argentina UTC-3). Judging runs to Nov 10, and the deployed
+project has to stay reachable until then.
 
 ## Context — read first
 
