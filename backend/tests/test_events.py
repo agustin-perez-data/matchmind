@@ -44,10 +44,11 @@ def test_window_event_forwards_only_observable_fields_and_dedupes():
 def test_match_ended_event_summarises_without_the_hazard_series():
     meta = {"home_id": "THU", "away_id": "NBF", "teams": {"THU": {"short_name": "Thames"}, "NBF": {"short_name": "Northbridge"}}}
     state = {"score": {"THU": 1, "NBF": 2}, "minute": 95}
-    risk = {"concerns": [1, 2], "scorecard": {"alerts": 5, "true_alerts": 2, "covered": 1, "mean_lead_minutes": 12.5}, "hazards": [1], "series": [1]}
+    risk = {"concerns": [1, 2], "scorecard": {"model": {"alerts": 5, "true_alerts": 2, "covered": 1, "mean_lead_minutes": 12.5}, "baseline": {"alerts": 9}}, "hazards": [1], "series": [1]}
     ev = events.match_ended("THU-NBF-40", "analyst:en:-", meta, state, risk, {"hit_rate": 0.6, "graded": 5, "hits": 3, "rows": []})
     assert ev["id"] == "THU-NBF-40:ended:analyst:en:-" and ev["data"]["home"] == "Thames" and ev["data"]["knocks"] == 2
     assert ev["data"]["credibility"] == {"hit_rate": 0.6, "graded": 5, "hits": 3} and "series" not in ev["data"]
+    assert ev["data"]["windows"] == 5 and ev["data"]["warned"] == 1 and ev["data"]["mean_warning_minutes"] == 12.5
 
 
 def test_publish_errors_never_raise():

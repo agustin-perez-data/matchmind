@@ -52,8 +52,8 @@ def report_document(event: dict) -> dict:
         summary = (f"{data.get('name', data.get('player_id'))} entered a {data.get('level')} risk window at {data.get('clock')} "
                    f"(hazard {data.get('hazard')}, ACWR {data.get('acwr_live')})")
     elif event.get("type", "").endswith("ended"):
-        score = data.get("score") or {}
-        summary = (f"{data.get('home')} {score.get(next(iter(score), ''), '?')} - {data.get('away')}: {data.get('knocks')} knocks, "
+        score = " - ".join(str(v) for v in (data.get("score") or {}).values()) or "?"
+        summary = (f"{data.get('home')} {score} {data.get('away')}: {data.get('knocks')} knocks, "
                    f"{data.get('warned')} warned, {data.get('windows_hit')}/{data.get('windows')} windows hit")
     else:
         summary = event.get("type", "event")

@@ -65,7 +65,9 @@ deploys every push to `main`.
   viewer once warmed; re-run the warm job at a lower speed: `az containerapp job start -n matchmind-warm -g rg-matchmind`
   (edit the args to `--speed 20` if the quota is tight).
 - **Deploying while people watch**: single-revision mode replaces the revision after the new one is ready;
-  the old one has 120 s to finish; viewers reconnect with `from=<id>` and continue.
+  the old one has 120 s to finish; viewers reconnect with `from=<id>` and continue. Measured: an
+  `az containerapp revision restart` during a 100x replay never dropped the viewer's socket (the old replica
+  drained the replay to full time); the reconnect path was exercised by killing the process locally.
 - **Rotate the Speech key**: `az keyvault secret set --vault-name <kv> -n speech-key --value <new>`; then
   `az containerapp revision restart` (the secret reference is read at start).
 - **Scale down / park**: run the workflow with `min_replicas=0` (or `az containerapp update -n matchmind-api -g rg-matchmind --min-replicas 0`);

@@ -44,7 +44,7 @@ def window_opened(match_id: str, event_id: int, alert: dict) -> dict:
 
 def match_ended(match_id: str, profile_key: str, meta: dict, state: dict, risk: dict, credibility: dict | None) -> dict:
     score = state.get("score", {})
-    scorecard = risk.get("scorecard", {})
+    scorecard = (risk.get("scorecard") or {}).get("model") or {}  # the model's card; the baseline's stays out of the event
     data = {
         "match_id": match_id, "profile": profile_key,
         "home": meta.get("teams", {}).get(meta.get("home_id"), {}).get("short_name") or meta.get("home_id"),
