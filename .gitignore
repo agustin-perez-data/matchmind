@@ -33,3 +33,6 @@ Thumbs.db
 
 # Local server logs
 *.log
+
+# The frontend ships a copy of the risk calibration (the data/ rule above must not swallow it)
+!frontend/src/data/

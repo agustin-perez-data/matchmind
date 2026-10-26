@@ -1,0 +1,97 @@
+{
+ "matches": 40,
+ "horizon_minutes": 15,
+ "threshold": 0.5,
+ "bins": [
+  {
+   "lo": 0.5,
+   "hi": 0.6,
+   "model": {
+    "n": 24,
+    "hits": 0,
+    "hit_rate": 0.0,
+    "mean_hazard": 0.531
+   },
+   "baseline": {
+    "n": 0,
+    "hits": 0,
+    "hit_rate": null,
+    "mean_hazard": null
+   }
+  },
+  {
+   "lo": 0.6,
+   "hi": 0.7,
+   "model": {
+    "n": 51,
+    "hits": 0,
+    "hit_rate": 0.0,
+    "mean_hazard": 0.651
+   },
+   "baseline": {
+    "n": 6,
+    "hits": 0,
+    "hit_rate": 0.0,
+    "mean_hazard": 0.689
+   }
+  },
+  {
+   "lo": 0.7,
+   "hi": 0.8,
+   "model": {
+    "n": 97,
+    "hits": 0,
+    "hit_rate": 0.0,
+    "mean_hazard": 0.759
+   },
+   "baseline": {
+    "n": 10,
+    "hits": 1,
+    "hit_rate": 0.1,
+    "mean_hazard": 0.739
+   }
+  },
+  {
+   "lo": 0.8,
+   "hi": 0.9,
+   "model": {
+    "n": 268,
+    "hits": 4,
+    "hit_rate": 0.015,
+    "mean_hazard": 0.856
+   },
+   "baseline": {
+    "n": 10,
+    "hits": 1,
+    "hit_rate": 0.1,
+    "mean_hazard": 0.848
+   }
+  },
+  {
+   "lo": 0.9,
+   "hi": 1.0,
+   "model": {
+    "n": 164,
+    "hits": 44,
+    "hit_rate": 0.268,
+    "mean_hazard": 0.935
+   },
+   "baseline": {
+    "n": 304,
+    "hits": 13,
+    "hit_rate": 0.043,
+    "mean_hazard": 0.999
+   }
+  }
+ ],
+ "model": {
+  "windows": 604,
+  "hits": 48,
+  "base_rate": 0.079
+ },
+ "baseline": {
+  "windows": 330,
+  "hits": 15,
+  "base_rate": 0.045
+ }
+}
