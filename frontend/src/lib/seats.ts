@@ -3,32 +3,33 @@ import type { ViewerProfile } from './types'
 /** Where you sit decides what the broadcast shows you and how the agents talk to you. */
 export type Seat = 'fan' | 'analyst' | 'bench' | 'control'
 
-export const SEATS: Record<Seat, { label: string; tagline: string; bullets: string[]; mode: ViewerProfile['mode']; rule: string }> = {
+export const SEATS: Record<Seat, { label: string; promise: string; firstThirtySeconds: string; start?: boolean; mode: ViewerProfile['mode']; rule: string }> = {
   control: {
     label: 'Control room',
-    tagline: 'Watch the agents work.',
-    bullets: ['Every key moment as a swimlane: Analyst and Narrator in parallel, Director after', 'Tool calls, latencies and the orchestration behind them', 'What the Director showed and hid, and why'],
+    promise: 'Watch the agents work, moment by moment.',
+    firstThirtySeconds: 'The pipeline map lights up on the first key moment; its swimlane shows the Analyst and Narrator running in parallel, tool calls and the guardrail verdict.',
     mode: 'commentator',
     rule: '#c084fc',
   },
   fan: {
     label: 'Fan',
-    tagline: 'Live commentary, the ball, the goals.',
-    bullets: ['A commentator in your language, rioplatense included', 'The pitch, the score and the momentum', 'Follow one player if you want'],
+    promise: 'Live commentary, the ball, the goals, in your language.',
+    firstThirtySeconds: 'The pitch comes alive with 22 players, the commentator calls the first chance, and you can pick a player to follow.',
+    start: true,
     mode: 'commentator',
     rule: '#ffffff',
   },
   analyst: {
     label: 'Analyst',
-    tagline: 'Why the match is going the way it goes.',
-    bullets: ['The Analyst agent explains every key moment', 'xG race, momentum and the stats that matter', 'A shot map sized by expected goals'],
+    promise: 'Why the match is going the way it goes, with the numbers.',
+    firstThirtySeconds: 'Momentum and block height start moving; the Analyst explains the first key moment and makes a forecast the Judge will grade ten minutes later.',
     mode: 'analyst',
     rule: '#ffd166',
   },
   bench: {
     label: 'Bench',
-    tagline: 'Who is at risk, what to do, what would have happened.',
-    bullets: ['The Risk Monitor, graded live against real knocks', 'Coach proposals on every high-risk window', 'What-if branches you can simulate yourself'],
+    promise: 'Who is at risk, what to do, and what would have happened.',
+    firstThirtySeconds: 'The readiness board ranks the eleven by hazard; the first risk window opens, the Coach proposes a change and the engine re-simulates the match.',
     mode: 'analyst',
     rule: '#2dd4bf',
   },

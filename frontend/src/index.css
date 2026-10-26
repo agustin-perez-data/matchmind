@@ -264,3 +264,21 @@ select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-v
   .ping { opacity: 0; }
   .stagger > * { transition-delay: 0ms; }
 }
+
+.btn-amber { background: var(--color-amber); color: var(--color-ink); }
+.btn-amber:hover { background: var(--color-amber); filter: brightness(1.08); }
+
+/* Entry-screen preview loop: layers land on the phase the rAF loop writes to data-phase */
+.preview-lt { opacity: 0; transform: translateY(10px); transition: opacity 320ms var(--ease-out), transform 420ms var(--ease-out); }
+.preview[data-phase="lowerThird"] .preview-lt, .preview[data-phase="verdict"] .preview-lt { opacity: 1; transform: none; }
+.preview-stamp { opacity: 0; transform: scale(0.8) rotate(-4deg); transition: opacity 180ms var(--ease-out), transform 260ms var(--ease-out); }
+.preview[data-phase="verdict"] .preview-stamp { opacity: 1; transform: none; }
+.preview[data-phase="fade"] .preview-lt, .preview[data-phase="fade"] .preview-stamp { opacity: 0; transition-duration: 400ms; }
+.preview[data-phase="fade"] svg g { opacity: 0.55; transition: opacity 400ms var(--ease-out); }
+/* a styled native radio: the input stays in the tab order and keeps arrow-key behaviour, the label draws */
+.choice { cursor: pointer; }
+.choice input { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.choice:has(input:focus-visible) { outline: 2px solid var(--color-amber); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  .preview-lt, .preview-stamp, .preview svg g { transition: none; }
+}

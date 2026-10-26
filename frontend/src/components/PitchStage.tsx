@@ -5,6 +5,7 @@ import { touchPoints, type Touch } from '../lib/follow'
 import { attacksRight, heatCellRect, heatCells } from '../lib/tracking'
 import type { Frame, InsightMsg, MatchEvent, Meta, Snapshot } from '../lib/types'
 import { IconChart, IconMic } from './icons'
+import { PitchLines, Turf } from './PitchLines'
 import { TrackingLayer } from './TrackingLayer'
 
 const W = 105, H = 68
@@ -85,14 +86,8 @@ export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, key
         <svg viewBox={`0 0 ${W} ${H}`} className={`mx-auto h-auto w-full ${size === 'lg' ? 'max-w-[720px]' : 'max-w-[460px]'}`} role="img"
           aria-label="Pitch: shot map, ball position and possession"
           style={{ transform: 'rotateX(34deg) scale(1.04)', transformOrigin: '50% 62%', filter: 'drop-shadow(0 30px 40px rgba(0,0,0,.6))' }}>
-          <defs><linearGradient id="turf" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#2b7d4c" /><stop offset="1" stopColor="#17532f" /></linearGradient></defs>
-          <rect width={W} height={H} fill="url(#turf)" />
-          {[0, 2, 4, 6, 8, 10].map((i) => <rect key={i} x={i * (W / 12)} y={0} width={W / 12} height={H} fill="#ffffff0d" />)}
-          <g fill="none" stroke="#e6f2ea" strokeWidth={0.4}>
-            <rect x={0} y={0} width={W} height={H} /><line x1={W / 2} y1={0} x2={W / 2} y2={H} /><circle cx={W / 2} cy={H / 2} r={9.15} />
-            <rect x={0} y={13.85} width={16.5} height={40.3} /><rect x={W - 16.5} y={13.85} width={16.5} height={40.3} />
-            <rect x={0} y={24.84} width={5.5} height={18.32} /><rect x={W - 5.5} y={24.84} width={5.5} height={18.32} />
-          </g>
+          <Turf />
+          <PitchLines />
           {/* the followed player's heat: team-frame grid placed for the direction their side attacks in the shown half */}
           {heatOn && heatCells(heatGrid).map((c) => {
             const r = heatCellRect(c.index, heatRight)

@@ -608,6 +608,19 @@ to it makes the point.
 
 ## 6. Current status / handoff notes
 
+- **Entry screen redesign (Oct 26, night)**: after a review found the old menu sold the thesis and not the
+  product (first seat button below the fold on a 1366×768 laptop, no evidence for "graded", amber spent on the
+  fixture picker, cold-fixture trap, four identical cards, tracked all-caps eyebrows, nothing for a judge),
+  `SeatPicker.tsx` was rewritten: `PreviewLoop.tsx` (a scripted six-second move from `lib/preview.ts`,
+  rAF outside React, pauses when hidden, still frame under reduced motion), three proofs from
+  `lib/evidence.ts` (numbers copied from the README), the primary action "Watch the derby" →
+  `App.startQuick` (fan seat, neutral side, no turnstile), native-radio fixture and language choices,
+  `lib/fixtures.ts` (derby, matchday, newest daily match only), seat cards with a promise and "in the first
+  30 seconds", and a footer with source, architecture and grading links. `PitchLines.tsx` now holds the
+  pitch markings for the live pitch, the pass network and the preview. The warm job warms every fixture on
+  each deploy and the nightly job runs at 10:00 UTC. Measured at 1366×768: action at 497 px, proofs 580-709,
+  first seat 954; phone 2608 px tall, first seat at 1360.
+
 - **Azure deployment (Oct 26)**: plan in `infra/README.md` (purposes, SLOs, runbook, not-used list).
   Code: `agents/clients.py` reaches the Foundry *project* keyless (`FoundryChatClient`, identity on Azure,
   `az login` locally; key fallback kept), `agents/observability.py` (microsoft-opentelemetry → App Insights,

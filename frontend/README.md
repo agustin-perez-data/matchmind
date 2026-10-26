@@ -1,7 +1,8 @@
 # MatchMind frontend
 
-React + Vite + TypeScript + Tailwind. An entry screen where you pick a seat,
-then one match stage with three compositions:
+React + Vite + TypeScript + Tailwind. An entry screen that shows the product first (a six-second scripted
+loop of a move, a lower third and a verdict stamp, drawn with no backend), three measured proofs under the
+headline, one primary action into the derby, and the four seats; then one match stage with these compositions:
 
 - **Fan**: top band, pitch with the commentary lower third, momentum, moments.
 - **Analyst**: momentum, pitch with the Analyst lower third, a tall xG race,

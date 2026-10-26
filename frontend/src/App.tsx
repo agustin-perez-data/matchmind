@@ -8,6 +8,7 @@ import { voice } from './lib/voice'
 import type { BranchSummary, ViewerProfile } from './lib/types'
 import { ControlBar } from './components/ControlBar'
 import { SeatPicker } from './components/SeatPicker'
+import { headlineFixture } from './lib/fixtures'
 import { SideModal } from './components/SideModal'
 import { MatchStage } from './components/MatchStage'
 
@@ -130,6 +131,17 @@ export default function App() {
     begin(s, matchId)
   }, [matchId, language, speed, agents, coach, begin])
 
+  /** The entry screen's primary action: the headline fixture, fan seat, neutral side, no turnstile. */
+  const startQuick = useCallback(() => {
+    const id = headlineFixture(matches)?.match_id ?? matchId
+    if (!id) return
+    stadium.unlock()
+    setSeat('fan'); setMatchId(id)
+    setTeam(null); setSideChosen(true); setAskSide(false)
+    writeUrl({ seat: 'fan', match: id, lang: language, speed, team: 'neutral', agents: agents ? null : '0', coach: coach ? null : '0' })
+    begin('fan', id, { profile: profileForSeat('fan', language, favorite, null) })
+  }, [matches, matchId, language, speed, agents, coach, favorite, begin])
+
   /** The fan picked an end (or neutral) at the turnstile. */
   const chooseSide = useCallback((id: string | null) => {
     setTeam(id); setSideChosen(true); setAskSide(false)
@@ -185,7 +197,7 @@ export default function App() {
       )}
       {loadError && <p className="mx-6 mt-3 bg-ink px-4 py-3 text-bad">{loadError}</p>}
       {!inMatch && !loadError && (
-        <SeatPicker onPick={pickSeat} disabled={!matchId} matches={matches} matchId={matchId}
+        <SeatPicker onPick={pickSeat} onQuick={startQuick} disabled={!matchId} matches={matches} matchId={matchId}
           onMatch={(id) => { setMatchId(id); writeUrl({ match: id }, true) }}
           language={language} onLanguage={(l) => { setLanguage(l); writeUrl({ lang: l }, true) }} />
       )}

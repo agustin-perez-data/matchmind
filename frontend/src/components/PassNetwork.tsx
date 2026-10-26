@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { PitchLines } from './PitchLines'
 import type { Touch } from '../lib/follow'
 import { passNetwork } from '../lib/passNetwork'
 import { heatCentroid } from '../lib/tracking'
@@ -71,10 +72,7 @@ export function PassNetwork({ meta, touches, snapshot, ended, compact = false }:
       {!compact && <div className="mt-2">{teamTabs}</div>}
       <svg viewBox={`0 0 ${W} ${H}`} className={`mx-auto mt-3 h-auto w-full ${compact ? '' : 'max-w-[560px]'}`} role="img" aria-label={`${info.name} pass network, attacking to the right`}>
         <rect width={W} height={H} fill="#1f5c38" />
-        <g fill="none" stroke="#d6e9dc" strokeWidth={0.35} strokeOpacity={0.8}>
-          <rect x={0} y={0} width={W} height={H} /><line x1={W / 2} y1={0} x2={W / 2} y2={H} /><circle cx={W / 2} cy={H / 2} r={9.15} />
-          <rect x={0} y={13.85} width={16.5} height={40.3} /><rect x={W - 16.5} y={13.85} width={16.5} height={40.3} />
-        </g>
+        <PitchLines stroke="#d6e9dc" strokeWidth={0.35} strokeOpacity={0.8} sixYardBoxes={false} />
         {net.edges.map((e) => {
           const a = pos.get(e.from), b = pos.get(e.to)
           if (!a || !b) return null
