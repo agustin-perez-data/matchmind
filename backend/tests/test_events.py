@@ -10,7 +10,7 @@ from datetime import date
 from matchmind.api import events
 from matchmind.jobs.nightly import match_of_the_day
 from matchmind.reports import consume
-from tests.test_api import _drain  # noqa: E402
+from tests.test_api import _drain, client, data_dir  # noqa: E402,F401  (fixtures)
 
 ALERT = {"player_id": "THU-7", "name": "Ferrant", "team_id": "THU", "position": "FW", "clock": "61:10", "open_minute": 61,
          "hazard": 0.93, "level": "high", "hit": False, "minutes_played": 61, "acwr_live": 1.41, "effort_ratio_recent": 0.84,
