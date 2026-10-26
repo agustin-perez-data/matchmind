@@ -187,3 +187,13 @@ def test_narrator_brief_takes_the_supporters_side_or_stays_neutral():
     assert "supports Northbridge FC" in away_en
     assert ViewerProfile(mode="commentator", language="es", team_id="THU").key == "commentator:es:-:THU"
     assert ViewerProfile(mode="commentator", language="es").key == "commentator:es:-"  # unchanged for neutral viewers
+
+
+def test_usage_reads_the_typed_dict_and_attribute_forms():
+    from types import SimpleNamespace
+
+    from matchmind.agents.tracing import _usage
+
+    assert _usage(SimpleNamespace(usage_details={"input_token_count": 120, "output_token_count": 30}, messages=[])) == {"input": 120, "output": 30}
+    assert _usage(SimpleNamespace(usage_details=SimpleNamespace(input_token_count=5, output_token_count=None), messages=[])) == {"input": 5, "output": 0}
+    assert _usage(SimpleNamespace(usage_details=None, messages=[])) is None

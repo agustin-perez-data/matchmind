@@ -49,7 +49,9 @@ def _usage(result: Any) -> dict | None:
     for usage in candidates:
         if usage is None:
             continue
-        i, o = getattr(usage, "input_token_count", None), getattr(usage, "output_token_count", None)
+        # UsageDetails is a TypedDict in Agent Framework >= 1.20 (a plain mapping); older builds exposed attributes
+        get = usage.get if isinstance(usage, dict) else (lambda k, d=None: getattr(usage, k, d))
+        i, o = get("input_token_count"), get("output_token_count")
         if i is not None or o is not None:
             inp, out = (inp or 0) + (i or 0), (out or 0) + (o or 0)
     if inp is None and out is None:
