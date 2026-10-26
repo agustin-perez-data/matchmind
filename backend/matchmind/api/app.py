@@ -51,6 +51,7 @@ from matchmind.agents.cache import AgentCache, cache_from_env, coach_key, insigh
 from matchmind.agents.coach import build_coach_context
 from matchmind.agents.judge import ForecastLedger, build_judge_context, grade_forecast
 from matchmind.agents.moments import build_moment_context, detect_key_moment
+from matchmind.api.events import match_ended, publisher_from_env, window_opened
 from matchmind.agents.observability import configure_observability, moment_span, record_moment, telemetry_enabled
 from matchmind.agents.schemas import ViewerProfile
 from matchmind.generate_match import generate, write_match
@@ -390,6 +391,7 @@ class StreamSession:
                  frames=None, frames_mode="auto", resume_from=None):
         self.ws, self.meta, self.events, self.registry = websocket, meta, events, registry
         self.resume_from: int | None = resume_from  # events up to this id are replayed into the state without being sent
+        self.events_out = publisher_from_env()  # Event Grid, or None locally
         self.frames: list[dict] = list(frames or [])  # positional frames, a side channel: never events
         self.frames_mode = frames_mode
         self.pipeline, self.coach, self.judge, self.profile, self.speed = pipeline, coach, judge, profile, speed
@@ -626,6 +628,8 @@ class StreamSession:
                 # Risk Monitor: alerts immediately, a summary after every 5-minute sample batch
                 for alert in monitor.observe(event, snapshot):
                     await self.out.put({"kind": "risk_alert", **alert})
+                    if self.events_out is not None and alert["level"] == "high":
+                        self.events_out.publish(window_opened(self.match_id, event["event_id"], alert))
                     if coach is not None and alert["level"] == "high":
                         coach.offer(build_coach_context({**alert, "other_windows": monitor.active_windows()},
                                                         snapshot, self.meta, trigger="risk_alert"))
@@ -648,9 +652,12 @@ class StreamSession:
             for lane in (coach, judge):
                 if lane is not None:
                     await lane.close(AGENT_DRAIN_TIMEOUT_S)
-            await self.out.put({"kind": "end", "state": state.snapshot(), "risk": monitor.summary(),
-                                "hazard_series": monitor.hazard_series(),
-                                "credibility": self.ledger.summary() if moments is not None else None})
+            final_state, risk_summary = state.snapshot(), monitor.summary()
+            credibility = self.ledger.summary() if moments is not None else None
+            await self.out.put({"kind": "end", "state": final_state, "risk": risk_summary,
+                                "hazard_series": monitor.hazard_series(), "credibility": credibility})
+            if self.events_out is not None:
+                self.events_out.publish(match_ended(self.match_id, self.profile.key(), self.meta, final_state, risk_summary, credibility))
             await self.out.put(None)
             await sender
         except (WebSocketDisconnect, RuntimeError):

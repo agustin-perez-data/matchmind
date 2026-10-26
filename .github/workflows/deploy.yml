@@ -1,0 +1,136 @@
+name: Deploy to Azure
+
+# Push to main: build the API image, push it to ACR, apply infra/main.bicep with the new tag, warm the agent
+# cache, build the frontend against the API URL and publish it to Static Web Apps, register the Foundry
+# agents, smoke-test the public endpoints. No stored cloud secrets: the job signs in with OpenID Connect
+# against the user-assigned identity id-github-deploy (federated credential on refs/heads/main).
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**', 'video/**']
+  workflow_dispatch:
+    inputs:
+      min_replicas:
+        description: 'Minimum API replicas (0 parks the app, 1 keeps it warm)'
+        default: '1'
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RESOURCE_GROUP: rg-matchmind
+  IMAGE_NAME: matchmind-api
+  SWA_NAME: swa-matchmind
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve registry
+        id: acr
+        run: |
+          name=$(az acr list -g "$RESOURCE_GROUP" --query "[0].name" -o tsv)
+          server=$(az acr show -n "$name" --query loginServer -o tsv)
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "server=$server" >> "$GITHUB_OUTPUT"
+          echo "image=$server/$IMAGE_NAME:${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+          az acr login -n "$name"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push the API image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: |
+            ${{ steps.acr.outputs.image }}
+            ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=registry,ref=${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          provenance: false
+
+      - name: Apply infrastructure (Bicep)
+        id: infra
+        run: |
+          out=$(az deployment group create -g "$RESOURCE_GROUP" -n "deploy-${GITHUB_SHA::12}" \
+            -f infra/main.bicep \
+            -p acrName="${{ steps.acr.outputs.name }}" image="${{ steps.acr.outputs.image }}" \
+               minReplicas="${{ github.event.inputs.min_replicas || vars.MIN_REPLICAS || '1' }}" \
+               alertEmail="${{ vars.ALERT_EMAIL }}" \
+            --query properties.outputs -o json)
+          echo "$out" | jq -r '"API " + .apiUrl.value + "  SWA https://" + .swaHostname.value'
+          echo "api_url=$(echo "$out" | jq -r .apiUrl.value)" >> "$GITHUB_OUTPUT"
+          echo "swa_host=$(echo "$out" | jq -r .swaHostname.value)" >> "$GITHUB_OUTPUT"
+          echo "project_endpoint=$(echo "$out" | jq -r .projectEndpoint.value)" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for the new revision to be ready
+        run: |
+          for i in $(seq 1 30); do
+            body=$(curl -fsS --max-time 10 "${{ steps.infra.outputs.api_url }}/health" || true)
+            if echo "$body" | jq -e '.ready == true and .agents == true and .auth == "project"' >/dev/null 2>&1; then
+              echo "$body" | jq .; exit 0
+            fi
+            echo "not ready yet ($i): ${body:-no answer}"; sleep 10
+          done
+          echo "the API never became ready"; exit 1
+
+      - name: Warm the agent cache (Container Apps job, runs in the background)
+        run: az containerapp job start -n matchmind-warm -g "$RESOURCE_GROUP" -o none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build the frontend against the deployed API
+        working-directory: frontend
+        env:
+          VITE_API_BASE: ${{ steps.infra.outputs.api_url }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Publish the frontend (Static Web Apps)
+        working-directory: frontend
+        run: |
+          token=$(az staticwebapp secrets list -n "$SWA_NAME" -g "$RESOURCE_GROUP" --query properties.apiKey -o tsv)
+          npx --yes @azure/static-web-apps-cli@2.0.7 deploy ./dist --deployment-token "$token" --env production --verbose silly 2>&1 | grep -v "deployment-token" | tail -n 20
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Register the Foundry agents (Scout with our MCP tool, Judge v1)
+        if: hashFiles('infra/register_scout.py') != ''
+        env:
+          FOUNDRY_PROJECT_ENDPOINT: ${{ steps.infra.outputs.project_endpoint }}
+          MATCHMIND_API_URL: ${{ steps.infra.outputs.api_url }}
+        run: |
+          pip install -q -r backend/requirements.txt
+          python infra/register_scout.py
+          python infra/register_judge.py
+
+      - name: Smoke test the public endpoints
+        env:
+          MATCHMIND_API_URL: ${{ steps.infra.outputs.api_url }}
+          MATCHMIND_WEB_URL: https://${{ steps.infra.outputs.swa_host }}
+        run: |
+          pip install -q httpx websockets
+          python infra/smoke.py
