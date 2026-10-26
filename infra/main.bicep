@@ -56,6 +56,7 @@ var suffix = uniqueString(resourceGroup().id)
 var roles = {
   foundryUser: '53ca6127-db72-4b80-b1b0-d745d6d5456d'
   cognitiveServicesOpenAIUser: '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+  cognitiveServicesUser: 'a97b65f3-24c7-4388-baec-2e87135dc908'
   keyVaultSecretsUser: '4633458b-17de-408a-b874-0445c86b69e6'
   acrPull: '7f951dda-4ed3-4680-a7ca-43fe172d538d'
   acrPush: '8311e382-0749-4cb8-b61a-304f252e45ec'
@@ -133,8 +134,8 @@ resource project 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
   }
 }
 
-// Foundry tracing reads the Application Insights connected at the account level (shared by its projects);
-// the project-level mirror makes the project page show it without hunting.
+// Foundry tracing reads the Application Insights connected at the account level; isSharedToAll surfaces it in
+// every project of the account (a project-level copy with the same name is rejected by the service).
 resource foundryAppInsights 'Microsoft.CognitiveServices/accounts/connections@2025-04-01-preview' = {
   parent: foundry
   name: 'appinsights'
@@ -148,23 +149,9 @@ resource foundryAppInsights 'Microsoft.CognitiveServices/accounts/connections@20
   }
 }
 
-resource projectAppInsights 'Microsoft.CognitiveServices/accounts/projects/connections@2025-04-01-preview' = {
-  parent: project
-  name: 'appinsights'
-  properties: {
-    category: 'AppInsights'
-    target: appInsights.id
-    authType: 'ApiKey'
-    isSharedToAll: true
-    credentials: { key: appInsights.properties.ConnectionString }
-    metadata: { ApiType: 'Azure', ResourceId: appInsights.id }
-  }
-  dependsOn: [foundryAppInsights]
-}
-
 // ------------------------------------------------------------------ Key Vault (only the Speech key lives here)
 resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {
-  name: 'kv-matchmind-${suffix}'
+  name: 'kv-mm-${suffix}' // 3-24 chars
   location: location
   tags: tags
   properties: {
@@ -275,7 +262,9 @@ resource env 'Microsoft.App/managedEnvironments@2025-01-01' = {
       destination: 'log-analytics'
       logAnalyticsConfiguration: { customerId: logs.properties.customerId, sharedKey: logs.listKeys().primarySharedKey }
     }
-    workloadProfiles: [{ name: 'Consumption', workloadProfileType: 'Consumption' }]
+    // Consumption-only environment (no workload profiles): everything here fits it (jobs, sticky sessions, the
+    // Azure Files mount, KEDA rules) and it provisions in minutes; the workload-profile flavour sat in
+    // "Waiting" for an hour on this subscription.
   }
 }
 
@@ -310,6 +299,7 @@ var apiEnv = [
   { name: 'MATCHMIND_EVENTGRID_ENDPOINT', value: topic.properties.endpoint }
   { name: 'MATCHMIND_STORAGE_ACCOUNT', value: storage.name }
   { name: 'MATCHMIND_GUARDRAILS', value: '1' }
+  { name: 'MATCHMIND_JUDGE', value: 'foundry' }
 ]
 
 var jobEnv = filter(apiEnv, e => e.name != 'AZURE_SPEECH_KEY')
@@ -321,7 +311,6 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
   identity: { type: 'UserAssigned', userAssignedIdentities: { '${apiIdentity.id}': {} } }
   properties: {
     environmentId: env.id
-    workloadProfileName: 'Consumption'
     configuration: {
       activeRevisionsMode: 'Single'
       maxInactiveRevisions: 5
@@ -365,7 +354,6 @@ resource api 'Microsoft.App/containerApps@2025-01-01' = {
 // ------------------------------------------------------------------ jobs: warm after deploy, report on event, nightly
 var jobCommon = {
   environmentId: env.id
-  workloadProfileName: 'Consumption'
   registries: [{ server: acr.properties.loginServer, identity: apiIdentity.id }]
 }
 
@@ -376,7 +364,6 @@ resource warmJob 'Microsoft.App/jobs@2025-01-01' = {
   identity: { type: 'UserAssigned', userAssignedIdentities: { '${apiIdentity.id}': {} } }
   properties: {
     environmentId: jobCommon.environmentId
-    workloadProfileName: jobCommon.workloadProfileName
     configuration: {
       triggerType: 'Manual'
       replicaTimeout: 2400
@@ -406,7 +393,6 @@ resource reportJob 'Microsoft.App/jobs@2025-01-01' = {
   identity: { type: 'UserAssigned', userAssignedIdentities: { '${apiIdentity.id}': {} } }
   properties: {
     environmentId: jobCommon.environmentId
-    workloadProfileName: jobCommon.workloadProfileName
     configuration: {
       triggerType: 'Event'
       replicaTimeout: 300
@@ -452,7 +438,6 @@ resource nightlyJob 'Microsoft.App/jobs@2025-01-01' = {
   identity: { type: 'UserAssigned', userAssignedIdentities: { '${apiIdentity.id}': {} } }
   properties: {
     environmentId: jobCommon.environmentId
-    workloadProfileName: jobCommon.workloadProfileName
     configuration: {
       triggerType: 'Schedule'
       replicaTimeout: 2400
@@ -498,6 +483,13 @@ resource apiOpenAIUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(foundry.id, apiIdentity.id, roles.cognitiveServicesOpenAIUser)
   scope: foundry
   properties: { roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.cognitiveServicesOpenAIUser), principalId: apiIdentity.properties.principalId, principalType: 'ServicePrincipal' }
+}
+
+// Content Safety (the groundedness guardrail) on the same resource: data-plane access for the API identity
+resource apiCognitiveUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(foundry.id, apiIdentity.id, roles.cognitiveServicesUser)
+  scope: foundry
+  properties: { roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roles.cognitiveServicesUser), principalId: apiIdentity.properties.principalId, principalType: 'ServicePrincipal' }
 }
 
 resource apiKeyVault 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

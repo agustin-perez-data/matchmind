@@ -137,6 +137,10 @@ function Swimlane({ item, meta }: { item: FeedItem; meta: Meta }) {
     return { lane, start: start ?? 0, end: endEv?.t ?? total, error: endEv?.kind === 'agent_error' || !!endEv?.error, tools: trace.filter((e) => e.kind === 'tool_call' && e.agent === lane) }
   })
   const fallback = trace.find((e) => e.kind === 'fallback')
+  const guardrails = trace.filter((e) => e.kind === 'guardrail')
+  const guardText = guardrails.length
+    ? guardrails.map((g) => !g.checked ? 'guardrail: not checked' : g.grounded ? 'guardrail: grounded' : `guardrail: ${Math.round((g.ungrounded_percentage ?? 0) * 100)}% ungrounded`).join(' · ')
+    : null
   const title = item.msg.kind === 'insight' ? `${item.msg.clock} · ${item.msg.moment.summary.replace(/^\d+:\d+\s*/, '')}` : `${item.msg.clock} · Coach, ${item.msg.trigger === 'injury_concern' ? 'knock' : 'risk window'} on ${item.msg.player.name}`
   void meta
   return (
@@ -157,6 +161,7 @@ function Swimlane({ item, meta }: { item: FeedItem; meta: Meta }) {
           )
         })}
         {fallback && <text x={L} y={H - 4} fontSize={9} fill="var(--color-risk)">fallback: {fallback.reason}</text>}
+        {guardText && <text x={fallback ? W / 2 : L} y={H - 4} fontSize={9} fill={guardrails.every((g) => !g.checked || g.grounded) ? 'var(--color-teal)' : 'var(--color-risk)'}>{guardText}</text>}
       </svg>
       {item.msg.kind === 'insight' && <Decision msg={item.msg} />}
       {item.msg.kind === 'coach' && item.msg.proposal && (

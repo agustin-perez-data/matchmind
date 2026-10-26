@@ -61,11 +61,7 @@ def cached_insights(cache_dir: Path, match_id: str) -> list[tuple[str, int, dict
     return sorted(rows, key=lambda r: (r[0], r[1]))
 
 
-def context_text(ctx: dict) -> str:
-    """The facts the agents were given, minus the viewer bookkeeping, as the evaluator's source."""
-    keep = ("clock", "score", "moment", "event", "teams", "momentum", "last_10_minutes", "players_involved",
-            "watched_players", "risk_alerts", "game_state", "top_shooters")
-    return json.dumps({k: ctx[k] for k in keep if k in ctx}, ensure_ascii=False)
+from matchmind.agents.guardrails import context_text  # noqa: E402  (one definition of the facts text)
 
 
 def items_to_score(contexts: dict[int, dict], insights: list[tuple[str, int, dict]]) -> list[dict]:
@@ -125,6 +121,35 @@ def print_report(report: dict) -> None:
             print(f"      weakest {w['groundedness']}: {w['response'][:80]!r}\n        {str(w['reason'])[:160]}")
 
 
+async def foundry_evaluate(items: list[dict], match_id: str) -> dict:
+    """The same items through the Foundry project's built-in groundedness evaluator (FoundryEvals).
+
+    The dataset is posted inline to the project's evals API; the run shows on the project's Evaluations page
+    (report_url). The grader is the project's, not the local prompty, so scores are comparable in direction,
+    not byte-identical; the local JSON stays the primary number.
+    """
+    from agent_framework import EvalItem, Message
+    from agent_framework_foundry import FoundryEvals
+
+    from matchmind.agents.clients import chat_client, project_endpoint
+
+    if not project_endpoint():
+        return {"error": "FOUNDRY_PROJECT_ENDPOINT not set"}
+    eval_items = [EvalItem(conversation=[Message("user", AGENT_QUERIES[it["agent"]]), Message("assistant", it["response"])], context=it["context"])
+                  for it in items]
+    evals = FoundryEvals(client=chat_client("fast"), evaluators=[FoundryEvals.GROUNDEDNESS], timeout=900)
+    t0 = time.perf_counter()
+    res = await evals.evaluate(eval_items, eval_name=f"matchmind-groundedness-{match_id}")
+    per_item = []
+    for it, r in zip(items, res.items or []):
+        scores = {s.name: {"score": s.score, "passed": s.passed} for s in (r.scores or [])}
+        per_item.append({"agent": it["agent"], "profile": it["profile"], "event_id": it["event_id"], "status": r.status, "scores": scores})
+    out = {"provider": res.provider, "passed": res.passed, "total": res.total, "report_url": getattr(res, "report_url", None),
+           "seconds": round(time.perf_counter() - t0), "items": per_item}
+    print(f"\nFoundry evaluation: {res.passed}/{res.total} passed in {out['seconds']}s  {out['report_url'] or ''}")
+    return out
+
+
 def build_evaluator():
     from azure.ai.evaluation import AzureOpenAIModelConfiguration, GroundednessEvaluator
 
@@ -168,6 +193,7 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=0, help="max items to score (0 = all)")
     ap.add_argument("--label", default="groundedness")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--foundry", action="store_true", help="also run the project's built-in groundedness evaluator (Foundry Evaluations page)")
     args = ap.parse_args()
 
     data_dir = Path(args.data_dir)
@@ -187,6 +213,8 @@ def main() -> None:
     report = summarize(scored, args.match, args.label)
     report["seconds"] = round(time.perf_counter() - t0)
     print_report(report)
+    if args.foundry:
+        report["foundry"] = asyncio.run(foundry_evaluate(scored, args.match))
     if args.out:
         out = Path(args.out)
         out.parent.mkdir(parents=True, exist_ok=True)

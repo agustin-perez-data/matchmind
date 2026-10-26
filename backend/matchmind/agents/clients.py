@@ -111,11 +111,36 @@ def build_judge() -> "JudgePipeline":
     from matchmind.agents.schemas import JudgeVerdict
     from matchmind.agents.tracing import TRACE_MIDDLEWARE
 
+    if os.environ.get("MATCHMIND_JUDGE", "").lower() == "foundry" and auth_mode() == "project":
+        try:
+            return JudgePipeline(JudgeAgent(hosted_judge()))
+        except Exception as exc:  # noqa: BLE001  (not registered yet: the first deploy registers it after the API starts)
+            log.warning("hosted Judge unavailable (%r); using the in-process Judge", exc)
     agent = chat_client("fast").as_agent(
         name="Judge", instructions=JUDGE_INSTRUCTIONS,
         default_options={"temperature": 0.2, "response_format": JudgeVerdict}, middleware=TRACE_MIDDLEWARE,
     )
     return JudgePipeline(JudgeAgent(agent))
+
+
+def hosted_judge():
+    """The Judge as the prompt agent registered in the project (infra/register_judge.py): same instructions, same
+    model, same JudgeVerdict schema, versioned and visible under Agents. Latest version unless MATCHMIND_JUDGE_VERSION."""
+    from agent_framework_foundry import FoundryAgent
+    from azure.ai.projects import AIProjectClient
+    from matchmind.agents.schemas import JudgeVerdict
+    from matchmind.agents.tracing import TRACE_MIDDLEWARE
+
+    endpoint, credential = os.environ["FOUNDRY_PROJECT_ENDPOINT"], _credential()
+    version = os.environ.get("MATCHMIND_JUDGE_VERSION")
+    if not version:
+        versions = list(AIProjectClient(endpoint=endpoint, credential=credential).agents.list_versions("matchmind-judge"))
+        if not versions:
+            raise RuntimeError("matchmind-judge is not registered in the project (run infra/register_judge.py)")
+        version = str(max(int(getattr(v, "version", 0) or 0) for v in versions))
+    log.info("Judge: hosted agent matchmind-judge v%s", version)
+    return FoundryAgent(project_endpoint=endpoint, agent_name="matchmind-judge", agent_version=version, credential=credential,
+                        middleware=TRACE_MIDDLEWARE, default_options={"temperature": 0.2, "response_format": JudgeVerdict})
 
 
 def build_analyst(tools: list | None = None, instructions: str | None = None) -> AnalystAgent:

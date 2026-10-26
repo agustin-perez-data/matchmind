@@ -219,7 +219,12 @@ export type DirectorDecision = {
 
 export type TraceEvent = {
   t: number
-  kind: 'stage' | 'stage_end' | 'agent_start' | 'agent_end' | 'agent_error' | 'tool_call' | 'tool_result' | 'tool_error' | 'fallback'
+  kind: 'stage' | 'stage_end' | 'agent_start' | 'agent_end' | 'agent_error' | 'tool_call' | 'tool_result' | 'tool_error' | 'fallback' | 'guardrail'
+  /** guardrail entries (Azure AI Content Safety groundedness on the Narrator's line) */
+  checked?: boolean
+  grounded?: boolean
+  ungrounded_percentage?: number
+  profile?: string
   agent: string | null
   stage?: string
   tool?: string
