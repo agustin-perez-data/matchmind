@@ -66,7 +66,7 @@ if (-not $SkipDataUpload) {
   Step "Data upload to the share matchmind-data on $storage (matches, agent cache, TTS cache)"
   $key = az storage account keys list -n $storage -g $ResourceGroup --query '[0].value' -o tsv
   az storage file upload-batch --account-name $storage --account-key $key --destination matchmind-data --source "$root/data" --no-progress -o none
-  $n = az storage file list --account-name $storage --account-key $key --share-name matchmind-data --query 'length(@)' -o tsv
+  $n = az storage file list --account-name $storage --account-key $key --share-name matchmind-data --query "length(@)" -o tsv
   Write-Host "  $n entries at the share root"
 }
 
