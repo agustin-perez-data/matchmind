@@ -12,8 +12,9 @@ describe('the proofs on the entry screen', () => {
   })
 
   it('carry the numbers the README reports', () => {
-    expect(PROOFS[0].value).toBe('32 %')
-    expect(PROOFS[0].compare).toContain('14 %')
+    expect(PROOFS[0].value).toBe('1 in 3')
+    expect(PROOFS[0].source).toContain('32 %')
+    expect(PROOFS[0].source).toContain('14 %')
     expect(PROOFS[1].value).toBe('25 min')
     expect(PROOFS[2].value).toBe('4.9 / 5')
   })

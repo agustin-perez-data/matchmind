@@ -15,20 +15,20 @@ export type Proof = {
 
 export const PROOFS: readonly Proof[] = [
   {
-    value: '32 %',
-    compare: 'random 14 %',
-    caption: 'of knocks hit a player the Risk Monitor had in its top three.',
-    source: '40 simulated matches, offline evaluation',
+    value: '1 in 3',
+    compare: 'random would be 1 in 7',
+    caption: 'Of the players who got hurt, one in three was among the three the Risk Monitor had flagged as most at risk.',
+    source: '40 simulated matches: 32 % against 14 % for a random pick',
   },
   {
     value: '25 min',
-    compare: 'baseline 18',
-    caption: 'average warning before a knock, from workload alone.',
-    source: 'same 40 matches, minutes-only rule as the baseline',
+    compare: 'a minutes-played rule: 18',
+    caption: 'Average warning between the monitor flagging a player and the knock. Time enough to take him off.',
+    source: 'same 40 matches',
   },
   {
     value: '4.9 / 5',
-    caption: 'groundedness of what the Analyst said, scored by an independent grader.',
+    caption: 'How closely the Analyst stuck to the facts it was given, scored by an independent grader, not by us.',
     source: '28 moments, Azure AI Evaluation',
   },
 ]
