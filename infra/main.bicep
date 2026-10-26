@@ -379,7 +379,8 @@ resource warmJob 'Microsoft.App/jobs@2025-01-01' = {
           resources: { cpu: json('0.25'), memory: '0.5Gi' }
           env: jobEnv
           command: ['python', '-m', 'matchmind.agents.warm_cache']
-          args: ['--base', 'https://${api.properties.configuration.ingress.fqdn}', '--match', 'THU-NBF-40', '--speed', '40']
+          // every match in the catalogue, four seat profiles each; after the first run it is cache hits only
+          args: ['--base', 'https://${api.properties.configuration.ingress.fqdn}', '--speed', '40']
         }
       ]
     }
@@ -443,7 +444,9 @@ resource nightlyJob 'Microsoft.App/jobs@2025-01-01' = {
       replicaTimeout: 2400
       replicaRetryLimit: 1
       registries: jobCommon.registries
-      scheduleTriggerConfig: { cronExpression: '0 4 * * *', parallelism: 1, replicaCompletionCount: 1 }
+      // 10:00 UTC = 03:00 Pacific / 07:00 Buenos Aires: outside the judges' evening, and the new match of the
+      // day is warm before anyone on the Pacific coast is awake (04:00 UTC was 21:00 Pacific the evening before)
+      scheduleTriggerConfig: { cronExpression: '0 10 * * *', parallelism: 1, replicaCompletionCount: 1 }
     }
     template: {
       containers: [
