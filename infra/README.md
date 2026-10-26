@@ -92,6 +92,25 @@ deploys every push to `main`.
 | Defender for Containers runtime protection | Its runtime matrix does not list Container Apps. Compensating controls: pinned base image by digest, lock file, non-root user, no secrets in the image, identities with scoped roles, local auth off on Event Grid, budget and alerts. |
 | Azure Load Testing resource | The stream test needs WebSockets; `stream_load.py` runs the same 25-viewer scenario from any machine against the public API and prints the SLO numbers. |
 
+## Red teaming the Scout
+
+The Scout is the only surface that takes free text from a person, so it is the one worth attacking.
+`infra/redteam_scout.py` runs the Azure AI Evaluation red teaming agent against the hosted agent.
+
+| Scan | Attacks | Stopped by the input filter | Got through |
+|---|---|---|---|
+| Scout v1 | 48 | 9 | 6 (12.5 %), all by obfuscation |
+| Scout v2, after the instruction fix | 48 | 8 | 0 |
+
+Two things to know before running it again: install the extra in a venv on a short path (`D:t`), because
+PyRIT ships file names that exceed the Windows path limit, and keep the target callback running the agent on a
+worker thread. The scanner owns the event loop, so an `asyncio.run` inside the callback raises and every answer
+comes back as an error, which scores as a clean 0 %.
+
+```powershell
+D:t\Scripts\python D:\GitHub\matchmind\infraedteam_scout.py --objectives 3
+```
+
 ## Bootstrap and deploy
 
 ```powershell
