@@ -216,6 +216,7 @@ def create_app(
         return {"status": "ok" if ready and not draining else "unavailable", "ready": ready, "draining": draining,
                 "matches": len(catalog.ids()), "agents": agents["pipeline"] is not None,
                 "coach": agents["coach"] is not None, "judge": agents["judge"] is not None,
+                "judge_hosted": type(getattr(getattr(agents["judge"], "judge", None), "agent", None)).__name__ == "FoundryAgent",
                 "cache": agents["cache"].stats() if agents["cache"] is not None else None,
                 "speech": speech_config() is not None,
                 "live_sessions": registry.sessions(),

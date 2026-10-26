@@ -32,8 +32,8 @@ export function ControlRoom({ meta, feed, risk, agentsOn, coachOn, verdicts, cre
   const tokens = feedTokens(feed, verdicts)
   const cache = cacheRate(feed, verdicts)
   const explainP95 = percentile(insights.filter((f) => !f.msg.cached).map((f) => f.msg.latency_ms), 95)
-  const judgeHosted = hostedJudge(verdicts)
   const [health, setHealth] = useState<Health | null>(null)
+  const judgeHosted = hostedJudge(verdicts) || !!health?.judge_hosted
   useEffect(() => {
     let alive = true
     const load = () => getHealth().then((h) => { if (alive) setHealth(h) }).catch(() => undefined)
@@ -120,12 +120,12 @@ function PipelineMap({ lit, judgeHosted, guardrails }: { lit: Set<string>; judge
     { id: 'stream', label: 'Event stream', x: 10, y: 40 }, { id: 'interpreter', label: 'Interpreter', x: 150, y: 40 },
     { id: 'gate', label: 'Key-moment gate', x: 290, y: 14 }, { id: 'Analyst', label: 'Analyst · gpt-4o', x: 450, y: 0 },
     { id: 'Narrator', label: 'Narrator · gpt-4.1-mini', x: 450, y: 30 }, { id: 'Director', label: 'Director', x: 640, y: 14 },
-    ...(guardrails ? [{ id: 'guardrail', label: 'Guardrail · Content Safety', x: 450, y: 44, w: 160 }] : []),
+    ...(guardrails ? [{ id: 'guardrail', label: 'Guardrail · Content Safety', x: 450, y: 56, w: 160 }] : []),
     { id: 'seat', label: 'Your seat', x: 780, y: 14 },
-    { id: 'risk', label: 'Risk Monitor', x: 290, y: 70 }, { id: 'Coach', label: 'Coach · gpt-4o', x: 450, y: 70 },
-    { id: 'Engine', label: 'Engine, re-simulated branch', x: 640, y: 70, w: 160 }, { id: 'whatif', label: 'What-if', x: 820, y: 70 },
-    { id: 'ledger', label: 'Forecast ledger, +10 min', x: 290, y: 112, w: 150 }, { id: 'Judge', label: judgeHosted ? 'Judge · hosted in Foundry' : 'Judge · gpt-4.1-mini', x: 450, y: 112, w: judgeHosted ? 150 : undefined },
-    { id: 'credibility', label: 'Credibility vs naive', x: 640, y: 112, w: 160 },
+    { id: 'risk', label: 'Risk Monitor', x: 290, y: 88 }, { id: 'Coach', label: 'Coach · gpt-4o', x: 450, y: 88 },
+    { id: 'Engine', label: 'Engine, re-simulated branch', x: 640, y: 88, w: 160 }, { id: 'whatif', label: 'What-if', x: 820, y: 88 },
+    { id: 'ledger', label: 'Forecast ledger, +10 min', x: 290, y: 130, w: 150 }, { id: 'Judge', label: judgeHosted ? 'Judge · hosted in Foundry' : 'Judge · gpt-4.1-mini', x: 450, y: 130, w: judgeHosted ? 150 : undefined },
+    { id: 'credibility', label: 'Credibility vs naive', x: 640, y: 130, w: 160 },
   ]
   const edges: [string, string][] = [['stream', 'interpreter'], ['interpreter', 'gate'], ['gate', 'Analyst'], ['gate', 'Narrator'], ['Analyst', 'Director'], ['Narrator', 'Director'], ['Director', 'seat'], ['interpreter', 'risk'], ['risk', 'Coach'], ['Coach', 'Engine'], ['Engine', 'whatif'], ['Analyst', 'ledger'], ['ledger', 'Judge'], ['Judge', 'credibility'], ...(guardrails ? [['guardrail', 'Director'] as [string, string]] : [])]
   const pos = Object.fromEntries(nodes.map((n) => [n.id, n]))
@@ -137,10 +137,10 @@ function PipelineMap({ lit, judgeHosted, guardrails }: { lit: Set<string>; judge
   ]
   const TOP = 24
   return (
-    <svg viewBox={`0 -${TOP} 960 ${140 + TOP}`} className="mt-3 w-full" role="img" aria-label="Agent pipeline over the five stages of the brief: ingest, interpret, explain, render, personalize">
+    <svg viewBox={`0 -${TOP} 960 ${158 + TOP}`} className="mt-3 w-full" role="img" aria-label="Agent pipeline over the five stages of the brief: ingest, interpret, explain, render, personalize">
       {STAGES.map((s) => (
         <g key={s.label}>
-          <line x1={s.x0} x2={s.x0} y1={-TOP} y2={140} stroke="#3a4560" strokeWidth={1} strokeDasharray="2 4" />
+          <line x1={s.x0} x2={s.x0} y1={-TOP} y2={158} stroke="#3a4560" strokeWidth={1} strokeDasharray="2 4" />
           <text x={s.x0 + 6} y={-TOP + 12} fontSize={10} fontFamily="Barlow Condensed" fontWeight={800} fill="var(--color-muted)" letterSpacing={1.2}>{s.label.toUpperCase()}</text>
         </g>
       ))}

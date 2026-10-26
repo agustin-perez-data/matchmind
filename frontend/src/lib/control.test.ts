@@ -45,7 +45,7 @@ describe('control room arithmetic', () => {
   })
 
   it('one guardrail line per moment, naming the viewer', () => {
-    expect(guardrailLine(trace)).toEqual({ text: 'guardrail: commentator/es 99 %, analyst/en grounded ungrounded', clean: false })
+    expect(guardrailLine(trace)).toEqual({ text: 'guardrail: commentator/es/THU 99 % ungrounded, analyst/en grounded', clean: false })
     expect(guardrailLine([])).toBeNull()
   })
 

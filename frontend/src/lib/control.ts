@@ -18,6 +18,7 @@ export type Health = {
   replica: string | null
   revision: string | null
   cache: { hits: number; misses: number; entries: number } | null
+  judge_hosted?: boolean
 }
 
 /** Input + output tokens recorded on agent_end events of one trace. */
@@ -57,11 +58,13 @@ export function fmtTokens(n: number): string {
 export function guardrailLine(trace: TraceEvent[] | undefined): { text: string; clean: boolean } | null {
   const gs = (trace ?? []).filter((e) => e.kind === 'guardrail')
   if (!gs.length) return null
-  const who = (g: TraceEvent) => (g.profile ?? '').split(':').slice(0, 2).join('/') || 'viewer'
-  const parts = gs.map((g) => (!g.checked ? `${who(g)} unchecked` : g.grounded ? `${who(g)} grounded` : `${who(g)} ${Math.round((g.ungrounded_percentage ?? 0) * 100)} %`))
+  const who = (g: TraceEvent) => {
+    const [mode, lang, , team] = (g.profile ?? '').split(':')
+    return [mode, lang, team].filter((x) => x && x !== '-').join('/') || 'viewer'
+  }
+  const parts = gs.map((g) => (!g.checked ? `${who(g)} unchecked` : g.grounded ? `${who(g)} grounded` : `${who(g)} ${Math.round((g.ungrounded_percentage ?? 0) * 100)} % ungrounded`))
   const clean = gs.every((g) => !g.checked || g.grounded)
-  const anyUngrounded = gs.some((g) => g.checked && !g.grounded)
-  return { text: `guardrail: ${parts.join(', ')}${anyUngrounded ? ' ungrounded' : ''}`, clean }
+  return { text: `guardrail: ${parts.join(', ')}`, clean }
 }
 
 /** The Judge ran as the hosted Foundry agent when a verdict trace names it. */
