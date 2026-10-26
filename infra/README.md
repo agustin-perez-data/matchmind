@@ -105,6 +105,19 @@ carry them; `infra/register_external_agents.py` registers the four and refuses t
 Control Plane's "custom agents" are the other feature, the one that does route traffic through an AI Gateway;
 MatchMind does not use it, because the external-agent path gives the same views without a proxy in the path.
 
+## The groundedness guardrail, and what its number means
+
+Content Safety scores how much of a line is literally supported by the facts it was given. Commentary and
+analysis both carry inference, so zero is not the target and a non-zero reading is not a failure: the
+Analyst's own text sits near 50 % on this detector. Read it as drift.
+
+Two things were tuned by measuring, not by guessing. The grounding source is now the facts as plain
+sentences rather than the JSON the agents receive (8 points better on identical lines), and the call uses the
+QnA task with the agent's own brief as the query. Then the detector earned its keep: it kept flagging phrases
+like "pushing hard with keen intent" and "the deadlock holds", which are the Narrator asserting mood as fact.
+One instruction change later (energy in the verbs; never assert intent, mood or effort without a number),
+the same six moments scored 34 % against 57 %, over three samples per moment per condition.
+
 ## Red teaming the Scout
 
 The Scout is the only surface that takes free text from a person, so it is the one worth attacking.
