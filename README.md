@@ -297,7 +297,7 @@ runbook and the list of what was deliberately not used.
 | Identity and secrets | Two user-assigned identities with scoped roles (Foundry User, OpenAI User, Cognitive Services User, Key Vault Secrets User, AcrPull/AcrPush, EventGrid Data Sender, Storage Queue/Blob); the only key (Speech) is a Key Vault reference; Event Grid local auth off; pinned non-root image from a lock file |
 | Operations | Log Analytics capped at 1 GB/day, workbook (requests, moment latency by cache hit, cache ratio, tokens by agent, Foundry dependencies, viewers), availability web test from 3 locations, alerts on availability, failed requests and restarts, USD 30 budget |
 | Delivery | Bicep, idempotent; GitHub Actions with OIDC; smoke test of health, catalogue, a full replay, a resume and MCP after each deploy |
-| Measured | `stream_load.py`, 25 concurrent viewers at 100x against the deployed API (warm cache): every viewer received all 2,165 events and its insights, time to first insight p50 9.7 s / p95 11.5 s under that load, the app scaled to 2 replicas with 0 restarts. The first run also caught a real bug (the `end` message was lost when the match-ended event failed to build), fixed and covered by a test the same day |
+| Measured | `stream_load.py`, 25 concurrent viewers at 100x against the deployed API (warm cache): 25 of 25 viewers reached full time with all 2,165 events and 12 insights each, time to first insight p50 7.9 s / p95 8.8 s under that load, the app scaled to 2 replicas with 0 restarts. The first run caught a real bug (the `end` message was lost when the match-ended event failed to build), fixed and covered by a test the same day |
 
 ## Responsible AI note
 
