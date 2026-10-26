@@ -6,16 +6,11 @@ type Props = { home: CatalogTeam; away: CatalogTeam; onPick: (teamId: string | n
 
 /** The turnstile: which end are you in? Asked every time a fan takes the seat; the answer holds for the whole match.
  *  Closing it (the × or Escape) means not taking the seat: back to the main menu. */
-export function SideModal({ home, away, onPick, onClose }: Props) {
-  const neutral = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
-    neutral.current?.focus()
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() } // Escape = back to the main menu
-    addEventListener('keydown', onKey)
-    return () => removeEventListener('keydown', onKey)
-  }, [onClose])
+/** One end of the picker: the crest, the name and the city, on the club's colour. Declared outside the
+  * modal so React keeps the same element across renders instead of remounting it. */
+function End({ team, side, onPick }: { team: CatalogTeam; side: 'home' | 'away'; onPick: (id: string) => void }) {
+  return (
 
-  const End = ({ team, side }: { team: CatalogTeam; side: 'home' | 'away' }) => (
     <button type="button" onClick={() => onPick(team.team_id)}
       className={`group flex min-h-[200px] flex-col items-center justify-center gap-3 px-6 py-6 text-center transition-[transform,filter] duration-200 ease-out hover:brightness-110 active:scale-[0.985] sm:min-h-[260px] ${side === 'home' ? 'wipe-h' : 'wipe-a'}`}
       style={{ color: onColor(team.primary_color) }}>
@@ -25,6 +20,17 @@ export function SideModal({ home, away, onPick, onClose }: Props) {
       <span className="btn mt-2 bg-white/95 text-sm group-hover:bg-amber">I'm with them</span>
     </button>
   )
+}
+
+export function SideModal({ home, away, onPick, onClose }: Props) {
+  const neutral = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    neutral.current?.focus()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() } // Escape = back to the main menu
+    addEventListener('keydown', onKey)
+    return () => removeEventListener('keydown', onKey)
+  }, [onClose])
+
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-stage/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="side-title">
@@ -39,13 +45,13 @@ export function SideModal({ home, away, onPick, onClose }: Props) {
         </div>
         <p className="mt-2 max-w-prose text-sm text-fg-2">Pick a side and the commentary is yours: it celebrates your goals, suffers theirs and keeps the facts straight. Or stay neutral and hear it called down the middle.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-stretch">
-          <End team={home} side="home" />
+          <End team={home} side="home" onPick={onPick} />
           <button ref={neutral} type="button" onClick={() => onPick(null)}
             className="display flex min-h-[64px] items-center justify-center gap-2 border border-white/20 px-6 py-3 text-lg font-extrabold uppercase tracking-wider text-fg-2 transition-[border-color,color] duration-150 hover:border-white/60 hover:text-fg sm:min-h-0 sm:flex-col sm:px-4">
             <span>Neutral</span>
             <span className="text-[11px] font-semibold tracking-[0.2em] text-muted">just watching</span>
           </button>
-          <End team={away} side="away" />
+          <End team={away} side="away" onPick={onPick} />
         </div>
         <p className="mt-3 text-xs text-muted">Close this (× or Esc) to go back to the main menu.</p>
       </div>

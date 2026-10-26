@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import json
 
 import pytest
@@ -64,7 +65,7 @@ def test_xg_race_is_cumulative_and_ends_at_totals(final_state, meta):
     race = final_state.snapshot()["xg_race"]
     home, away = meta["teams"].keys()
     assert race[0]["minute"] >= 0
-    for a, b in zip(race, race[1:]):
+    for a, b in itertools.pairwise(race):
         assert b[home] >= a[home] and b[away] >= a[away]
         # minutes restart at 45 for the second half, so order by (period, minute)
         assert (b["period"], b["minute"]) >= (a["period"], a["minute"])

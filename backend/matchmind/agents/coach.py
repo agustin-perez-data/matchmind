@@ -52,7 +52,7 @@ def build_coach_context(trigger_payload: dict, snapshot: dict, meta: dict, trigg
         if q.get("team_id") == team_id and not q.get("on_pitch") and q.get("minutes_played", 0) == 0
         and q.get("position") == player.get("position")
     ]
-    at_risk = [w for w in trigger_payload.get("other_windows", [])]
+    at_risk = list(trigger_payload.get("other_windows", []))
     return {
         "trigger": trigger,
         "trigger_detail": {k: v for k, v in trigger_payload.items() if k != "other_windows"},

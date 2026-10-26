@@ -68,7 +68,7 @@ def ssml(text: str, lang: str) -> str:
 
 
 def cache_path(cache_dir: Path, text: str, lang: str) -> Path:
-    digest = hashlib.sha1(f"{lang}:{voice_for(lang)}:{text.strip()}".encode("utf-8")).hexdigest()
+    digest = hashlib.sha1(f"{lang}:{voice_for(lang)}:{text.strip()}".encode()).hexdigest()
     return cache_dir / f"{digest}.mp3"
 
 

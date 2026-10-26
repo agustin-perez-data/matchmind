@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from dotenv import load_dotenv
 
@@ -24,6 +25,10 @@ from matchmind.agents.analyst import ANALYST_INSTRUCTIONS, AnalystAgent
 from matchmind.agents.director import DIRECTOR_INSTRUCTIONS, DirectorAgent
 from matchmind.agents.narrator import NARRATOR_INSTRUCTIONS, NarratorAgent
 from matchmind.agents.pipeline import MomentPipeline
+
+if TYPE_CHECKING:  # import cycles at runtime; these are only annotations
+    from matchmind.agents.coach import CoachPipeline
+    from matchmind.agents.judge import JudgePipeline
 
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 # Stable ids, emitted as gen_ai.agent.id on every span: Foundry matches them to the external-agent
@@ -94,7 +99,7 @@ def describe_auth() -> str:
             "key": "account endpoint, API key"}.get(mode or "", "not configured")
 
 
-def build_coach(match_tools) -> "CoachPipeline":
+def build_coach(match_tools) -> CoachPipeline:
     """Coach agent (smart tier) + deterministic branch simulation through MatchTools."""
     from matchmind.agents.coach import COACH_INSTRUCTIONS, CoachAgent, CoachPipeline
     from matchmind.agents.schemas import CoachProposal
@@ -109,7 +114,7 @@ def build_coach(match_tools) -> "CoachPipeline":
     return CoachPipeline(CoachAgent(agent), match_tools)
 
 
-def build_judge() -> "JudgePipeline":
+def build_judge() -> JudgePipeline:
     """Judge agent (fast tier): words only; the forecast scores are computed in code."""
     from matchmind.agents.judge import JUDGE_INSTRUCTIONS, JudgeAgent, JudgePipeline
     from matchmind.agents.schemas import JudgeVerdict
@@ -132,6 +137,7 @@ def hosted_judge():
     model, same JudgeVerdict schema, versioned and visible under Agents. Latest version unless MATCHMIND_JUDGE_VERSION."""
     from agent_framework_foundry import FoundryAgent
     from azure.ai.projects import AIProjectClient
+
     from matchmind.agents.schemas import JudgeVerdict
     from matchmind.agents.tracing import TRACE_MIDDLEWARE
 

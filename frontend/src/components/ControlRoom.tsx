@@ -11,7 +11,7 @@ const LANE_COLOR: Record<string, string> = { Analyst: '#ffd166', Narrator: '#fff
 
 /** The studio's control room: the agent system at work, moment by moment. */
 export function ControlRoom({ meta, feed, risk, agentsOn, coachOn, verdicts, credibility }: Props) {
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(() => Date.now())  // lazy: the clock is read when the component mounts, not on every render
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(id) }, [])
   const latest = feed[0]
   const fresh = latest ? now - latest.at < 2500 : false

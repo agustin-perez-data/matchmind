@@ -17,7 +17,7 @@ import asyncio
 import logging
 import os
 from collections import OrderedDict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 log = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ ALERT_FIELDS = ("player_id", "name", "team_id", "position", "clock", "open_minut
 def cloud_event(event_type: str, subject: str, event_id: str, data: dict) -> dict:
     """A CloudEvents 1.0 envelope as a plain dict (the SDK's CloudEvent accepts the same fields)."""
     return {"specversion": "1.0", "type": event_type, "source": SOURCE, "subject": subject, "id": event_id,
-            "time": datetime.now(timezone.utc).isoformat(), "datacontenttype": "application/json", "data": data}
+            "time": datetime.now(UTC).isoformat(), "datacontenttype": "application/json", "data": data}
 
 
 def window_opened(match_id: str, event_id: int, alert: dict) -> dict:

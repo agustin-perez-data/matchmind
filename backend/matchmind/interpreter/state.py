@@ -165,7 +165,7 @@ class MatchState:
             if not xs_team:
                 continue
             cx, cy = sum(xs_team) / len(xs_team), sum(ys) / len(ys)
-            compact = sum(math.hypot((x - cx) / 100 * 105.0, (y - cy) / 100 * 68.0) for x, y in zip(xs_team, ys)) / len(xs_team)
+            compact = sum(math.hypot((x - cx) / 100 * 105.0, (y - cy) / 100 * 68.0) for x, y in zip(xs_team, ys, strict=False)) / len(xs_team)
             lines = {}
             for pos in ("DF", "MF", "FW"):
                 xs_pos = [self._team_frame_x(tid, x) for pid, x, _ in outfield if self._players[pid]["position"] == pos]
@@ -246,7 +246,7 @@ class MatchState:
         The window starts at the latest minute mark at or before now − minutes (zero before kick-off)."""
         start = self.minute - minutes
         marks = [m for m in self._minute_marks if m <= start]
-        base = self._minute_marks[max(marks)] if marks else {"teams": {tid: {k: 0 for k in self.RECENT_KEYS} for tid in self.teams}, "shots": {}}
+        base = self._minute_marks[max(marks)] if marks else {"teams": {tid: dict.fromkeys(self.RECENT_KEYS, 0) for tid in self.teams}, "shots": {}}
         teams = {}
         for tid, t in self.teams.items():
             gained = {k: t[k] - base["teams"][tid][k] for k in self.RECENT_KEYS}

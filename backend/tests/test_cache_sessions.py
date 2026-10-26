@@ -11,8 +11,7 @@ from fastapi.testclient import TestClient
 from matchmind.agents.cache import AgentCache, coach_key, insight_key, verdict_key
 from matchmind.api.app import create_app
 from matchmind.tools.registry import LiveStateRegistry, MatchTools, current_session
-from tests.test_api import FakeCoach, FakeJudge, FakePipeline, _drain, data_dir  # noqa: F401 (fixture)
-
+from tests.test_api import FakeCoach, FakeJudge, FakePipeline, _drain, data_dir
 
 # ---------------------------------------------------------------- cache
 

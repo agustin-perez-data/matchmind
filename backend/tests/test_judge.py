@@ -6,8 +6,16 @@ import asyncio
 import json
 
 from matchmind.agents.judge import (
-    BASE_GOAL_RATE_10MIN, ForecastLedger, JudgeAgent, JudgePipeline, PendingForecast, build_judge_context, grade_forecast,
-    judge_prompt, naive_forecast, verdict_from_score,
+    BASE_GOAL_RATE_10MIN,
+    ForecastLedger,
+    JudgeAgent,
+    JudgePipeline,
+    PendingForecast,
+    build_judge_context,
+    grade_forecast,
+    judge_prompt,
+    naive_forecast,
+    verdict_from_score,
 )
 from matchmind.agents.schemas import JudgeVerdict
 from tests.test_agents import CONTEXT, FORECAST, FakeAgent

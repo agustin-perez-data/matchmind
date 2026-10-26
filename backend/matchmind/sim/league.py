@@ -59,10 +59,10 @@ def _player_attrs(rng: random.Random, position: str, overall: float) -> dict:
         return max(0.2, min(0.99, rng.gauss(overall + bias, spread)))
 
     profiles = {
-        "GK": dict(passing=a(-0.15), shooting=a(-0.45), defending=a(0.05), pace=a(-0.25)),
-        "DF": dict(passing=a(-0.08), shooting=a(-0.30), defending=a(0.08), pace=a(-0.05)),
-        "MF": dict(passing=a(0.08), shooting=a(-0.08), defending=a(-0.05), pace=a(0.0)),
-        "FW": dict(passing=a(-0.03), shooting=a(0.10), defending=a(-0.25), pace=a(0.08)),
+        "GK": {"passing": a(-0.15), "shooting": a(-0.45), "defending": a(0.05), "pace": a(-0.25)},
+        "DF": {"passing": a(-0.08), "shooting": a(-0.30), "defending": a(0.08), "pace": a(-0.05)},
+        "MF": {"passing": a(0.08), "shooting": a(-0.08), "defending": a(-0.05), "pace": a(0.0)},
+        "FW": {"passing": a(-0.03), "shooting": a(0.10), "defending": a(-0.25), "pace": a(0.08)},
     }
     attrs = profiles[position]
     attrs["stamina"] = a(0.0, 0.10)

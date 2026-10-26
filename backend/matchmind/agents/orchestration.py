@@ -11,10 +11,9 @@ trace says so: the broadcast never waits on the orchestrator.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import time
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from matchmind.agents.analyst import AnalystAgent, analyst_prompt
 from matchmind.agents.director import DirectorAgent
@@ -120,13 +119,13 @@ class FrameworkMomentPipeline:
             t_stage = time.perf_counter()
             decisions = await asyncio.gather(
                 guarded("director", self.director.direct(context, insight, narration, profile)),
-                *(guarded(f"director[{p.key}]", self.director.direct(context, insight, n, p)) for p, n in zip(extra, extra_narrations)),
+                *(guarded(f"director[{p.key}]", self.director.direct(context, insight, n, p)) for p, n in zip(extra, extra_narrations, strict=True)),
             )
             trace.mark("stage_end", None, stage="director", latency_ms=round((time.perf_counter() - t_stage) * 1000))
 
             viewers = {profile.key: {"profile": profile.model_dump(), "narration": narration.model_dump(),
                                      "decision": decisions[0].model_dump() if decisions[0] else None}}
-            for p, n, d in zip(extra, extra_narrations, decisions[1:]):
+            for p, n, d in zip(extra, extra_narrations, decisions[1:], strict=True):
                 viewers[p.key] = {"profile": p.model_dump(), "narration": n.model_dump() if n else None,
                                   "decision": d.model_dump() if d else None}
             return {

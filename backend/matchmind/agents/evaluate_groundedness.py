@@ -141,7 +141,7 @@ async def foundry_evaluate(items: list[dict], match_id: str) -> dict:
     t0 = time.perf_counter()
     res = await evals.evaluate(eval_items, eval_name=f"matchmind-groundedness-{match_id}")
     per_item = []
-    for it, r in zip(items, res.items or []):
+    for it, r in zip(items, res.items or [], strict=False):
         scores = {s.name: {"score": s.score, "passed": s.passed} for s in (r.scores or [])}
         per_item.append({"agent": it["agent"], "profile": it["profile"], "event_id": it["event_id"], "status": r.status, "scores": scores})
     out = {"provider": res.provider, "passed": res.passed, "total": res.total, "report_url": getattr(res, "report_url", None),

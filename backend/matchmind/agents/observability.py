@@ -15,8 +15,8 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from typing import Callable, Iterator
 
 from opentelemetry import metrics, trace
 

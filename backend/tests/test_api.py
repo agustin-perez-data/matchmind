@@ -207,15 +207,13 @@ def test_key_events_always_carry_a_snapshot(client, meta):
 
 
 def test_unknown_match_websocket_closes_with_error(client):
-    with pytest.raises(WebSocketDisconnect):
-        with client.websocket_connect("/ws/matches/NOPE?speed=0") as ws:
-            ws.receive_json()
+    with pytest.raises(WebSocketDisconnect), client.websocket_connect("/ws/matches/NOPE?speed=0") as ws:
+        ws.receive_json()
 
 
 def test_bad_viewer_profile_closes_with_error(client, meta):
-    with pytest.raises(WebSocketDisconnect):
-        with client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&mode=vip") as ws:
-            ws.receive_json()
+    with pytest.raises(WebSocketDisconnect), client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&mode=vip") as ws:
+        ws.receive_json()
 
 
 def test_client_can_change_speed_and_profile_mid_stream(client, meta):
@@ -312,9 +310,8 @@ def test_fan_can_pick_a_side_on_the_socket_and_in_a_compare_spec(agent_client, f
 
 
 def test_bad_compare_profile_closes_with_error(client, meta):
-    with pytest.raises(Exception):
-        with client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&compare=wizard:en") as ws:
-            ws.receive_json()
+    with pytest.raises(Exception), client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&compare=wizard:en") as ws:
+        ws.receive_json()
 
 
 def test_forecasts_are_graded_ten_minutes_later_and_the_judge_speaks(agent_client, fake_pipeline, fake_judge, meta):

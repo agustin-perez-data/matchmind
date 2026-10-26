@@ -110,7 +110,7 @@ def _print(report: dict) -> None:
     for k in ("model", "baseline"):
         r = report[k]
         print(f"{k:10s}{r['alerts']:8d}{r['true_alerts']:6d}{r['precision']:11.3f}{r['concerns']:10d}{r['covered']:9d}"
-              f"{r['recall']:8.3f}{str(r['mean_lead_minutes']):>7s}{r['alerts_per_match']:8.1f}"
+              f"{r['recall']:8.3f}{r['mean_lead_minutes']!s:>7s}{r['alerts_per_match']:8.1f}"
               f"{r['top3_rate']:8.3f}{r['top3_random_rate']:8.3f}{r['mean_rank_pct']:8.1f}")
 
 
@@ -133,7 +133,7 @@ def main() -> None:
               f"{report['model']['hits']} hits (base rate {report['model']['base_rate']}); baseline {report['baseline']['windows']} windows")
         print(f"{'hazard bin':>12s}{'model n':>9s}{'hit rate':>10s}{'baseline n':>12s}{'hit rate':>10s}")
         for b in report["bins"]:
-            print(f"{b['lo']:.1f}-{b['hi']:.1f}  {b['model']['n']:>9d}{str(b['model']['hit_rate']):>10s}{b['baseline']['n']:>12d}{str(b['baseline']['hit_rate']):>10s}")
+            print(f"{b['lo']:.1f}-{b['hi']:.1f}  {b['model']['n']:>9d}{b['model']['hit_rate']!s:>10s}{b['baseline']['n']:>12d}{b['baseline']['hit_rate']!s:>10s}")
         if args.out:
             Path(args.out).parent.mkdir(parents=True, exist_ok=True)
             Path(args.out).write_text(json.dumps(report, indent=1), encoding="utf-8")

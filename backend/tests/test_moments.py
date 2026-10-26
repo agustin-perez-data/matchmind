@@ -90,7 +90,7 @@ def test_context_lists_the_players_involved_with_workload(moments, meta):
 def test_context_can_include_watched_players_for_player_focus_viewers(moments, meta):
     e, snap, m = next(t for t in moments if t[2].kind == "goal")
     watched = [p["player_id"] for p in meta["teams"][meta["home_id"]]["players"][:2]]
-    ctx = build_moment_context(m, snap, meta, watched_players=watched + ["ZZZ-99"])
+    ctx = build_moment_context(m, snap, meta, watched_players=[*watched, "ZZZ-99"])
     assert [p["player_id"] for p in ctx["watched_players"]] == watched
     assert all("name" in p and "acwr_live" in p for p in ctx["watched_players"])
     assert "watched_players" not in build_moment_context(m, snap, meta) or build_moment_context(m, snap, meta)["watched_players"] == []

@@ -75,6 +75,10 @@ MATCHMIND_LIVE=1 .venv/Scripts/python -m pytest tests/test_live.py
 .venv/Scripts/python -m matchmind.agents.evaluate_forecasts --matches 10 --instructions prompts/analyst_v2.txt --label v2 --out eval/forecasts_v2.json
 # Risk Monitor offline evaluation (no LLM): model vs naive baseline over N simulated matches
 .venv/Scripts/python -m matchmind.risk.evaluate --matches 40
+
+# Lint (the same commands CI runs; config in backend/pyproject.toml and the frontend's oxlint defaults)
+.venv/Scripts/python -m ruff check matchmind tests ../infra        # --fix applies the safe ones
+cd ../frontend && npm run lint
 # Foundry project evaluations (keyless through the project; needs `az login` + Foundry User on the project)
 FOUNDRY_PROJECT_ENDPOINT=https://matchmind-foundry.services.ai.azure.com/api/projects/matchmind   .venv/Scripts/python -m matchmind.agents.evaluate_groundedness --foundry --limit 8      # also on the project's grader
 FOUNDRY_PROJECT_ENDPOINT=... .venv/Scripts/python -m matchmind.agents.evaluate_coach --limit 6  # Coach tool use, graded

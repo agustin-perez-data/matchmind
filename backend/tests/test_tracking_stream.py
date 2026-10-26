@@ -10,8 +10,7 @@ from matchmind.interpreter.state import MatchState
 from matchmind.sim.tracking import build_tracking
 from matchmind.stream.replay import frame_stride, merge_timeline
 from matchmind.tools.registry import LiveStateRegistry, MatchTools
-from tests.test_api import _drain, data_dir  # noqa: F401 (fixture)
-
+from tests.test_api import _drain, data_dir
 
 # ---------------------------------------------------------------- replay helpers
 

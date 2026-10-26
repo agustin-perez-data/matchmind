@@ -8,13 +8,14 @@ the middleware finds it without any plumbing through the agents' code.
 
 from __future__ import annotations
 
+import contextlib
 import contextvars
 import time
 from typing import Any
 
 from agent_framework import agent_middleware, function_middleware
 
-current_trace: contextvars.ContextVar["MomentTrace | None"] = contextvars.ContextVar("matchmind_trace", default=None)
+current_trace: contextvars.ContextVar[MomentTrace | None] = contextvars.ContextVar("matchmind_trace", default=None)
 # Set by the agent middleware for the duration of a run, so tool calls can be attributed to their agent
 # even when several agents run concurrently (each workflow participant runs in its own task).
 current_agent: contextvars.ContextVar[str | None] = contextvars.ContextVar("matchmind_agent", default=None)
@@ -50,7 +51,7 @@ def _usage(result: Any) -> dict | None:
         if usage is None:
             continue
         # UsageDetails is a TypedDict in Agent Framework >= 1.20 (a plain mapping); older builds exposed attributes
-        get = usage.get if isinstance(usage, dict) else (lambda k, d=None: getattr(usage, k, d))
+        get = usage.get if isinstance(usage, dict) else (lambda k, d=None, u=usage: getattr(u, k, d))
         i, o = get("input_token_count"), get("output_token_count")
         if i is not None or o is not None:
             inp, out = (inp or 0) + (i or 0), (out or 0) + (o or 0)
@@ -93,10 +94,8 @@ async def trace_agents(context, call_next) -> None:
     tokens = _usage(getattr(context, "result", None))
     if trace is not None:
         trace.mark("agent_end", name, latency_ms=round((time.perf_counter() - t0) * 1000), tokens=tokens)
-    try:
+    with contextlib.suppress(Exception):  # telemetry never breaks an agent run
         record_tokens(name, tokens)
-    except Exception:  # noqa: BLE001  telemetry never breaks an agent run
-        pass
 
 
 @function_middleware

@@ -16,7 +16,6 @@ from matchmind.agents.schemas import AnalystInsight, Narration, ViewerProfile
 from matchmind.agents.tracing import MomentTrace, current_trace, trace_agents, trace_tools
 from tests.test_agents import CONTEXT, DECISION, INSIGHT, NARRATION, FakeAgent
 
-
 # ---------------------------------------------------------------- tracing
 
 def test_trace_records_agent_runs_with_latency_and_tool_calls():

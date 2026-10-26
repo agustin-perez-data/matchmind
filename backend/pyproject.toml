@@ -1,0 +1,36 @@
+# Lint configuration for the backend and the infra scripts. Run it with:
+#     .venv/Scripts/python -m ruff check matchmind tests ../infra
+#     .venv/Scripts/python -m ruff check matchmind tests ../infra --fix
+# The CI workflow (.github/workflows/ci.yml) runs the same command on every push.
+[tool.ruff]
+line-length = 150
+target-version = "py311"
+extend-exclude = [".venv", "__pycache__"]
+
+[tool.ruff.lint]
+# Correctness and modernisation, plus the bug-prone patterns (B) and the comprehension rules.
+# BLE is in the set so that every broad `except Exception` carries a noqa with the reason it is correct.
+select = ["E", "F", "W", "I", "B", "BLE", "UP", "SIM", "C4", "RUF"]
+ignore = [
+  "E501",    # long lines are deliberate here: dense data literals and one-line guards read better whole
+  "RUF001",  # the UI copy and the Spanish docstrings use typographic quotes and dashes on purpose
+  "RUF002",
+  "RUF003",
+  "SIM108",  # an if/else is often clearer than a ternary in the match logic
+  "B008",    # FastAPI's Depends/Query defaults are calls by design
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+  "F811",    # pytest fixtures are imported into other test modules on purpose
+  "F401",
+  "B017",    # a couple of tests assert that anything at all is raised
+  "RUF059",
+  "E731",    # a one-line lambda is the clearest way to write a tiny test helper
+  "B007",    # unpacking a key we do not use keeps the loop readable
+  "SIM102",  # nested ifs in assertions read as the steps they check
+  "RUF015",  # taking [0] of a short list in a test is plain enough
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["matchmind"]

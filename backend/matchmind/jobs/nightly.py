@@ -22,7 +22,7 @@ import logging
 import os
 import subprocess
 import sys
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
     py = [sys.executable, "-m"]
     data = Path(args.data)
     data.mkdir(parents=True, exist_ok=True)
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     folder = today.isoformat()
     out = data / "eval" / folder
     out.mkdir(parents=True, exist_ok=True)
@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
     home, away, seed = match_of_the_day(today)
     match_id = f"{home}-{away}-{seed % 100:02d}"
     try:
-        run(py + ["matchmind.generate_match", "--home", home, "--away", away, "--seed", str(seed), "--out", str(data)])
+        run([*py, "matchmind.generate_match", "--home", home, "--away", away, "--seed", str(seed), "--out", str(data)])
         metas = sorted(data.glob(f"{home}-{away}-*_meta.json"), key=lambda p: p.stat().st_mtime)
         if metas:
             match_id = metas[-1].name[: -len("_meta.json")]
@@ -93,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if match_id and not args.skip_warm:
         try:
-            run(py + ["matchmind.agents.warm_cache", "--base", args.base, "--match", match_id, "--speed", "40"])
+            run([*py, "matchmind.agents.warm_cache", "--base", args.base, "--match", match_id, "--speed", "40"])
         except Exception as exc:  # noqa: BLE001
             failures += 1
             log.warning("warm failed: %r", exc)
@@ -101,9 +101,9 @@ def main(argv: list[str] | None = None) -> int:
     reports: list[Path] = []
     try:
         scorecard = out / "risk_scorecard.txt"
-        scorecard.write_text(run(py + ["matchmind.risk.evaluate", "--matches", str(args.risk_matches)], capture_output=True).stdout, encoding="utf-8")
+        scorecard.write_text(run([*py, "matchmind.risk.evaluate", "--matches", str(args.risk_matches)], capture_output=True).stdout, encoding="utf-8")
         calibration = out / "risk_calibration.json"
-        run(py + ["matchmind.risk.evaluate", "--matches", str(args.risk_matches), "--calibration", "--out", str(calibration)])
+        run([*py, "matchmind.risk.evaluate", "--matches", str(args.risk_matches), "--calibration", "--out", str(calibration)])
         reports += [scorecard, calibration]
     except Exception as exc:  # noqa: BLE001
         failures += 1
@@ -112,8 +112,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skip_forecasts:
         try:
             forecasts = out / "forecasts.json"
-            run(py + ["matchmind.agents.evaluate_forecasts", "--matches", str(args.forecast_matches), "--limit", "6",
-                      "--label", f"nightly-{folder}", "--out", str(forecasts)])
+            run([*py, "matchmind.agents.evaluate_forecasts", "--matches", str(args.forecast_matches), "--limit", "6", "--label", f"nightly-{folder}", "--out", str(forecasts)])
             reports.append(forecasts)
         except Exception as exc:  # noqa: BLE001
             failures += 1
@@ -123,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
     summary.write_text(json.dumps({"date": folder, "match_of_the_day": match_id, "failures": failures,
                                    "reports": [r.name for r in reports]}, indent=1), encoding="utf-8")
     try:
-        upload(os.environ.get("MATCHMIND_STORAGE_ACCOUNT"), folder, reports + [summary])
+        upload(os.environ.get("MATCHMIND_STORAGE_ACCOUNT"), folder, [*reports, summary])
     except Exception as exc:  # noqa: BLE001
         failures += 1
         log.warning("upload failed: %r", exc)

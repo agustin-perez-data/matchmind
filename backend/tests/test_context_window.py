@@ -11,7 +11,7 @@ from matchmind.interpreter.state import MatchState
 def _state_at(events, meta, minute):
     state = MatchState(meta)
     for e in events:
-        if int(e["minute"]) > minute and e["period"] == 2 or (e["period"] == 1 and int(e["minute"]) > minute):
+        if (int(e["minute"]) > minute and e["period"] == 2) or (e["period"] == 1 and int(e["minute"]) > minute):
             break
         state.apply(e)
     return state

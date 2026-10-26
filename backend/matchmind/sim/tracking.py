@@ -192,7 +192,7 @@ class _Model:
         # keyframes in time order; the loose-ball rule: nobody walks the ball for 30 s, it is picked up
         self.keyframes.sort(key=lambda k: (k.t, k.order))
         extra: list[Keyframe] = []
-        for a, b in zip(self.keyframes, self.keyframes[1:]):
+        for a, b in zip(self.keyframes, self.keyframes[1:], strict=False):
             if b.t - a.t > DEAD_BALL_CARRY_S and a.hold and b.carrier:
                 extra.append(Keyframe(b.t - DEAD_BALL_CARRY_S, a.x, a.y, b.carrier, True, len(self.keyframes) + len(extra)))
                 self._appoint(b.carrier, b.t - DEAD_BALL_CARRY_S, a.x, a.y)
@@ -203,7 +203,7 @@ class _Model:
             bx, by = self.ball_at(t)
             right = self._attacks_right(self.team_of.get(pid, self.home), t)
             self._appoint(pid, t, bx + (-2.0 if right else 2.0) / PITCH_LENGTH_M * 100, by)
-        for pid, apps in self.players_appointments.items():
+        for apps in self.players_appointments.values():
             apps.sort()
 
     def _period_at(self, t: int) -> tuple[int, int, int, bool]:
@@ -260,7 +260,7 @@ class _Model:
                         on[tid][on[tid].index(off)] = on_id
         self.players = {}
         for tid in (self.home, self.away):
-            slot_counter = {pos: 0 for pos in ANCHORS}
+            slot_counter = dict.fromkeys(ANCHORS, 0)
             for pid in on[tid]:
                 pos = self.position_of[pid]
                 slots = ANCHORS[pos]

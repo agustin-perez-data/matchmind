@@ -92,7 +92,7 @@ async def run_match(analyst, judge, meta: dict, ledger: ForecastLedger, moments:
                 jctx = build_judge_context(pending, facts, scores, naive, meta, language)
                 result = None
                 if judge is not None:
-                    result = await call_with_retries(lambda: judge.run(jctx), sem, label="judge")
+                    result = await call_with_retries(lambda ctx=jctx: judge.run(ctx), sem, label="judge")
                 if result is None:  # no Judge, or it failed: code words, no lesson
                     result = {"event_id": pending.event_id, "issued_clock": pending.issued_clock, "forecast": pending.forecast,
                               "facts": facts, "verdict": {"verdict": verdict_from_score(scores["overall"]), "lesson": None}}
@@ -101,7 +101,7 @@ async def run_match(analyst, judge, meta: dict, ledger: ForecastLedger, moments:
     for moment, snapshot in moments:
         await settle(snapshot)
         ctx = build_moment_context(moment, snapshot, meta, track_record=ledger.track_record() if loop else None)
-        insight = await call_with_retries(lambda: analyst.explain(ctx, language), sem, label="analyst")
+        insight = await call_with_retries(lambda c=ctx: analyst.explain(c, language), sem, label="analyst")
         if insight is None:
             continue
         pending = ledger.add({"event_id": ctx["moment"]["event_id"], "analyst": insight.model_dump()}, ctx)

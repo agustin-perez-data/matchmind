@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import json
 
 
@@ -12,7 +13,7 @@ def test_second_half_kickoff_restarts_the_clock_at_45_00(events):
 
 
 def test_clock_never_runs_backwards_within_a_period(events):
-    for a, b in zip(events, events[1:]):
+    for a, b in itertools.pairwise(events):
         if a["period"] != b["period"]:
             continue
         assert b["minute"] >= a["minute"], (a["event_id"], b["event_id"])

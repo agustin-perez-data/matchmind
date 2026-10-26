@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from matchmind.api.app import create_app
 from matchmind.api.tts import Speaker, cache_path, ssml
-from tests.test_api import data_dir  # noqa: F401 (fixture)
+from tests.test_api import data_dir
 
 
 def fake_speech(status=200, body=b"ID3fake-mp3"):

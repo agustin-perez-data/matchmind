@@ -23,7 +23,7 @@ SEAT_PROFILES = ["commentator:en", "commentator:es", "analyst:en", "analyst:es"]
 
 
 async def warm(base: str, match_id: str, profile: str, speed: int, min_importance: int) -> dict:
-    mode, lang = (profile.split(":") + ["en"])[:2]
+    mode, lang = ([*profile.split(":"), "en"])[:2]
     ws_base = base.replace("http://", "ws://").replace("https://", "wss://")
     url = f"{ws_base}/ws/matches/{match_id}?speed={speed}&mode={mode}&lang={lang}&agents=1&coach=1&min_importance={min_importance}"
     counts: dict[str, int] = {}

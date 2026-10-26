@@ -50,7 +50,7 @@ class MomentPipeline:
             *[guarded(f"narrator[{p.key}]", self.narrator.narrate(context, p)) for p in profiles],
         )
         decisions = await asyncio.gather(
-            *[guarded(f"director[{p.key}]", self.director.direct(context, insight, n, p)) for p, n in zip(profiles, narrations)]
+            *[guarded(f"director[{p.key}]", self.director.direct(context, insight, n, p)) for p, n in zip(profiles, narrations, strict=True)]
         )
 
         return {
@@ -65,7 +65,7 @@ class MomentPipeline:
                     "narration": n.model_dump() if n else None,
                     "decision": d.model_dump() if d else None,
                 }
-                for p, n, d in zip(profiles, narrations, decisions)
+                for p, n, d in zip(profiles, narrations, decisions, strict=True)
             },
             "errors": errors,
             "latency_ms": round((time.perf_counter() - t0) * 1000),

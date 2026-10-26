@@ -38,23 +38,23 @@ import json
 import logging
 import os
 import time
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field, ValidationError
 
-from matchmind.api.tts import Speaker, speech_config
 from matchmind.agents.cache import AgentCache, cache_from_env, coach_key, insight_key, verdict_key
 from matchmind.agents.coach import build_coach_context
+from matchmind.agents.guardrails import check_moment, facts_text
 from matchmind.agents.judge import ForecastLedger, build_judge_context, grade_forecast
 from matchmind.agents.moments import build_moment_context, detect_key_moment
-from matchmind.agents.guardrails import check_moment, facts_text
-from matchmind.api.events import match_ended, publisher_from_env, window_opened
 from matchmind.agents.observability import configure_observability, moment_span, record_moment, telemetry_enabled
 from matchmind.agents.schemas import ViewerProfile
+from matchmind.api.events import match_ended, publisher_from_env, window_opened
+from matchmind.api.tts import Speaker, speech_config
 from matchmind.generate_match import generate, write_match
 from matchmind.interpreter.state import MatchState
 from matchmind.risk.monitor import RiskMonitor
@@ -137,7 +137,7 @@ def create_app(
     coach=None,
     judge=None,
     enable_agents: bool | None = None,
-    cache: AgentCache | None | bool = True,
+    cache: AgentCache | bool | None = True,
     speech_transport=None,
 ) -> FastAPI:
     """Build the service.
@@ -377,7 +377,7 @@ class _Lane:
         await self.queue.put(None)
         try:
             await asyncio.wait_for(self.task, timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             log.warning("%s lane did not finish within %ss", self.kind, timeout)
             self.task.cancel()
 
@@ -672,10 +672,8 @@ class StreamSession:
             self.registry.drop_session(self.session_id)
             for task in (sender, reader, *(lane.task for lane in (moments, coach, judge) if lane is not None)):
                 task.cancel()
-            try:
+            with suppress(RuntimeError):
                 await self.ws.close()
-            except RuntimeError:
-                pass
 
 
 app = create_app()
