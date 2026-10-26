@@ -140,6 +140,21 @@ t\Scripts\python D:\GitHub\matchmind\infra
 edteam_scout.py --objectives 3
 ```
 
+## Before the repository goes public
+
+The history was scanned, not just the working tree: the live Foundry key never appears in any commit
+(`git log --all -S <prefix>`), no connection string, storage key or SAS token shape appears anywhere, and the
+subscription, tenant and managed-identity ids were never committed. The only GUIDs in the repository are
+Azure's built-in role definition ids in `infra/main.bicep`, which are public constants. `backend/.env`,
+`.azure/` and `data/` are ignored, and the Speech key lives only in Key Vault.
+
+Repeat the scan after any change with:
+
+```bash
+git log --all -S "<first 16 chars of the live key>" --oneline     # must print nothing
+git grep -nIE "(AccountKey=|InstrumentationKey=[0-9a-f]{8}-|sv=20[0-9]{2}-)" $(git rev-list --all)
+```
+
 ## Bootstrap and deploy
 
 ```powershell
