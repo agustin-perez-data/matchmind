@@ -1,5 +1,9 @@
 """Groundedness guardrail: Azure AI Content Safety checks the Narrator's line against the moment's facts.
 
+The grounding source is the moment's facts written as plain sentences, not the JSON the agents receive: the
+detector is tuned for prose and scored the same lines 8 points worse when fed raw JSON. The task is QnA with
+the Narrator's own brief as the query, which is what the call actually is.
+
 Enabled with MATCHMIND_GUARDRAILS=1 on the same Foundry (AI Services) resource the agents use
 (`text:detectGroundedness`, preview). Runs once per uncached moment, with a short timeout, and never blocks
 the broadcast: a failure or a timeout records `checked: false`. The result is appended to the moment's trace
@@ -23,13 +27,55 @@ TIMEOUT_S = 2.5
 MAX_TEXT = 7000
 MAX_SOURCE = 50000
 SCOPE = "https://cognitiveservices.azure.com/.default"
+NARRATION_QUERY = "Narrate this key moment of the match for the viewer, using only what happened."
 
 
 def context_text(ctx: dict) -> str:
-    """The facts the agents were given, minus the viewer bookkeeping: the grounding source for every check."""
+    """The facts the agents were given, minus the viewer bookkeeping, as JSON (what the evaluation harness scores)."""
     keep = ("clock", "score", "moment", "event", "teams", "momentum", "last_10_minutes", "players_involved",
             "watched_players", "risk_alerts", "game_state", "top_shooters")
     return json.dumps({k: ctx[k] for k in keep if k in ctx}, ensure_ascii=False)
+
+
+def facts_text(ctx: dict) -> str:
+    """The same facts as plain sentences: the grounding source the detector reads best."""
+    teams = ctx.get("teams") or {}
+    name = {k: (t.get("name") or k) for k, t in teams.items() if isinstance(t, dict)}
+    lines = [f"The clock reads {ctx.get('clock')}."]
+    score = ctx.get("score") or {}
+    if score:
+        lines.append("The score is " + ", ".join(f"{name.get(k, k)} {v}" for k, v in score.items()) + ".")
+    moment = ctx.get("moment") or {}
+    if moment.get("summary"):
+        lines.append(f"The key moment is: {moment['summary']}.")
+    e = ctx.get("event") or {}
+    if e:
+        bits = [f"The event is a {str(e.get('type', '')).replace('_', ' ')}"]
+        if e.get("player_name") or e.get("player_id"):
+            bits.append(f"by {e.get('player_name') or e.get('player_id')}")
+        if e.get("team_id"):
+            bits.append(f"of {name.get(e['team_id'], e['team_id'])}")
+        for key, unit in (("distance_m", " metres"), ("xg", " expected goals")):
+            if e.get(key) is not None:
+                bits.append(f"from {e[key]}{unit}" if key == "distance_m" else f"worth {e[key]}{unit}")
+        if e.get("outcome"):
+            bits.append(f"and the outcome is {e['outcome']}")
+        lines.append(" ".join(bits) + ".")
+    for tid, team in (teams.items() if isinstance(teams, dict) else []):
+        if isinstance(team, dict):
+            stats = ", ".join(f"{k.replace('_', ' ')} {v}" for k, v in team.items()
+                              if k in ("shots", "xg", "possession_pct", "passes", "pressures") and v is not None)
+            if stats:
+                lines.append(f"{team.get('name', tid)} has {stats}.")
+    if ctx.get("momentum") is not None:
+        lines.append(f"The momentum value is {ctx['momentum']}, where positive favours the home side.")
+    for p in (ctx.get("players_involved") or [])[:4]:
+        if isinstance(p, dict) and p.get("name"):
+            lines.append(f"{p['name']} has played {p.get('minutes_played')} minutes.")
+    for a in (ctx.get("risk_alerts") or [])[:3]:
+        if isinstance(a, dict) and a.get("name"):
+            lines.append(f"{a['name']} is in a {a.get('level')} injury-risk window opened at minute {a.get('open_minute')}.")
+    return "\n".join(lines)
 
 
 def enabled() -> bool:
@@ -55,11 +101,11 @@ def _headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {_token['value']}"}
 
 
-def detect_groundedness(text: str, sources: list[str]) -> dict:
+def detect_groundedness(text: str, sources: list[str], query: str = NARRATION_QUERY) -> dict:
     """Synchronous call; returns the service's JSON ({"ungroundedDetected", "ungroundedPercentage", "ungroundedDetails"})."""
     import httpx
 
-    body = {"domain": "Generic", "task": "Summarization", "text": text[:MAX_TEXT],
+    body = {"domain": "Generic", "task": "QnA", "qna": {"query": query}, "text": text[:MAX_TEXT],
             "groundingSources": [s[:MAX_SOURCE] for s in sources], "reasoning": False}
     r = httpx.post(f"{_endpoint()}/contentsafety/text:detectGroundedness", params={"api-version": API_VERSION},
                    json=body, headers=_headers(), timeout=TIMEOUT_S)

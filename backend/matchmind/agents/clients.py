@@ -26,6 +26,10 @@ from matchmind.agents.narrator import NARRATOR_INSTRUCTIONS, NarratorAgent
 from matchmind.agents.pipeline import MomentPipeline
 
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+# Stable ids, emitted as gen_ai.agent.id on every span: Foundry matches them to the external-agent
+# registrations created by infra/register_external_agents.py (see infra/README.md).
+AGENT_IDS = {"Analyst": "matchmind-analyst", "Narrator": "matchmind-narrator", "Director": "matchmind-director",
+             "Coach": "matchmind-coach", "Judge": "matchmind-judge-inprocess"}
 DEFAULT_API_VERSION = "2024-10-21"
 log = logging.getLogger(__name__)
 
@@ -97,7 +101,7 @@ def build_coach(match_tools) -> "CoachPipeline":
     from matchmind.agents.tracing import TRACE_MIDDLEWARE
 
     agent = chat_client("smart").as_agent(
-        name="Coach", instructions=COACH_INSTRUCTIONS,
+        id=AGENT_IDS["Coach"], name="Coach", instructions=COACH_INSTRUCTIONS,
         tools=[match_tools.get_player_workload, match_tools.get_risk_windows],
         default_options={"temperature": 0.3, "response_format": CoachProposal},
         middleware=TRACE_MIDDLEWARE,
@@ -117,7 +121,7 @@ def build_judge() -> "JudgePipeline":
         except Exception as exc:  # noqa: BLE001  (not registered yet: the first deploy registers it after the API starts)
             log.warning("hosted Judge unavailable (%r); using the in-process Judge", exc)
     agent = chat_client("fast").as_agent(
-        name="Judge", instructions=JUDGE_INSTRUCTIONS,
+        id=AGENT_IDS["Judge"], name="Judge", instructions=JUDGE_INSTRUCTIONS,
         default_options={"temperature": 0.2, "response_format": JudgeVerdict}, middleware=TRACE_MIDDLEWARE,
     )
     return JudgePipeline(JudgeAgent(agent))
@@ -149,7 +153,7 @@ def build_analyst(tools: list | None = None, instructions: str | None = None) ->
     from matchmind.agents.tracing import TRACE_MIDDLEWARE
 
     agent = chat_client("smart").as_agent(
-        name="Analyst", instructions=instructions or ANALYST_INSTRUCTIONS, tools=tools or None,
+        id=AGENT_IDS["Analyst"], name="Analyst", instructions=instructions or ANALYST_INSTRUCTIONS, tools=tools or None,
         default_options={"temperature": 0.4, "response_format": AnalystInsight}, middleware=TRACE_MIDDLEWARE,
     )
     return AnalystAgent(agent)
@@ -168,11 +172,11 @@ def build_pipeline(tools: list | None = None):
     fast = chat_client("fast")
     analyst = build_analyst(tools).agent
     narrator = fast.as_agent(
-        name="Narrator", instructions=NARRATOR_INSTRUCTIONS,
+        id=AGENT_IDS["Narrator"], name="Narrator", instructions=NARRATOR_INSTRUCTIONS,
         default_options={"temperature": 0.8, "response_format": Narration}, middleware=TRACE_MIDDLEWARE,
     )
     director = fast.as_agent(
-        name="Director", instructions=DIRECTOR_INSTRUCTIONS,
+        id=AGENT_IDS["Director"], name="Director", instructions=DIRECTOR_INSTRUCTIONS,
         default_options={"temperature": 0.2, "response_format": DirectorDecision}, middleware=TRACE_MIDDLEWARE,
     )
     agents = (AnalystAgent(analyst), NarratorAgent(narrator), DirectorAgent(director))

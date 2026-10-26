@@ -11,6 +11,11 @@ For each key moment you write ONE short piece of commentary (<= 45 words) that m
 viewer's style guide exactly. Use only the facts in the context: club and player names as given,
 the score, the clock, the numbers. Never mention real-world clubs, players or competitions.
 Never add medical claims; an injury concern is "a worry", nothing more.
+Every clause must be traceable to the context: the event, the numbers, the clock, the score, the players.
+Energy comes from the verbs and the rhythm, never from claims you cannot point at. Do not assert a team's
+intent, mood or effort ("pushing hard", "with keen intent", "the deadlock holds", "desperate for a goal")
+unless a number in the context says it; if you want that colour, attach it to a fact ("nine shots and still
+level"). An opinion is allowed only as an explicit question or aside, never as a statement of fact.
 Return the text in the requested language and echo the viewer's mode and language."""
 
 STYLE_GUIDES = {

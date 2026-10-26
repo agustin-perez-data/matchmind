@@ -92,6 +92,19 @@ deploys every push to `main`.
 | Defender for Containers runtime protection | Its runtime matrix does not list Container Apps. Compensating controls: pinned base image by digest, lock file, non-root user, no secrets in the image, identities with scoped roles, local auth off on Event Grid, budget and alerts. |
 | Azure Load Testing resource | The stream test needs WebSockets; `stream_load.py` runs the same 25-viewer scenario from any machine against the public API and prints the SLO numbers. |
 
+## Agents registered in the project
+
+| Agent | Kind | What it is |
+|---|---|---|
+| `matchmind-scout` | prompt agent | Hosted in Foundry; its only tool is this API's MCP server. The playground agent. |
+| `matchmind-judge` | prompt agent | The Judge, registered from the same code with `to_prompt_agent`; the API calls it when `MATCHMIND_JUDGE=foundry`. |
+| `matchmind-analyst`, `matchmind-narrator`, `matchmind-director`, `matchmind-coach` | external agents (preview) | They run inside the API. Registration is metadata only: Foundry matches their spans by `gen_ai.agent.id` and shows per-agent Traces and Monitor tabs. No AI Gateway, no proxying, nothing hosted. |
+
+The ids live in `backend/matchmind/agents/clients.py` (`AGENT_IDS`) and are passed to every agent, so the spans
+carry them; `infra/register_external_agents.py` registers the four and refuses to run if an id drifted. The
+Control Plane's "custom agents" are the other feature, the one that does route traffic through an AI Gateway;
+MatchMind does not use it, because the external-agent path gives the same views without a proxy in the path.
+
 ## Red teaming the Scout
 
 The Scout is the only surface that takes free text from a person, so it is the one worth attacking.
@@ -102,13 +115,16 @@ The Scout is the only surface that takes free text from a person, so it is the o
 | Scout v1 | 48 | 9 | 6 (12.5 %), all by obfuscation |
 | Scout v2, after the instruction fix | 48 | 8 | 0 |
 
-Two things to know before running it again: install the extra in a venv on a short path (`D:t`), because
+Two things to know before running it again: install the extra in a venv on a short path (`D:
+t`), because
 PyRIT ships file names that exceed the Windows path limit, and keep the target callback running the agent on a
 worker thread. The scanner owns the event loop, so an `asyncio.run` inside the callback raises and every answer
 comes back as an error, which scores as a clean 0 %.
 
 ```powershell
-D:t\Scripts\python D:\GitHub\matchmind\infraedteam_scout.py --objectives 3
+D:
+t\Scripts\python D:\GitHub\matchmind\infra
+edteam_scout.py --objectives 3
 ```
 
 ## Bootstrap and deploy

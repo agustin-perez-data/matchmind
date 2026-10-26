@@ -51,7 +51,7 @@ from matchmind.agents.cache import AgentCache, cache_from_env, coach_key, insigh
 from matchmind.agents.coach import build_coach_context
 from matchmind.agents.judge import ForecastLedger, build_judge_context, grade_forecast
 from matchmind.agents.moments import build_moment_context, detect_key_moment
-from matchmind.agents.guardrails import check_moment, context_text
+from matchmind.agents.guardrails import check_moment, facts_text
 from matchmind.api.events import match_ended, publisher_from_env, window_opened
 from matchmind.agents.observability import configure_observability, moment_span, record_moment, telemetry_enabled
 from matchmind.agents.schemas import ViewerProfile
@@ -431,7 +431,7 @@ class StreamSession:
         with moment_span(self.match_id, context["moment"]["kind"], self.profile.mode, cache_hit=hit):
             if result is None:
                 result = await self.pipeline.run(context, profiles)
-                await check_moment(result, context_text(context))  # Content Safety groundedness, when enabled; never blocks
+                await check_moment(result, facts_text(context))  # Content Safety groundedness, when enabled; never blocks
                 self._remember("insight", key, result)
         record_moment((time.perf_counter() - t0) * 1000, hit, context["moment"]["kind"])
         self.ledger.add(result, context)
