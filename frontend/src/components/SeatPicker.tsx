@@ -33,8 +33,16 @@ export function SeatPicker({ onPick, onQuick, disabled, matches, matchId, onMatc
 
   return (
     <section className="enter mx-auto w-full max-w-7xl px-5 pb-14 pt-5 sm:px-8 sm:pt-8">
-      <header>
-        <div className="display text-xl font-black uppercase tracking-wide">MatchMind <span className="ml-1 text-xs font-semibold normal-case tracking-normal text-muted">synthetic league, fictional clubs</span></div>
+      <header className="flex items-center gap-3">
+        <svg viewBox="0 0 64 64" width="40" height="40" aria-hidden className="shrink-0">
+          <rect width="64" height="64" rx="12" fill="#ffd166" />
+          <path d="M32 4V60" stroke="#0b0f1a" strokeWidth="7" />
+          <circle cx="32" cy="32" r="16" fill="none" stroke="#0b0f1a" strokeWidth="7" />
+        </svg>
+        <div className="leading-none">
+          <div className="display text-[30px] font-black uppercase leading-none tracking-wide sm:text-[34px]">MatchMind</div>
+          <div className="mt-1 text-xs font-semibold text-muted sm:text-sm">Synthetic league, fictional clubs</div>
+        </div>
       </header>
 
       <div className="mt-6 grid items-center gap-8 lg:mt-10 lg:grid-cols-[minmax(0,1fr)_minmax(420px,46%)] lg:gap-12">
