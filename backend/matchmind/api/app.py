@@ -20,6 +20,7 @@ WebSocket
             {"kind": "insight",    "event_id", "clock", "moment", "analyst", "viewers", "latency_ms"}
             {"kind": "coach",      "trigger", "player", "proposal", "branch", "latency_ms"}
             {"kind": "ack",        "speed": 50} | {"kind": "ack", "profile": {...}}
+            {"kind": "resume",     "from": event_id, "state": {...}}   # only with ?from=, once, before the first live item
             {"kind": "end",        "state": {...}, "risk": {...}}
         client -> server
             {"speed": 50}                                      # change replay speed live
@@ -40,7 +41,7 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field, ValidationError
@@ -181,11 +182,14 @@ def create_app(
                     log.warning("LLM agents disabled: %r", exc)
             else:
                 log.info("LLM agents disabled: Foundry not configured")
+        app.state.ready = True
         async with mcp.session_manager.run():
             yield
+        app.state.draining = True  # the platform stopped routing to us; live sessions finish within the grace period
 
     app = FastAPI(title="MatchMind", version="0.3.0", lifespan=lifespan)
     app.state.catalog, app.state.registry, app.state.agents = catalog, registry, agents
+    app.state.ready, app.state.draining = False, False
     # Public read-mostly demo API consumed by the Static Web Apps frontend: open CORS is intended.
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
@@ -199,10 +203,16 @@ def create_app(
         return HTMLResponse((Path(__file__).with_name("live.html")).read_text(encoding="utf-8"))
 
     @app.get("/health")
-    def health() -> dict:
+    def health(response: Response) -> dict:
+        """Startup, readiness and liveness probe. 503 while not ready or while draining, so the platform stops
+        routing new viewers to this replica; the keys are what the runbook and the smoke script read."""
         from matchmind.agents.clients import auth_mode, project_endpoint
 
-        return {"status": "ok", "ready": True, "matches": len(catalog.ids()), "agents": agents["pipeline"] is not None,
+        ready, draining = bool(app.state.ready), bool(app.state.draining)
+        if not ready or draining:
+            response.status_code = 503
+        return {"status": "ok" if ready and not draining else "unavailable", "ready": ready, "draining": draining,
+                "matches": len(catalog.ids()), "agents": agents["pipeline"] is not None,
                 "coach": agents["coach"] is not None, "judge": agents["judge"] is not None,
                 "cache": agents["cache"].stats() if agents["cache"] is not None else None,
                 "speech": speech_config() is not None,
@@ -284,6 +294,7 @@ def create_app(
         min_importance: int = Query(3, ge=1, le=5),
         compare: str | None = Query(None, description="extra viewer profiles to compare, comma-separated mode:lang:player:team (Control room)"),
         frames: str = Query("auto", pattern="^(auto|all|0)$", description="positional frames: auto = by speed, all = every frame, 0 = none"),
+        resume_from: int | None = Query(None, alias="from", ge=0, description="resume after this event id: the state is rebuilt silently up to it (a viewer reconnecting to another replica)"),
     ) -> None:
         await websocket.accept()
         meta = catalog.meta(match_id)
@@ -302,7 +313,7 @@ def create_app(
             coach=agents["coach"] if coach_on else None,
             judge=agents["judge"] if agents_on else None,
             profile=profile, speed=speed, min_importance=min_importance, cache=agents["cache"], compare=compare_profiles,
-            frames=catalog.frames(match_id), frames_mode=frames,
+            frames=catalog.frames(match_id), frames_mode=frames, resume_from=resume_from,
         )
         await session.run()
 
@@ -368,12 +379,17 @@ class _Lane:
             self.task.cancel()
 
 
+def _time_key(item: dict) -> tuple[int, int]:
+    return (int(item.get("period", 1)), int(item.get("minute", 0)) * 60 + int(item.get("second", 0)))
+
+
 class StreamSession:
     """One WebSocket connection: replay loop + control reader + agent lanes + single sender."""
 
     def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance, judge=None, cache=None, compare=None,
-                 frames=None, frames_mode="auto"):
+                 frames=None, frames_mode="auto", resume_from=None):
         self.ws, self.meta, self.events, self.registry = websocket, meta, events, registry
+        self.resume_from: int | None = resume_from  # events up to this id are replayed into the state without being sent
         self.frames: list[dict] = list(frames or [])  # positional frames, a side channel: never events
         self.frames_mode = frames_mode
         self.pipeline, self.coach, self.judge, self.profile, self.speed = pipeline, coach, judge, profile, speed
@@ -385,6 +401,13 @@ class StreamSession:
         self.closed = False
         self.out: asyncio.Queue = asyncio.Queue()
         self.ledger = ForecastLedger()  # the Analyst's forecasts, graded 10 match minutes later
+
+    def _cut_time(self) -> tuple[int, int] | None:
+        """(period, seconds) of the resume event, so frames up to that second are replayed silently too."""
+        for e in self.events:
+            if e["event_id"] == self.resume_from:
+                return _time_key(e)
+        return None
 
     def _cached(self, kind: str, key: str) -> dict | None:
         return self.cache.get(self.match_id, kind, key) if self.cache is not None else None
@@ -539,9 +562,32 @@ class StreamSession:
             # clock absorbs that instead of letting it pile up over thousands of frames.
             due = time.monotonic()
             timeline = merge_timeline(self.events, self.frames) if self.frames_mode != "0" and self.frames else self.events
+            # resume: everything up to the cut is applied silently (state, frames, risk monitor), nothing is sent and no
+            # agent lane is offered; forecasts that were pending before the cut are not re-created (documented)
+            cut = self._cut_time() if self.resume_from is not None else None
+            resumed = False
             for item in timeline:
                 if self.closed:
                     return
+                if cut is not None and not resumed:
+                    is_frame = item.get("kind") == "frame"
+                    if (not is_frame and item["event_id"] <= self.resume_from) or (is_frame and _time_key(item) <= cut):
+                        if is_frame:
+                            state.apply_frame(item)
+                        else:
+                            i += 1
+                            state.apply(item)
+                            monitor.observe(item, state.snapshot())
+                            prev = item
+                        continue
+                    resumed = True
+                    snapshot = state.snapshot()
+                    self.registry.update(self.match_id, self.meta, snapshot)
+                    await self.out.put({"kind": "resume", "from": self.resume_from, "state": snapshot})
+                    if monitor.minute:
+                        await self.out.put(self._risk_message(monitor, snapshot))
+                    prev = None  # the next item is due now
+                    due = time.monotonic()
                 due = max(due + delay_between(prev, item, self.speed), time.monotonic() - 1.0)  # a stall never bursts > 1 s
                 wait = due - time.monotonic()
                 if item.get("kind") != "frame":

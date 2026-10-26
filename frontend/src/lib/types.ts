@@ -352,4 +352,4 @@ export type RiskMsg = {
   note: string
 }
 
-export type StreamStatus = 'idle' | 'connecting' | 'live' | 'ended' | 'error'
+export type StreamStatus = 'idle' | 'connecting' | 'live' | 'reconnecting' | 'ended' | 'error'

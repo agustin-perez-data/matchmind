@@ -15,11 +15,11 @@ type Props = {
   onSound: (on: boolean) => void
 }
 
-const STATUS: Record<StreamStatus, string> = { idle: 'ready', connecting: 'connecting', live: 'live', ended: 'full time', error: 'server unreachable' }
+const STATUS: Record<StreamStatus, string> = { idle: 'ready', connecting: 'connecting', live: 'live', reconnecting: 'reconnecting', ended: 'full time', error: 'server unreachable' }
 
 /** The production desk: brand, seat tabs, speed, status. Fixture and language are chosen on the entry page. */
 export function ControlBar(p: Props) {
-  const running = p.status === 'live' || p.status === 'connecting'
+  const running = p.status === 'live' || p.status === 'connecting' || p.status === 'reconnecting'
   const step = (dir: 1 | -1) => {
     const next = stepSpeed(p.speed, dir)
     if (next !== p.speed) p.onSpeed(next)

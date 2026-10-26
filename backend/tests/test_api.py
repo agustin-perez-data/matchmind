@@ -231,6 +231,21 @@ def test_client_can_change_speed_and_profile_mid_stream(client, meta):
     assert any(a.get("profile", {}).get("mode") == "casual" for a in acks)
 
 
+def test_resume_from_event_id_skips_earlier_events(client, meta, events):
+    cut = events[len(events) // 2]["event_id"]
+    with client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&frames=all&from={cut}") as ws:
+        ws.receive_json()
+        msgs = _drain(ws)
+    assert msgs[0]["kind"] == "resume" and msgs[0]["from"] == cut
+    assert msgs[0]["state"]["last_event_id"] == cut and msgs[0]["state"]["minute"] > 20
+    sent = [m["event"]["event_id"] for m in msgs if m["kind"] == "event"]
+    assert sent and sent[0] > cut and sent == [e["event_id"] for e in events if e["event_id"] > cut]
+    cut_time = (events[len(events) // 2]["period"], events[len(events) // 2]["minute"] * 60 + events[len(events) // 2]["second"])
+    assert all((f["period"], f["minute"] * 60 + f["second"]) > cut_time for f in msgs if f["kind"] == "frame")
+    assert any(m["kind"] == "risk" for m in msgs)  # the monitor was rebuilt silently and keeps reporting
+    assert msgs[-1]["kind"] == "end"
+
+
 def test_websocket_streams_risk_summaries_and_alerts(client, meta):
     with client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0") as ws:
         ws.receive_json()

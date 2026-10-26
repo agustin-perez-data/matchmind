@@ -30,3 +30,6 @@ Thumbs.db
 
 # Project-scoped third-party skills and local Claude settings
 .claude/
+
+# Local server logs
+*.log

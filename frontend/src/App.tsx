@@ -113,7 +113,7 @@ export default function App() {
 
   // The commentator's voice: the fan seat hears each narration line as it lands (latest wins).
   useEffect(() => {
-    if (seat !== 'fan' || (state.status !== 'live' && state.status !== 'ended')) return // never a stale line from the last match
+    if (seat !== 'fan' || (state.status !== 'live' && state.status !== 'reconnecting' && state.status !== 'ended')) return // never a stale line from the last match
     const latest = state.feed.find((f) => f.msg.kind === 'insight')
     const text = latest && latest.msg.kind === 'insight' ? Object.values(latest.msg.viewers)[0]?.narration?.text : null
     if (text) voice.say(text, language)
@@ -134,7 +134,7 @@ export default function App() {
   const chooseSide = useCallback((id: string | null) => {
     setTeam(id); setSideChosen(true); setAskSide(false)
     writeUrl({ team: id ?? 'neutral' }, true)
-    const live = state.status === 'live' || state.status === 'ended' || state.status === 'connecting'
+    const live = state.status === 'live' || state.status === 'reconnecting' || state.status === 'ended' || state.status === 'connecting'
     if (live) send({ profile: profileForSeat('fan', language, favorite, id) })
     else if (matchId) begin('fan', matchId, { profile: profileForSeat('fan', language, favorite, id) })
   }, [state.status, send, begin, matchId, language, favorite])
@@ -167,7 +167,7 @@ export default function App() {
   }, [send, seat, language, team])
 
   const meta = state.meta
-  const inMatch = seat !== null && (state.status === 'live' || state.status === 'ended' || state.status === 'connecting')
+  const inMatch = seat !== null && (state.status === 'live' || state.status === 'reconnecting' || state.status === 'ended' || state.status === 'connecting')
   const branches = useMemo(() => state.feed.flatMap((f) => (f.msg.kind === 'coach' && f.msg.branch ? [f.msg.branch] : [])), [state.feed])
   const latestCoach = useMemo(() => { const f = state.feed.find((x) => x.msg.kind === 'coach'); return f && f.msg.kind === 'coach' ? f.msg : null }, [state.feed])
   const onBranchCreated = useCallback((b: BranchSummary) => {

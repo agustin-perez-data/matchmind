@@ -152,3 +152,18 @@ def test_session_risk_and_credibility_stay_with_the_session():
         return await asyncio.gather(viewer("a"), viewer("b"))
 
     assert asyncio.run(both()) == [("a", "a"), ("b", "b")]
+
+
+def test_cache_rereads_the_file_on_a_miss_when_another_process_wrote_it(tmp_path):
+    """Two replicas share one Azure Files share: a miss re-reads the file and merges, nothing is lost."""
+    from matchmind.agents.cache import AgentCache
+
+    a, b = AgentCache(tmp_path), AgentCache(tmp_path)
+    a.put("M", "insight", "1:fan", {"text": "a"})
+    assert b.get("M", "insight", "1:fan") is None or b.get("M", "insight", "1:fan")["text"] == "a"
+    b.put("M", "insight", "2:fan", {"text": "b"})  # b's flush carries a's entry too (merged on the earlier miss)
+    assert b.get("M", "insight", "1:fan")["text"] == "a"
+    a.put("M", "insight", "3:fan", {"text": "c"})
+    assert a.get("M", "insight", "2:fan")["text"] == "b"  # a noticed b's write on its miss
+    c = AgentCache(tmp_path)
+    assert {c.get("M", "insight", f"{i}:fan")["text"] for i in (1, 2, 3)} == {"a", "b", "c"}

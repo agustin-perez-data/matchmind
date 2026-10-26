@@ -23,11 +23,18 @@ log = logging.getLogger("matchmind.agents.cache")
 KINDS = ("insight", "coach", "verdict")
 
 
+def _signature(f: Path) -> tuple[int, int]:
+    """(mtime_ns, size): mtime alone can repeat on coarse filesystem clocks (NTFS, SMB) for back-to-back writes."""
+    st = f.stat()
+    return (st.st_mtime_ns, st.st_size)
+
+
 class AgentCache:
     def __init__(self, directory: Path | str | None):
         self.dir = Path(directory) if directory else None
         self._mem: dict[str, dict[str, dict]] = {}  # match_id -> "kind:key" -> result
         self._lock = threading.Lock()
+        self._mtime: dict[str, tuple] = {}  # file signature seen at load, so a miss can notice another replica's writes
         self.hits = self.misses = 0
 
     # ------------------------------------------------------------ persistence
@@ -38,15 +45,38 @@ class AgentCache:
     def _load(self, match_id: str) -> dict[str, dict]:
         if match_id in self._mem:
             return self._mem[match_id]
+        self._mem[match_id] = self._read(match_id)
+        return self._mem[match_id]
+
+    def _read(self, match_id: str) -> dict[str, dict]:
         entries: dict[str, dict] = {}
         f = self._file(match_id)
         if f is not None and f.is_file():
             try:
                 entries = json.loads(f.read_text(encoding="utf-8"))
+                self._mtime[match_id] = _signature(f)
             except (OSError, ValueError) as exc:
                 log.warning("cache file %s unreadable, starting empty: %r", f, exc)
-        self._mem[match_id] = entries
         return entries
+
+    def _refresh(self, match_id: str) -> dict[str, dict]:
+        """Re-read the file when another process changed it (two replicas share one Azure Files share).
+
+        Entries are merged, ours on top; the next flush writes the union, so the replicas converge and a
+        concurrent write costs at most one repeated Foundry call, never a lost entry.
+        """
+        f = self._file(match_id)
+        if f is None:
+            return self._mem[match_id]
+        try:
+            mtime = _signature(f) if f.is_file() else None
+        except OSError:
+            mtime = None
+        if mtime is None or mtime == self._mtime.get(match_id):
+            return self._mem[match_id]
+        merged = {**self._read(match_id), **self._mem[match_id]}
+        self._mem[match_id] = merged
+        return merged
 
     def _flush(self, match_id: str) -> None:
         f = self._file(match_id)
@@ -57,6 +87,7 @@ class AgentCache:
             tmp = f.with_suffix(".tmp")
             tmp.write_text(json.dumps(self._mem[match_id], ensure_ascii=False), encoding="utf-8")
             tmp.replace(f)
+            self._mtime[match_id] = _signature(f)
         except OSError as exc:
             log.warning("could not write cache %s: %r", f, exc)
 
@@ -65,6 +96,8 @@ class AgentCache:
     def get(self, match_id: str, kind: str, key: str) -> dict | None:
         with self._lock:
             hit = self._load(match_id).get(f"{kind}:{key}")
+            if hit is None:
+                hit = self._refresh(match_id).get(f"{kind}:{key}")  # maybe another replica warmed it
             if hit is None:
                 self.misses += 1
                 return None
@@ -75,7 +108,8 @@ class AgentCache:
         if result is None or result.get("errors"):
             return  # never cache a degraded result; the next viewer gets another try
         with self._lock:
-            self._load(match_id)[f"{kind}:{key}"] = {k: v for k, v in result.items() if k != "cached"}
+            self._load(match_id)
+            self._refresh(match_id)[f"{kind}:{key}"] = {k: v for k, v in result.items() if k != "cached"}  # write the union
             self._flush(match_id)
 
     def size(self, match_id: str | None = None) -> int:
