@@ -70,27 +70,30 @@ def _summarise_args(arguments: Any) -> dict:
 
 @agent_middleware
 async def trace_agents(context, call_next) -> None:
-    """Records every agent run (start, end, latency, tokens) into the active trace."""
+    """Records every agent run (start, end, latency, tokens) into the active trace and into one OTel span."""
+    from matchmind.agents.observability import agent_span, record_tokens
+
+    agent = getattr(context, "agent", None)
+    name = getattr(agent, "name", None) or "agent"
+    agent_id = getattr(agent, "id", None)
     trace = current_trace.get()
-    if trace is None:
-        await call_next()
-        return
-    name = getattr(getattr(context, "agent", None), "name", None) or "agent"
     t0 = time.perf_counter()
-    trace.mark("agent_start", name)
+    if trace is not None:
+        trace.mark("agent_start", name)
     token = current_agent.set(name)
     try:
-        await call_next()
+        with agent_span(name, agent_id):
+            await call_next()
     except Exception as exc:
-        trace.mark("agent_error", name, latency_ms=round((time.perf_counter() - t0) * 1000), error=repr(exc)[:200])
+        if trace is not None:
+            trace.mark("agent_error", name, latency_ms=round((time.perf_counter() - t0) * 1000), error=repr(exc)[:200])
         raise
     finally:
         current_agent.reset(token)
     tokens = _usage(getattr(context, "result", None))
-    trace.mark("agent_end", name, latency_ms=round((time.perf_counter() - t0) * 1000), tokens=tokens)
+    if trace is not None:
+        trace.mark("agent_end", name, latency_ms=round((time.perf_counter() - t0) * 1000), tokens=tokens)
     try:
-        from matchmind.agents.observability import record_tokens
-
         record_tokens(name, tokens)
     except Exception:  # noqa: BLE001  telemetry never breaks an agent run
         pass

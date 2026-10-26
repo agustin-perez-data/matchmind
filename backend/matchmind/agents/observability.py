@@ -97,6 +97,42 @@ def moment_span(match_id: str, kind: str, mode: str, cache_hit: bool | None = No
         yield span
 
 
+def _framework_emits_agent_spans() -> bool:
+    """True when the Agent Framework's own instrumentation is on, so a span of ours would be a duplicate."""
+    try:
+        from agent_framework.observability import OBSERVABILITY_SETTINGS
+
+        return bool(getattr(OBSERVABILITY_SETTINGS, "enable_instrumentation", False))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+@contextmanager
+def agent_span(name: str, agent_id: str | None) -> Iterator[trace.Span | None]:
+    """The gen_ai span Foundry attributes to a registered agent, when nothing else opened one.
+
+    The Agent Framework emits `invoke_agent` spans when an agent is called directly, but the concurrent
+    workflow path does not, so the Analyst, Narrator and Director would appear only as anonymous `chat`
+    spans and their external-agent registrations would stay empty. This opens the span ourselves, and
+    stays out of the way when the framework already did (it only tops up the id attribute).
+    """
+    current = trace.get_current_span()
+    if getattr(current, "name", "").startswith("invoke_agent"):
+        if agent_id and current.is_recording():
+            current.set_attribute("gen_ai.agent.id", agent_id)
+        yield current
+        return
+    if _framework_emits_agent_spans():
+        yield None  # the Agent Framework will open its own span, carrying the same id
+        return
+    with _tracer.start_as_current_span(f"invoke_agent {name}") as span:
+        span.set_attribute("gen_ai.operation.name", "invoke_agent")
+        span.set_attribute("gen_ai.agent.name", name)
+        if agent_id:
+            span.set_attribute("gen_ai.agent.id", agent_id)
+        yield span
+
+
 def record_moment(latency_ms: float, cache_hit: bool, kind: str) -> None:
     _moment_latency.record(latency_ms, {"cache_hit": cache_hit, "kind": kind})
     _cache_lookups.add(1, {"hit": cache_hit})
