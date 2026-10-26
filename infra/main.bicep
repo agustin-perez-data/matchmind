@@ -35,8 +35,8 @@ param minReplicas int = 1
 @description('E-mail for alerts and the budget; empty disables the action group and the budget')
 param alertEmail string = ''
 
-@description('GitHub repository allowed to deploy through OIDC (owner/name)')
-param githubRepo string = 'agustin-perez-data/matchmind'
+@description('GitHub repository allowed to deploy through OIDC, in the form GitHub presents in the OIDC subject since 2026: owner@ownerId/repo@repoId')
+param githubRepo string = 'agustin-perez-data@115547741/matchmind@1427551358'
 
 @description('First day of the month the budget starts counting from')
 param budgetStart string = '2026-10-01'
