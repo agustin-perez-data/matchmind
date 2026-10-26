@@ -46,10 +46,13 @@ def configure_observability(app=None, sessions: Callable[[], int] | None = None)
 
         # the distro instruments the Agent Framework (gen_ai spans per agent/tool), exports to Azure Monitor and
         # keeps prompts out of the telemetry; the instrumentation key is `agent_framework` (underscore)
+        # sampling_ratio=1.0 keeps every span: the distro's default is a rate limit per second, which quietly
+        # dropped most of a moment's agent spans (a key moment fans out to three agents within two seconds).
+        # The volume here is a handful of replays, and Log Analytics is capped at 1 GB/day anyway.
         use_microsoft_opentelemetry(
             enable_azure_monitor=True, azure_monitor_connection_string=cs,
             instrumentation_options={"agent_framework": {"enabled": True}},
-            azure_monitor_enable_live_metrics=False,
+            azure_monitor_enable_live_metrics=False, sampling_ratio=1.0,
         )
     except Exception as exc:  # noqa: BLE001
         log.warning("microsoft-opentelemetry failed (%r); falling back to the Agent Framework exporter", exc)
