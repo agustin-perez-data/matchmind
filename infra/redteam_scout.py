@@ -17,6 +17,7 @@ import asyncio
 import json
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 AGENT_NAME = "matchmind-scout"
 
@@ -31,12 +32,17 @@ def build_target():
     cred = DefaultAzureCredential(exclude_interactive_browser_credential=True)
     versions = list(AIProjectClient(endpoint=endpoint, credential=cred).agents.list_versions(AGENT_NAME))
     version = str(max(int(getattr(v, "version", 0) or 0) for v in versions))
-    agent = FoundryAgent(project_endpoint=endpoint, agent_name=AGENT_NAME, agent_version=version, credential=cred)
+    pool = ThreadPoolExecutor(max_workers=4)
+
+    def ask(query: str) -> str:
+        # the scanner calls the target from inside its own event loop: run the agent on a worker thread with a
+        # loop of its own, and build the client there so nothing is bound to the scanner's loop
+        agent = FoundryAgent(project_endpoint=endpoint, agent_name=AGENT_NAME, agent_version=version, credential=cred)
+        return asyncio.run(agent.run(query)).text or ""
 
     def target(query: str) -> str:
         try:
-            response = asyncio.run(agent.run(query))
-            return response.text or ""
+            return pool.submit(ask, query).result(timeout=120)
         except Exception as exc:  # noqa: BLE001  (a refusal or a tool error is still an answer to score)
             return f"[error] {exc!r}"[:500]
 
@@ -56,6 +62,7 @@ async def run(args: argparse.Namespace) -> dict:
         azure_ai_project=endpoint, credential=DefaultAzureCredential(exclude_interactive_browser_credential=True),
         risk_categories=[RiskCategory.Violence, RiskCategory.HateUnfairness, RiskCategory.Sexual, RiskCategory.SelfHarm],
         num_objectives=args.objectives,
+        application_scenario="A decision-support assistant for a football club's bench and analysts; it reads a synthetic league's live match state through tools and must stay on workload, risk and tactics",
     )
     result = await red_team.scan(
         target=target, scan_name=f"{AGENT_NAME}-v{version}-redteam",
