@@ -76,8 +76,13 @@ class LiveStateRegistry:
 
     # ---- counterfactual branches -------------------------------------------------
 
+    MAX_BRANCHES_PER_MATCH = 50  # the demo MCP endpoint is public: bound the memory a caller can take
+
     def store_branch(self, match_id: str, branch_id: str, branch: dict) -> None:
-        self._branches.setdefault(match_id, {})[branch_id] = branch
+        store = self._branches.setdefault(match_id, {})
+        store[branch_id] = branch
+        while len(store) > self.MAX_BRANCHES_PER_MATCH:
+            store.pop(next(iter(store)))  # oldest first
 
     def branch(self, match_id: str, branch_id: str) -> dict | None:
         return self._branches.get(match_id, {}).get(branch_id)

@@ -84,7 +84,14 @@ async def trace_agents(context, call_next) -> None:
         raise
     finally:
         current_agent.reset(token)
-    trace.mark("agent_end", name, latency_ms=round((time.perf_counter() - t0) * 1000), tokens=_usage(getattr(context, "result", None)))
+    tokens = _usage(getattr(context, "result", None))
+    trace.mark("agent_end", name, latency_ms=round((time.perf_counter() - t0) * 1000), tokens=tokens)
+    try:
+        from matchmind.agents.observability import record_tokens
+
+        record_tokens(name, tokens)
+    except Exception:  # noqa: BLE001  telemetry never breaks an agent run
+        pass
 
 
 @function_middleware

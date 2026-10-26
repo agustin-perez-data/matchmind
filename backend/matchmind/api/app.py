@@ -50,6 +50,7 @@ from matchmind.agents.cache import AgentCache, cache_from_env, coach_key, insigh
 from matchmind.agents.coach import build_coach_context
 from matchmind.agents.judge import ForecastLedger, build_judge_context, grade_forecast
 from matchmind.agents.moments import build_moment_context, detect_key_moment
+from matchmind.agents.observability import configure_observability, moment_span, record_moment, telemetry_enabled
 from matchmind.agents.schemas import ViewerProfile
 from matchmind.generate_match import generate, write_match
 from matchmind.interpreter.state import MatchState
@@ -162,10 +163,12 @@ def create_app(
                 registry.update(mid, catalog.meta(mid), catalog.final_state(mid))
             except Exception as exc:  # noqa: BLE001
                 log.warning("could not preload %s: %r", mid, exc)
+        configure_observability(app, sessions=registry.sessions)
         if enable_agents is not False and any(agents[k] is None for k in ("pipeline", "coach", "judge")):
-            from matchmind.agents.clients import build_coach, build_judge, build_pipeline, foundry_configured
+            from matchmind.agents.clients import build_coach, build_judge, build_pipeline, describe_auth, foundry_configured
 
             if foundry_configured():
+                log.info("Foundry auth: %s", describe_auth())
                 try:
                     if agents["pipeline"] is None:
                         agents["pipeline"] = build_pipeline(tools=tools.as_functions())
@@ -197,11 +200,18 @@ def create_app(
 
     @app.get("/health")
     def health() -> dict:
-        return {"status": "ok", "matches": len(catalog.ids()), "agents": agents["pipeline"] is not None,
+        from matchmind.agents.clients import auth_mode, project_endpoint
+
+        return {"status": "ok", "ready": True, "matches": len(catalog.ids()), "agents": agents["pipeline"] is not None,
                 "coach": agents["coach"] is not None, "judge": agents["judge"] is not None,
                 "cache": agents["cache"].stats() if agents["cache"] is not None else None,
                 "speech": speech_config() is not None,
-                "live_sessions": registry.sessions()}
+                "live_sessions": registry.sessions(),
+                "auth": auth_mode() if agents["pipeline"] is not None else None,
+                "project": bool(project_endpoint()) if agents["pipeline"] is not None else False,
+                "telemetry": telemetry_enabled(),
+                "replica": os.environ.get("CONTAINER_APP_REPLICA_NAME"),
+                "revision": os.environ.get("CONTAINER_APP_REVISION")}
 
     @app.get("/matches")
     def list_matches() -> list[dict]:
@@ -388,10 +398,14 @@ class StreamSession:
         The same moment for the same profile is explained once: later viewers get it from the cache."""
         profiles = [self.profile, *self.compare]
         key = insight_key(context["moment"]["event_id"], "+".join(p.key for p in profiles))
+        t0 = time.perf_counter()
         result = self._cached("insight", key)
-        if result is None:
-            result = await self.pipeline.run(context, profiles)
-            self._remember("insight", key, result)
+        hit = result is not None
+        with moment_span(self.match_id, context["moment"]["kind"], self.profile.mode, cache_hit=hit):
+            if result is None:
+                result = await self.pipeline.run(context, profiles)
+                self._remember("insight", key, result)
+        record_moment((time.perf_counter() - t0) * 1000, hit, context["moment"]["kind"])
         self.ledger.add(result, context)
         return result
 

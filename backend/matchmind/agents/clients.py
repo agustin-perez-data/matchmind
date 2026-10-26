@@ -1,12 +1,20 @@
-"""Azure AI Foundry wiring: Agent Framework chat clients and the three agents.
+"""Microsoft Foundry wiring: Agent Framework chat clients and the agents.
 
 Two model tiers, both read from the environment (see backend/.env.example):
-    fast  -> AZURE_OPENAI_DEPLOYMENT_FAST  (Narrator, Director; many short calls)
-    smart -> AZURE_OPENAI_DEPLOYMENT_SMART (Analyst; deeper reasoning)
+    fast  -> AZURE_OPENAI_DEPLOYMENT_FAST  (Narrator, Director, Judge; many short calls)
+    smart -> AZURE_OPENAI_DEPLOYMENT_SMART (Analyst, Coach; deeper reasoning)
+
+Three ways to reach Foundry, chosen by `auth_mode()`:
+    project  -> FOUNDRY_PROJECT_ENDPOINT set: the Foundry project is the control plane. Keyless
+                (DefaultAzureCredential: a managed identity on Azure, `az login` locally), Responses API,
+                traces and evaluations land in the same project. This is how the deployed app runs.
+    identity -> AZURE_OPENAI_ENDPOINT + MATCHMIND_AUTH=identity: keyless on the account endpoint.
+    key      -> AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY: the local fallback.
 """
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 
@@ -19,6 +27,7 @@ from matchmind.agents.pipeline import MomentPipeline
 
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 DEFAULT_API_VERSION = "2024-10-21"
+log = logging.getLogger(__name__)
 
 
 def load_env() -> None:
@@ -26,23 +35,59 @@ def load_env() -> None:
         load_dotenv(ENV_FILE, override=False)
 
 
-def foundry_configured() -> bool:
+def auth_mode() -> str | None:
+    """'project' | 'identity' | 'key' | None (not configured)."""
     load_env()
-    return bool(os.environ.get("AZURE_OPENAI_ENDPOINT") and os.environ.get("AZURE_OPENAI_API_KEY"))
+    if os.environ.get("FOUNDRY_PROJECT_ENDPOINT"):
+        return "project"
+    if os.environ.get("AZURE_OPENAI_ENDPOINT"):
+        if os.environ.get("AZURE_OPENAI_API_KEY"):
+            return "key"
+        if os.environ.get("MATCHMIND_AUTH", "").lower() == "identity":
+            return "identity"
+    return None
+
+
+def foundry_configured() -> bool:
+    return auth_mode() is not None
+
+
+def project_endpoint() -> str | None:
+    load_env()
+    return os.environ.get("FOUNDRY_PROJECT_ENDPOINT") or None
+
+
+def _credential():
+    """Managed identity in Container Apps (AZURE_CLIENT_ID picks the user-assigned one), `az login` on a laptop."""
+    from azure.identity import DefaultAzureCredential
+
+    return DefaultAzureCredential(exclude_interactive_browser_credential=True)
 
 
 def chat_client(tier: str = "fast"):
-    """Agent Framework chat client bound to one Foundry deployment."""
-    from agent_framework.openai import OpenAIChatCompletionClient
-
+    """Agent Framework chat client bound to one Foundry deployment, by the configured auth mode."""
     load_env()
     deployment = os.environ[f"AZURE_OPENAI_DEPLOYMENT_{tier.upper()}"]
-    return OpenAIChatCompletionClient(
-        model=deployment,
-        api_key=os.environ["AZURE_OPENAI_API_KEY"],
-        azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-        api_version=os.environ.get("AZURE_OPENAI_API_VERSION", DEFAULT_API_VERSION),
-    )
+    mode = auth_mode()
+    if mode == "project":
+        from agent_framework.foundry import FoundryChatClient
+
+        return FoundryChatClient(project_endpoint=os.environ["FOUNDRY_PROJECT_ENDPOINT"], model=deployment, credential=_credential())
+    if mode is None:
+        raise RuntimeError("Foundry is not configured: set FOUNDRY_PROJECT_ENDPOINT, or AZURE_OPENAI_ENDPOINT with a key or MATCHMIND_AUTH=identity")
+    from agent_framework.openai import OpenAIChatCompletionClient
+
+    common = {"model": deployment, "azure_endpoint": os.environ["AZURE_OPENAI_ENDPOINT"],
+              "api_version": os.environ.get("AZURE_OPENAI_API_VERSION", DEFAULT_API_VERSION)}
+    if mode == "identity":
+        return OpenAIChatCompletionClient(credential=_credential(), **common)
+    return OpenAIChatCompletionClient(api_key=os.environ["AZURE_OPENAI_API_KEY"], **common)
+
+
+def describe_auth() -> str:
+    mode = auth_mode()
+    return {"project": "Foundry project, managed identity", "identity": "account endpoint, managed identity",
+            "key": "account endpoint, API key"}.get(mode or "", "not configured")
 
 
 def build_coach(match_tools) -> "CoachPipeline":

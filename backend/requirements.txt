@@ -14,3 +14,14 @@ httpx>=0.27  # Azure AI Speech (commentator voice)
 # Dev / test
 pytest>=8
 pytest-asyncio>=0.23
+# Foundry project client (keyless, Responses API, evals), identity and telemetry
+agent-framework-foundry>=1.15
+azure-ai-projects>=2.7
+azure-identity>=1.20
+microsoft-opentelemetry>=1.4
+azure-monitor-opentelemetry-exporter>=1.0.0b50
+opentelemetry-instrumentation-fastapi>=0.60b0
+# events and reports (Event Grid publisher, queue consumer, blob writer)
+azure-eventgrid>=4.20
+azure-storage-queue>=12.12
+azure-storage-blob>=12.24
