@@ -10,6 +10,7 @@ from datetime import date
 from matchmind.api import events
 from matchmind.jobs.nightly import match_of_the_day
 from matchmind.reports import consume
+from tests.test_api import _drain  # noqa: E402
 
 ALERT = {"player_id": "THU-7", "name": "Ferrant", "team_id": "THU", "position": "FW", "clock": "61:10", "open_minute": 61,
          "hazard": 0.93, "level": "high", "hit": False, "minutes_played": 61, "acwr_live": 1.41, "effort_ratio_recent": 0.84,
@@ -112,3 +113,16 @@ def test_match_of_the_day_is_deterministic_and_never_a_club_against_itself():
         home, away, seed = match_of_the_day(d)
         assert home != away and seed == int(d.strftime("%Y%m%d"))
     assert match_of_the_day(date(2026, 10, 27)) == match_of_the_day(date(2026, 10, 27))
+
+
+def test_stream_publishes_the_ended_event_and_still_sends_end(client, meta, monkeypatch):
+    """The deployed app lost `end` when the match.ended event raised (profile.key is a property): never again."""
+    from matchmind.api import app as app_module
+
+    pub = events.EventPublisher(FakeClient())
+    monkeypatch.setattr(app_module, "publisher_from_env", lambda: pub)
+    with client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&frames=0") as ws:
+        ws.receive_json()
+        msgs = _drain(ws)
+    assert msgs[-1]["kind"] == "end"
+    assert any(e.type == events.MATCH_ENDED for e in pub.client.sent) and pub.failed == 0

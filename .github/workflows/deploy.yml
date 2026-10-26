@@ -122,6 +122,8 @@ jobs:
         env:
           FOUNDRY_PROJECT_ENDPOINT: ${{ steps.infra.outputs.project_endpoint }}
           MATCHMIND_API_URL: ${{ steps.infra.outputs.api_url }}
+          AZURE_OPENAI_DEPLOYMENT_FAST: gpt-4.1-mini
+          AZURE_OPENAI_DEPLOYMENT_SMART: gpt-4o
         run: |
           pip install -q -r backend/requirements.txt
           python infra/register_scout.py

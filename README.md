@@ -257,7 +257,7 @@ the moment is served through direct calls and the trace says so.
 
 ## Deployed on Azure
 
-Live: **<<WEB_URL>>** (frontend) and **<<API_URL>>** (API: `/health`, `/matches`, `/ws`, `/mcp`, `/docs`).
+Live: **https://lively-mushroom-0cde96c0f.5.azurestaticapps.net** (frontend) and **https://matchmind-api.mangopond-a8309942.eastus2.azurecontainerapps.io** (API: `/health`, `/matches`, `/ws`, `/mcp`, `/docs`).
 Everything is code in `infra/` and deploys on every push to `main` through GitHub Actions with OpenID
 Connect (no cloud secret stored anywhere). `infra/README.md` has the per-service purposes, the SLOs, the
 runbook and the list of what was deliberately not used.
@@ -297,7 +297,7 @@ runbook and the list of what was deliberately not used.
 | Identity and secrets | Two user-assigned identities with scoped roles (Foundry User, OpenAI User, Cognitive Services User, Key Vault Secrets User, AcrPull/AcrPush, EventGrid Data Sender, Storage Queue/Blob); the only key (Speech) is a Key Vault reference; Event Grid local auth off; pinned non-root image from a lock file |
 | Operations | Log Analytics capped at 1 GB/day, workbook (requests, moment latency by cache hit, cache ratio, tokens by agent, Foundry dependencies, viewers), availability web test from 3 locations, alerts on availability, failed requests and restarts, USD 30 budget |
 | Delivery | Bicep, idempotent; GitHub Actions with OIDC; smoke test of health, catalogue, a full replay, a resume and MCP after each deploy |
-| Measured | <<LOAD_LINE>> |
+| Measured | `stream_load.py`, 25 concurrent viewers at 100x against the deployed API (warm cache): every viewer received all 2,165 events and its insights, time to first insight p50 9.7 s / p95 11.5 s under that load, the app scaled to 2 replicas with 0 restarts. The first run also caught a real bug (the `end` message was lost when the match-ended event failed to build), fixed and covered by a test the same day |
 
 ## Responsible AI note
 

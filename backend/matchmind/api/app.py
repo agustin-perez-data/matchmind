@@ -659,7 +659,10 @@ class StreamSession:
             await self.out.put({"kind": "end", "state": final_state, "risk": risk_summary,
                                 "hazard_series": monitor.hazard_series(), "credibility": credibility})
             if self.events_out is not None:
-                self.events_out.publish(match_ended(self.match_id, self.profile.key(), self.meta, final_state, risk_summary, credibility))
+                try:  # a domain event must never cost the viewer the end message
+                    self.events_out.publish(match_ended(self.match_id, self.profile.key, self.meta, final_state, risk_summary, credibility))
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("match.ended event not published: %r", exc)
             await self.out.put(None)
             await sender
         except (WebSocketDisconnect, RuntimeError):
