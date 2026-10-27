@@ -7,10 +7,8 @@ project must stay reachable until then.
 
 ## Context — read first
 
-`docs/PLAN.md` is the single source of truth: product concept, agent lineup,
-architecture, judging-rubric strategy, compliance checklist, day plan and
-current status. Read it at the start of every session and keep its
-"Current status" section updated as work progresses.
+`README.md` is the product and its measured numbers; `infra/README.md` is the deployment, SLOs and runbook;
+`docs/submission.md` is the submission copy. The working history lives in git (`git log`), not in a plan file.
 
 ## Working rules
 
