@@ -4,6 +4,7 @@ REST
     GET  /health
     GET  /matches                                   -> catalogue of matches in the data dir
     GET  /matches/{match_id}/meta                   -> teams, squads, load history (no latent state)
+    GET  /matches/{match_id}/report                 -> full-time knocks, warnings and open windows (club area)
     GET  /matches/{match_id}/branches               -> counterfactual branches simulated so far
     POST /matches/{match_id}/branches               -> simulate an intervention (body: InterventionRequest)
     GET  /matches/{match_id}/branches/{branch_id}   -> branch summary + meta + full event stream
@@ -51,6 +52,7 @@ from matchmind.api.stream import StreamSession, parse_profile_spec
 from matchmind.api.tts import Speaker, speech_config
 from matchmind.generate_match import generate, write_match
 from matchmind.interpreter.state import MatchState
+from matchmind.risk.monitor import RiskMonitor
 from matchmind.sim.tracking import build_tracking
 from matchmind.stream.replay import load_events, merge_timeline
 from matchmind.tools.mcp_server import build_mcp_server
@@ -84,6 +86,7 @@ class MatchCatalog:
     def __init__(self, data_dir: Path):
         self.data_dir = Path(data_dir)
         self._frames: dict[str, list[dict]] = {}
+        self._reports: dict[str, dict] = {}
 
     def ids(self) -> list[str]:
         return sorted(p.name[: -len("_meta.json")] for p in self.data_dir.glob("*_meta.json"))
@@ -103,6 +106,24 @@ class MatchCatalog:
         home, away, seed = DEFAULT_MATCH
         log.info("No matches in %s - generating default %s vs %s (seed %s)", self.data_dir, home, away, seed)
         write_match(*generate(home, away, seed), out_dir=self.data_dir)
+
+    def report(self, match_id: str) -> dict:
+        """The full-time staff report of a match nobody has watched: the events replayed through the Interpreter
+        and the Risk Monitor on the server, memoised like the frames. Observables only, like the live stream."""
+        if match_id not in self._reports:
+            meta = self.meta(match_id)
+            state, monitor = MatchState(meta), RiskMonitor(meta)
+            for event in self.events(match_id):
+                state.apply(event)
+                monitor.observe(event, state.snapshot())
+            final, summary = state.snapshot(), monitor.summary()
+            self._reports[match_id] = {
+                "match_id": match_id, "score": final.get("score", meta.get("score")),
+                "teams": {tid: t.get("name") for tid, t in meta["teams"].items()},
+                "risk": {"scorecard": summary["scorecard"], "concerns": summary["concerns"], "active_windows": summary["active_windows"]},
+                "generated": "server replay",
+            }
+        return self._reports[match_id]
 
     def frames(self, match_id: str) -> list[dict]:
         """Positional frames, built once per match from its events (pure, deterministic) and kept in memory."""
@@ -154,6 +175,7 @@ def create_app(
         for mid in catalog.ids():  # MCP clients get full-match state even with no live stream
             try:
                 registry.update(mid, catalog.meta(mid), catalog.final_state(mid))
+                catalog.report(mid)  # the club area opens instantly
             except Exception as exc:  # noqa: BLE001
                 log.warning("could not preload %s: %r", mid, exc)
         configure_observability(app, sessions=registry.sessions)
@@ -240,6 +262,12 @@ def create_app(
     @app.get("/matches/{match_id}/meta")
     def match_meta(match_id: str) -> dict:
         return _meta_or_404(match_id)
+
+    @app.get("/matches/{match_id}/report")
+    def match_report(match_id: str) -> dict:
+        """Full-time knocks, warnings and open windows for the club area, without a viewer having watched it."""
+        _meta_or_404(match_id)
+        return catalog.report(match_id)
 
     @app.get("/matches/{match_id}/branches")
     def list_branches(match_id: str) -> list[dict]:

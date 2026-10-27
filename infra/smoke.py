@@ -95,13 +95,22 @@ def check_mcp(client: httpx.Client) -> None:
 
 
 def check_web(client: httpx.Client) -> None:
+    """The demo must stay anonymous; only the club area asks for a sign-in. A deploy that breaks this fails here."""
     if not WEB:
         print("web: skipped (MATCHMIND_WEB_URL not set)")
         return
-    r = client.get(WEB)
-    if r.status_code != 200 or "<div id=\"root\"" not in r.text:
-        fail(f"frontend {r.status_code}")
-    print("web ok", WEB)
+    with httpx.Client(timeout=30, follow_redirects=False) as raw:
+        for path in ("/", "/?seat=bench&match=THU-NBF-40", "/signin"):
+            r = raw.get(WEB + path)
+            if r.status_code != 200 or '<div id="root"' not in r.text:
+                fail(f"{path} is not open to anonymous visitors: {r.status_code}")
+        r = raw.get(WEB + "/club")
+        if r.status_code not in (301, 302) or "/signin" not in r.headers.get("location", ""):
+            fail(f"/club should send anonymous visitors to /signin, got {r.status_code} {r.headers.get('location')}")
+    r = client.get(f"{API}/matches/THU-NBF-40/report")
+    if r.status_code != 200 or "scorecard" not in r.text:
+        fail(f"match report {r.status_code}")
+    print("web ok: demo open, /club behind sign-in, report served", WEB)
 
 
 def main() -> None:

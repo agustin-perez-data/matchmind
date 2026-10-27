@@ -192,9 +192,11 @@ SLOs, the runbook and what was deliberately not used.
   players. What transfers is the method: observables only, scored against outcomes, calibrated by bin.
 - **Positions are a model, not tracking data.** A positional model places the 22 players each second from
   the events, so the picture never contradicts the data; real tracking works the other way round.
-- **The product is a demo.** There is no sign-in, the MCP endpoint is public and read-only by design (the one
-  writing tool is capped at 50 branches per match), and a replica serves about 20 replays. A club deployment
-  would start with authentication and per-club data isolation.
+- **The product is a demo.** The demo needs no sign-in, on purpose. The club area (`/club`: the matchday's staff
+  reports, generated on the server) sits behind Static Web Apps sign-in with any GitHub or Microsoft account,
+  enforced at the edge. The API itself stays public and read-only by design (the one writing tool is capped at
+  50 branches per match), and a replica serves about 20 replays. A club deployment would tie the API to the
+  identity and isolate each club's data.
 - **Decision support, not medical advice.** The Risk Monitor flags workload patterns on synthetic athletes.
 
 ## Run it locally

@@ -135,6 +135,7 @@ export function SeatPicker({ onPick, onQuick, disabled, matches, matchId, onMatc
       <footer className="mt-14 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 border-t border-line pt-4 text-sm text-muted">
         <span>Every club, player and number here is synthetic. No real competition, club or person appears. Running on Microsoft Foundry and Azure Container Apps.</span>
         <span className="flex flex-wrap gap-x-5">
+          <a className="underline-offset-4 hover:text-fg hover:underline" href="/club">Club area (sign in)</a>
           <a className="underline-offset-4 hover:text-fg hover:underline" href={REPO} target="_blank" rel="noreferrer">GitHub</a>
           <a className="underline-offset-4 hover:text-fg hover:underline" href={`${REPO}#ai-that-gets-graded-not-just-heard`} target="_blank" rel="noreferrer">How it is graded</a>
           <a className="underline-offset-4 hover:text-fg hover:underline" href={`${REPO}/blob/main/infra/README.md`} target="_blank" rel="noreferrer">Architecture</a>

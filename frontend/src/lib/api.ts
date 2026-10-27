@@ -1,4 +1,4 @@
-import type { BranchSummary, MatchEvent, Meta, Team } from './types'
+import type { BranchSummary, MatchEvent, Meta, RiskMsg, Team } from './types'
 import type { Health } from './control'
 
 // Empty in development (Vite proxies to :8000); the Container Apps URL in production.
@@ -21,6 +21,9 @@ export type MatchRow = { match_id: string; home_id: string; away_id: string; hom
 
 export const listMatches = () => getJson<MatchRow[]>('/matches')
 export const getHealth = () => getJson<Health>('/health')
+/** A match's full-time staff report, generated on the server without a viewer (the club area reads it). */
+export type MatchReport = { match_id: string; score: Record<string, number>; teams: Record<string, string>; risk: RiskMsg; generated: string }
+export const getReport = (id: string) => getJson<MatchReport>(`/matches/${id}/report`)
 export const getMeta = (id: string) => getJson<Meta>(`/matches/${id}/meta`)
 export const getBranch = (id: string, branchId: string) =>
   getJson<{ summary: BranchSummary; meta: Meta; events: MatchEvent[] }>(`/matches/${id}/branches/${branchId}`)

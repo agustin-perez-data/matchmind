@@ -59,6 +59,7 @@ export function BenchReport({ meta, snapshot, risk, feed, verdicts, credibility,
         <h2 className="blk-title">Bench report</h2>
         <span className="flex flex-wrap gap-2">
           <button className="btn btn-teal text-sm" onClick={downloadStaff}>Staff report</button>
+          <a className="btn-quiet text-sm" href="/club" title="Every match's report, behind sign-in">Club area</a>
           <button className="btn-quiet text-sm" onClick={download}>JSON</button>
         </span>
       </div>

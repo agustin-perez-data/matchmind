@@ -415,3 +415,16 @@ def test_lane_reports_drops_under_load_and_stays_quiet_otherwise(data_dir, fake_
     # few moments, instant runs: the moments lane never drops (the coach lane may, its triggers can land back to back)
     assert not [m for m in msgs if m["kind"] == "stats" and m["lanes"]["insight"]["dropped"]]
     assert msgs[-1]["lanes"]["insight"]["dropped"] == 0
+
+
+def test_report_of_a_match_nobody_watched(client, meta, events):
+    r = client.get(f"/matches/{meta['match_id']}/report")
+    assert r.status_code == 200
+    rep = r.json()
+    assert rep["match_id"] == meta["match_id"] and rep["generated"] == "server replay"
+    sc = rep["risk"]["scorecard"]["model"]
+    knocks = sum(1 for e in events if e["type"] == "injury_concern")
+    assert sc["concerns"] == knocks == len(rep["risk"]["concerns"])
+    body = r.text.lower()
+    assert "fatigue" not in body and "susceptib" not in body  # latent state never leaves the simulator
+    assert client.get("/matches/NOPE-NOPE-1/report").status_code == 404

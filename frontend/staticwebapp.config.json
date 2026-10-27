@@ -1,16 +1,52 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "/*.{png,svg,ico,webmanifest,txt}"]
+    "exclude": [
+      "/assets/*",
+      "/*.{png,svg,ico,webmanifest,txt}"
+    ]
   },
   "globalHeaders": {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin"
   },
   "routes": [
-    { "route": "/assets/*", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } }
+    {
+      "route": "/club*",
+      "allowedRoles": [
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/signin",
+      "allowedRoles": [
+        "anonymous",
+        "authenticated"
+      ]
+    },
+    {
+      "route": "/.auth/login/twitter",
+      "statusCode": 404
+    },
+    {
+      "route": "/.auth/login/x",
+      "statusCode": 404
+    },
+    {
+      "route": "/assets/*",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    }
   ],
   "responseOverrides": {
-    "404": { "rewrite": "/index.html", "statusCode": 200 }
+    "404": {
+      "rewrite": "/index.html",
+      "statusCode": 200
+    },
+    "401": {
+      "redirect": "/signin",
+      "statusCode": 302
+    }
   }
 }

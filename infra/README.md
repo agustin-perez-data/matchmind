@@ -41,6 +41,7 @@ deploys every push to `main`.
 | Application Insights + Log Analytics | `appi-matchmind`, `log-matchmind` | Agent spans (gen_ai), FastAPI requests, the per-moment span and four `matchmind.*` metrics; capped at 1 GB/day. |
 | Monitor | workbook, web test (3 locations, 5 min), alerts (availability, failed requests, restarts), action group, budget | Operations: the workbook shows requests, moment latency by cache hit, cache hit ratio, tokens by agent, Foundry dependencies, live viewers. |
 | Static Web Apps (Free) | `swa-matchmind` | The React frontend, SPA fallback and immutable asset caching from `frontend/staticwebapp.config.json`. |
+| Static Web Apps sign-in | built in, GitHub and Microsoft | Gates the club area (`/club`) at the edge for any signed-in account; the demo routes stay anonymous, and the smoke test fails a deploy that changes that. |
 | Container Registry (Basic) | `acrmatchmind*` | The API image, pushed by the pipeline (AcrPush) and pulled by the app's identity (AcrPull). ACR Tasks is not permitted on this subscription, so GitHub Actions builds the image. |
 
 ## SLOs (and how they are checked)

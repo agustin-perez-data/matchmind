@@ -39,7 +39,7 @@ insight of 8.8 seconds.
 **Synthetic by design.** Every club, player, event and number comes from our own simulator. No real
 competition, club, person or trademark appears anywhere.
 
-**Try it.** Live at https://lively-mushroom-0cde96c0f.5.azurestaticapps.net (one click opens the derby in the
+**Try it.** Everything is open, no sign-in needed; only the club area asks for any GitHub or Microsoft account. Live at https://lively-mushroom-0cde96c0f.5.azurestaticapps.net (one click opens the derby in the
 fan seat; a match replays in about 90 seconds). Source and architecture:
 https://github.com/agustin-perez-data/matchmind.
 
