@@ -316,6 +316,13 @@ runbook and the list of what was deliberately not used.
 | Delivery | Bicep, idempotent; GitHub Actions with OIDC; smoke test of health, catalogue, a full replay, a resume and MCP after each deploy |
 | Measured | `stream_load.py`, 25 concurrent viewers at 100x against the deployed API (warm cache): 25 of 25 viewers reached full time with all 2,165 events and 12 insights each, time to first insight p50 7.9 s / p95 8.8 s under that load, the app scaled to 2 replicas with 0 restarts. The first run caught a real bug (the `end` message was lost when the match-ended event failed to build), fixed and covered by a test the same day |
 
+### What is a demo and what is not
+
+The platform is production-shaped: identities, probes, resume, alerts, budget, CI/CD. The product is a
+public demo: there is no sign-in, the MCP endpoint is public and read-only by design (the one tool that
+writes, `simulate_intervention`, is capped at 50 branches per match), and a replica serves about 20
+concurrent replays. Taking it to a club would start with authentication and per-club data isolation.
+
 ## Responsible AI note
 
 The Load & Risk Monitor is **decision support, not medical advice**. It flags
