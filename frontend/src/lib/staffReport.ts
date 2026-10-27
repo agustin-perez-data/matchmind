@@ -39,7 +39,10 @@ export function staffReportHtml({ meta, score, risk, entries, credibility, gener
       : b ? 'the change could not be applied' : 'not simulated'
     return `<tr><td>${esc(e.clock)}</td><td>${e.source === 'coach' ? 'Coach' : 'Bench'}</td><td>${esc(e.player ?? '')}</td><td>${esc(e.decision)}</td><td>${esc(outcome)}</td></tr>`
   }).join('')
-  const open = (risk?.active_windows ?? []).map((w) => esc(w.name ?? w.player_id)).join(', ')
+  // the three most at risk by name, the rest as a count: a staff report names who to look at, not the whole squad
+  const windows = [...(risk?.active_windows ?? [])].sort((x, y) => (y.hazard ?? 0) - (x.hazard ?? 0))
+  const named = windows.slice(0, 3).map((w) => esc(w.name ?? w.player_id)).join(', ')
+  const open = windows.length > 3 ? `${named} and ${windows.length - 3} more` : named
   const cred = credibility?.judged
     ? `<p>The Analyst made ${credibility.judged} graded forecasts: ${pct(credibility.analyst.overall)} against ${pct(credibility.naive.overall)} for a naive rule on the same windows.</p>`
     : '<p>No forecast was graded in this match.</p>'
