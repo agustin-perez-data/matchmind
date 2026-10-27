@@ -16,7 +16,7 @@ import time
 from collections.abc import Awaitable, Callable
 
 from matchmind.agents.analyst import AnalystAgent, analyst_prompt
-from matchmind.agents.director import DirectorAgent
+from matchmind.agents.director import INTERRUPT_PRIORITY, DirectorAgent
 from matchmind.agents.narrator import NarratorAgent, narrator_brief
 from matchmind.agents.pipeline import MomentPipeline
 from matchmind.agents.schemas import AnalystInsight, Narration, ViewerProfile
@@ -124,10 +124,12 @@ class FrameworkMomentPipeline:
             trace.mark("stage_end", None, stage="director", latency_ms=round((time.perf_counter() - t_stage) * 1000))
 
             viewers = {profile.key: {"profile": profile.model_dump(), "narration": narration.model_dump(),
-                                     "decision": decisions[0].model_dump() if decisions[0] else None}}
+                                     "decision": decisions[0].model_dump() if decisions[0] else None,
+                                     "interrupt": bool(decisions[0] and decisions[0].priority >= INTERRUPT_PRIORITY)}}
             for p, n, d in zip(extra, extra_narrations, decisions[1:], strict=True):
                 viewers[p.key] = {"profile": p.model_dump(), "narration": n.model_dump() if n else None,
-                                  "decision": d.model_dump() if d else None}
+                                  "decision": d.model_dump() if d else None,
+                                  "interrupt": bool(d and d.priority >= INTERRUPT_PRIORITY)}
             return {
                 "event_id": context.get("moment", {}).get("event_id"),
                 "clock": context.get("clock"),

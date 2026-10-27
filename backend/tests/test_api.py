@@ -385,3 +385,33 @@ def test_mcp_endpoint_serves_preloaded_match_state(client, meta):
     result = r.json()["result"]
     assert not result.get("isError"), result
     assert meta["match_id"] in r.text and "momentum" in r.text
+
+
+class SlowPipeline(FakePipeline):
+    """A pipeline that takes long enough for the next key moment to arrive: the lane has to drop something."""
+
+    async def run(self, context, profiles):
+        import asyncio
+
+        await asyncio.sleep(0.25)
+        return await super().run(context, profiles)
+
+
+def test_lane_reports_drops_under_load_and_stays_quiet_otherwise(data_dir, fake_coach, fake_judge, meta):
+    slow = SlowPipeline()
+    with TestClient(create_app(data_dir=data_dir, pipeline=slow, coach=fake_coach, judge=fake_judge, cache=False)) as c,             c.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&frames=0&min_importance=2") as ws:
+        ws.receive_json()
+        msgs = _drain(ws)
+    stats = [m for m in msgs if m["kind"] == "stats"]
+    assert stats and stats[-1]["lanes"]["insight"]["dropped"] > 0
+    end = msgs[-1]
+    assert end["kind"] == "end" and end["lanes"]["insight"]["offered"] == end["lanes"]["insight"]["started"] + end["lanes"]["insight"]["dropped"]
+    assert len(slow.calls) == end["lanes"]["insight"]["started"]
+
+    fast = FakePipeline()
+    with TestClient(create_app(data_dir=data_dir, pipeline=fast, coach=fake_coach, judge=fake_judge, cache=False)) as c,             c.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&frames=0&min_importance=4") as ws:
+        ws.receive_json()
+        msgs = _drain(ws)
+    # few moments, instant runs: the moments lane never drops (the coach lane may, its triggers can land back to back)
+    assert not [m for m in msgs if m["kind"] == "stats" and m["lanes"]["insight"]["dropped"]]
+    assert msgs[-1]["lanes"]["insight"]["dropped"] == 0

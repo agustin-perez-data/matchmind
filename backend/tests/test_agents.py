@@ -154,7 +154,11 @@ def test_pipeline_runs_analyst_and_narrators_concurrently_then_director():
     assert set(result["viewers"]) == {"analyst:en:-", "casual:en:-"}
     for view in result["viewers"].values():
         assert view["narration"]["text"] == NARRATION["text"]
-        assert view["decision"]["show"] == DECISION["show"]
+        # the house rules correct the canned decision per seat: the analyst must get the stat, the casual seat never does
+        show = view["decision"]["show"]
+        assert show[:1] == DECISION["show"][:1]  # the agent's first card is kept; the seat decides the rest
+        assert ("stat" in show) == (view["profile"]["mode"] == "analyst")
+        assert "interrupt" in view
     assert len(narrator.calls) == 2 and len(director.calls) == 2 and len(analyst.calls) == 1
 
 
@@ -197,3 +201,40 @@ def test_usage_reads_the_typed_dict_and_attribute_forms():
     assert _usage(SimpleNamespace(usage_details={"input_token_count": 120, "output_token_count": 30}, messages=[])) == {"input": 120, "output": 30}
     assert _usage(SimpleNamespace(usage_details=SimpleNamespace(input_token_count=5, output_token_count=None), messages=[])) == {"input": 5, "output": 0}
     assert _usage(SimpleNamespace(usage_details=None, messages=[])) is None
+
+
+def test_director_house_rules_per_seat():
+    from matchmind.agents.director import house_rules
+    from matchmind.agents.schemas import ViewerProfile
+
+    goal = {"moment": {"kind": "goal"}, "players_involved": [{"player_id": "THU-9"}], "risk_alerts": [{"player_id": "THU-4"}]}
+    chance = {"moment": {"kind": "chance"}, "players_involved": [{"player_id": "THU-9"}], "risk_alerts": []}
+    must, never = house_rules(ViewerProfile(mode="casual", language="en"), chance, True)
+    assert "narration" in must and "stat" in never and "insight" in never
+    must, never = house_rules(ViewerProfile(mode="casual", language="en"), goal, True)
+    assert {"narration", "insight"} <= must and "stat" in never
+    must, never = house_rules(ViewerProfile(mode="analyst", language="en"), goal, True)
+    assert {"insight", "stat", "risk"} <= must and not never
+    must, never = house_rules(ViewerProfile(mode="analyst", language="en"), goal, False)
+    assert "insight" not in must and "stat" not in must  # nothing to show when the Analyst failed
+    must, never = house_rules(ViewerProfile(mode="commentator", language="en"), {"moment": {"kind": "injury_concern"}}, True)
+    assert {"narration", "risk"} <= must and {"insight", "stat"} <= never
+    fan = ViewerProfile(mode="player_focus", language="en", favorite_player_id="THU-9")
+    must, never = house_rules(fan, goal, True)
+    assert "insight" in must and "risk" in never  # involved, but the alert is about someone else
+    must, never = house_rules(ViewerProfile(mode="player_focus", language="en", favorite_player_id="THU-4"), goal, True)
+    assert "risk" in must and "insight" in never
+
+
+def test_director_enforcement_corrects_and_flags():
+    from matchmind.agents.director import enforce
+    from matchmind.agents.schemas import DirectorDecision
+
+    d = DirectorDecision(show=["stat", "insight", "narration"], priority=2, headline="h", personalized_note=None)
+    goal = {"moment": {"kind": "goal"}}
+    fixed, changed = enforce(d, goal, must={"narration", "risk"}, never={"stat"})
+    assert changed and fixed.show == ["insight", "narration", "risk"] and fixed.priority == 4  # order kept, stat gone, risk added, goal floors at 4
+    same, changed = enforce(DirectorDecision(show=["narration"], priority=2, headline="h", personalized_note=None), {"moment": {"kind": "chance"}}, must={"narration"}, never=set())
+    assert not changed and same.priority == 2
+    capped, changed = enforce(DirectorDecision(show=["narration"], priority=5, headline="h", personalized_note=None), {"moment": {"kind": "substitution"}}, must=set(), never=set())
+    assert changed and capped.priority == 3

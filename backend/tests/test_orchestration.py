@@ -95,7 +95,8 @@ def test_pipeline_fans_out_once_then_runs_the_director_and_returns_a_trace():
     assert len(seen) == 1 and "rioplatense" in seen[0]
     assert result["analyst"]["headline"] == INSIGHT["headline"]
     view = result["viewers"]["commentator:es:-"]
-    assert view["narration"]["text"] == NARRATION["text"] and view["decision"]["show"] == DECISION["show"]
+    assert view["narration"]["text"] == NARRATION["text"]
+    assert view["decision"]["show"][:1] == DECISION["show"][:1]  # the house keeps the agent's order and only adds what the seat must see
     assert result["errors"] == [] and result["orchestration"].startswith("agent-framework")
     stages = [e["stage"] for e in result["trace"] if e["kind"] == "stage"]
     assert stages == ["fan-out", "director"]
@@ -127,7 +128,7 @@ def test_pipeline_compares_extra_viewers_after_one_fan_out():
     assert len(calls) == 1 and "rioplatense" in calls[0]  # one fan-out, for the seat's own profile
     assert set(result["viewers"]) == {"commentator:es:-", "analyst:en:-"}
     assert len(narrator.calls) == 1 and len(director.calls) == 2  # the extra viewer gets its own line and decision
-    assert result["viewers"]["analyst:en:-"]["decision"]["show"] == DECISION["show"]
+    assert result["viewers"]["analyst:en:-"]["decision"]["show"][:2] == DECISION["show"] and "stat" in result["viewers"]["analyst:en:-"]["decision"]["show"]
     stages = [e["stage"] for e in result["trace"] if e["kind"] == "stage"]
     assert stages == ["fan-out", "extra viewers", "director"] and "+1 compared viewer" in result["orchestration"]
     assert result["errors"] == []

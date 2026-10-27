@@ -66,6 +66,7 @@ async def main_async(args: argparse.Namespace) -> int:
     pipeline = build_pipeline(tools=tools.as_functions())
     print(f"{meta['teams'][meta['home_id']]['name']} vs {meta['teams'][meta['away_id']]['name']} - {len(moments)} moments, profiles {[p.key for p in profiles]}\n")
 
+    overruled = 0
     for ctx, snapshot in moments:
         registry.update(args.match, meta, snapshot)
         result = await pipeline.run(ctx, profiles)
@@ -86,14 +87,17 @@ async def main_async(args: argparse.Namespace) -> int:
             if n:
                 print(f"    NARRATOR  {n['text']}")
             if d:
+                overruled += int(bool(d.get("enforced")))
                 print(f"    DIRECTOR  show={d['show']} priority={d['priority']} headline={d['headline']!r}"
-                      + (f" note={d['personalized_note']!r}" if d.get("personalized_note") else ""))
+                      + (f" note={d['personalized_note']!r}" if d.get("personalized_note") else "")
+                      + ("  (corrected by the house rules)" if d.get("enforced") else ""))
         for err in result["errors"]:
             print(f"  ERROR {err}")
         print(f"  ORCHESTRATION {result.get('orchestration', 'direct')}")
         for ev in result.get("trace", []):
             extra = {k: v for k, v in ev.items() if k not in ("t", "kind", "agent")}
             print(f"    {ev['t']:>6} ms  {ev['kind']:<11} {ev.get('agent') or '':<9} {extra}")
+    print(f"\nDirector decisions corrected by the house rules: {overruled}")
     return 0
 
 

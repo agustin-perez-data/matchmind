@@ -97,3 +97,4 @@ class DirectorDecision(BaseModel):
     priority: int = Field(ge=1, le=5, description="5 interrupts the broadcast, 1 is a quiet ticker item")
     headline: str = Field(description="<= 8 words for the overlay title")
     personalized_note: str | None = Field(description="Only for player_focus viewers or when a risk alert concerns their player")
+    enforced: bool = Field(default=False, description="True when the house rules corrected the agent's decision (set in code, never by the model)")

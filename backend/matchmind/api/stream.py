@@ -47,12 +47,22 @@ def parse_profile_spec(spec: str) -> ViewerProfile:
 
 
 class _Lane:
-    """One background agent lane: a 1-slot queue where the more important item survives."""
+    """One background agent lane: a 1-slot queue where the more important item survives.
 
-    def __init__(self, runner, kind: str, out: asyncio.Queue, importance, capacity: int = 1):
+    The lane keeps count of what it was offered, what it ran and what it dropped, and tells the viewer
+    each time a drop happens (`{"kind": "stats", "lanes": {...}}`), so a fast replay never looks like a
+    complete one: the Control room shows how many moments were skipped under load.
+    """
+
+    def __init__(self, runner, kind: str, out: asyncio.Queue, importance, capacity: int = 1, on_drop=None):
         self.runner, self.kind, self.out, self.importance = runner, kind, out, importance
         self.queue: asyncio.Queue = asyncio.Queue(maxsize=capacity)
+        self.offered = self.started = self.dropped = 0
+        self.on_drop = on_drop
         self.task = asyncio.create_task(self._worker())
+
+    def stats(self) -> dict:
+        return {"offered": self.offered, "started": self.started, "dropped": self.dropped}
 
     async def _worker(self) -> None:
         while True:
@@ -60,6 +70,7 @@ class _Lane:
             try:
                 if item is None:
                     return
+                self.started += 1
                 try:
                     result = await self.runner(item)
                     await self.out.put({"kind": self.kind, **result})
@@ -70,11 +81,15 @@ class _Lane:
                 self.queue.task_done()
 
     def offer(self, item: dict) -> None:
+        self.offered += 1
         if self.queue.full():
             waiting = self.queue.get_nowait()
             self.queue.task_done()
             if waiting is not None and self.importance(waiting) > self.importance(item):
                 item = waiting
+            self.dropped += 1  # one of the two never runs
+            if self.on_drop is not None:
+                self.on_drop()
         self.queue.put_nowait(item)
 
     async def close(self, timeout: float) -> None:
@@ -248,12 +263,16 @@ class StreamSession:
         current_session.set(self.session_id)  # the lanes below inherit it: agent tools read this stream's state
         sender = asyncio.create_task(self._sender())
         reader = asyncio.create_task(self._read_controls())
+        lanes: dict[str, _Lane] = {}
+        lane_stats = lambda: {k: lane.stats() for k, lane in lanes.items()}  # noqa: E731
+        report_drop = lambda: self.out.put_nowait({"kind": "stats", "lanes": lane_stats()})  # noqa: E731
         moments = _Lane(self._run_moment, "insight", self.out,
-                        lambda c: c["moment"]["importance"]) if self.pipeline is not None else None
+                        lambda c: c["moment"]["importance"], on_drop=report_drop) if self.pipeline is not None else None
         coach = _Lane(self._run_coach, "coach", self.out,
-                      lambda c: 5 if c["trigger"] == "injury_concern" else 3) if self.coach is not None else None
+                      lambda c: 5 if c["trigger"] == "injury_concern" else 3, on_drop=report_drop) if self.coach is not None else None
         judge = _Lane(self._run_verdict, "verdict", self.out, lambda c: c["scores"].get("overall") or 0,
-                      capacity=8) if self.judge is not None and moments is not None else None  # verdicts are few; keep them all
+                      capacity=8, on_drop=report_drop) if self.judge is not None and moments is not None else None  # verdicts are few; keep them all
+        lanes.update({k: lane for k, lane in (("insight", moments), ("coach", coach), ("verdict", judge)) if lane is not None})
         state, monitor = MatchState(self.meta), RiskMonitor(self.meta)
         try:
             await self.out.put({
@@ -363,7 +382,7 @@ class StreamSession:
             final_state, risk_summary = state.snapshot(), monitor.summary()
             credibility = self.ledger.summary() if moments is not None else None
             await self.out.put({"kind": "end", "state": final_state, "risk": risk_summary,
-                                "hazard_series": monitor.hazard_series(), "credibility": credibility})
+                                "hazard_series": monitor.hazard_series(), "credibility": credibility, "lanes": lane_stats()})
             if self.events_out is not None:
                 try:  # a domain event must never cost the viewer the end message
                     self.events_out.publish(match_ended(self.match_id, self.profile.key, self.meta, final_state, risk_summary, credibility))

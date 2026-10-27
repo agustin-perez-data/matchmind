@@ -150,7 +150,7 @@ numbers are in `backend/eval/`.
 | Interpreter | none (pure Python) | Stats, xG race, momentum, ACWR workload per player |
 | Analyst | gpt-4o | Explains why a key moment matters (structured output) |
 | Narrator | gpt-4.1-mini | One commentary line per viewer profile and language |
-| Director | gpt-4.1-mini | Picks the cards and priority each viewer gets |
+| Director | gpt-4.1-mini | Proposes the cards, their order, the headline and the personal note each viewer gets. The house rules (what each seat may and must see, and how loud a moment of this kind can be) are enforced in code after the call; a corrected decision is flagged `enforced` so the Control room can show how often the agent and the house disagreed |
 | Load & Risk Monitor | none (pure Python) | Predicts risk windows from observables; self-evaluates against ground truth |
 | Coach | gpt-4o | Proposes substitutions / tactical changes on risk alerts; the engine simulates the branch |
 | Judge | gpt-4.1-mini | Reads each settled forecast (scores come from code) and writes the verdict and the lesson |
@@ -215,6 +215,11 @@ future work, and the UI labels positions as a positional model wherever they
 appear.
 
 ## Built for several viewers at once
+
+The agent lanes also keep count. A moments lane runs one explanation at a time and a more important key
+moment replaces a waiting one, so at high replay speeds some moments are never explained. The stream
+says so: a `stats` message carries what each lane was offered, started and dropped, and the `end`
+message carries the totals, so a fast replay never passes for a complete one.
 
 A replay is deterministic, so every agent output is cached per (match, moment,
 viewer profile) and written through to `data/cache/`: the first viewer pays the

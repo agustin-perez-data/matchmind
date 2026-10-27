@@ -20,7 +20,8 @@ WebSocket
             {"kind": "coach",      "trigger", "player", "proposal", "branch", "latency_ms"}
             {"kind": "ack",        "speed": 50} | {"kind": "ack", "profile": {...}}
             {"kind": "resume",     "from": event_id, "state": {...}}   # only with ?from=, once, before the first live item
-            {"kind": "end",        "state": {...}, "risk": {...}}
+            {"kind": "stats",      "lanes": {"insight": {"offered", "started", "dropped"}, ...}}  # only when a lane drops an item
+            {"kind": "end",        "state": {...}, "risk": {...}, "lanes": {...}}
         client -> server
             {"speed": 50}                                      # change replay speed live
             {"profile": {"mode": "casual", "language": "es"}}  # switch viewer profile live

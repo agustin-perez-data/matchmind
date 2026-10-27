@@ -14,7 +14,7 @@ import logging
 import time
 
 from matchmind.agents.analyst import AnalystAgent
-from matchmind.agents.director import DirectorAgent
+from matchmind.agents.director import INTERRUPT_PRIORITY, DirectorAgent
 from matchmind.agents.narrator import NarratorAgent
 from matchmind.agents.schemas import ViewerProfile
 
@@ -64,6 +64,7 @@ class MomentPipeline:
                     "profile": p.model_dump(),
                     "narration": n.model_dump() if n else None,
                     "decision": d.model_dump() if d else None,
+                    "interrupt": bool(d and d.priority >= INTERRUPT_PRIORITY),
                 }
                 for p, n, d in zip(profiles, narrations, decisions, strict=True)
             },
