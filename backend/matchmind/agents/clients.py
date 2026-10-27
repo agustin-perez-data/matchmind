@@ -86,11 +86,11 @@ def chat_client(tier: str = "fast"):
         raise RuntimeError("Foundry is not configured: set FOUNDRY_PROJECT_ENDPOINT, or AZURE_OPENAI_ENDPOINT with a key or MATCHMIND_AUTH=identity")
     from agent_framework.openai import OpenAIChatCompletionClient
 
-    common = {"model": deployment, "azure_endpoint": os.environ["AZURE_OPENAI_ENDPOINT"],
-              "api_version": os.environ.get("AZURE_OPENAI_API_VERSION", DEFAULT_API_VERSION)}
+    endpoint = os.environ["AZURE_OPENAI_ENDPOINT"]
+    version = os.environ.get("AZURE_OPENAI_API_VERSION", DEFAULT_API_VERSION)
     if mode == "identity":
-        return OpenAIChatCompletionClient(credential=_credential(), **common)
-    return OpenAIChatCompletionClient(api_key=os.environ["AZURE_OPENAI_API_KEY"], **common)
+        return OpenAIChatCompletionClient(model=deployment, azure_endpoint=endpoint, api_version=version, credential=_credential())
+    return OpenAIChatCompletionClient(model=deployment, azure_endpoint=endpoint, api_version=version, api_key=os.environ["AZURE_OPENAI_API_KEY"])
 
 
 def describe_auth() -> str:
