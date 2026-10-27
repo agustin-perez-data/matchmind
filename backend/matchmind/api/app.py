@@ -8,7 +8,6 @@ REST
     POST /matches/{match_id}/branches               -> simulate an intervention (body: InterventionRequest)
     GET  /matches/{match_id}/branches/{branch_id}   -> branch summary + meta + full event stream
     POST /mcp                                       -> MCP server (streamable HTTP) with match-state tools
-    GET  /live                                      -> no-build dev viewer
 
 WebSocket
     WS   /ws/matches/{match_id}?speed=10&mode=analyst&lang=en&player=THU-15&agents=1&coach=1&min_importance=3
@@ -33,42 +32,32 @@ risk alerts -> Coach), one item in flight per lane; a more important item replac
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
-import time
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, Field, ValidationError
 
-from matchmind.agents.cache import AgentCache, cache_from_env, coach_key, insight_key, verdict_key
-from matchmind.agents.coach import build_coach_context
-from matchmind.agents.guardrails import check_moment, facts_text
-from matchmind.agents.judge import ForecastLedger, build_judge_context, grade_forecast
-from matchmind.agents.moments import build_moment_context, detect_key_moment
-from matchmind.agents.observability import configure_observability, moment_span, record_moment, telemetry_enabled
+from matchmind.agents.cache import AgentCache, cache_from_env
+from matchmind.agents.observability import configure_observability, telemetry_enabled
 from matchmind.agents.schemas import ViewerProfile
-from matchmind.api.events import match_ended, publisher_from_env, window_opened
+from matchmind.api.stream import StreamSession, parse_profile_spec
 from matchmind.api.tts import Speaker, speech_config
 from matchmind.generate_match import generate, write_match
 from matchmind.interpreter.state import MatchState
-from matchmind.risk.monitor import RiskMonitor
 from matchmind.sim.tracking import build_tracking
-from matchmind.stream.replay import delay_between, frame_stride, load_events, merge_timeline
+from matchmind.stream.replay import load_events, merge_timeline
 from matchmind.tools.mcp_server import build_mcp_server
-from matchmind.tools.registry import LiveStateRegistry, MatchTools, current_session
+from matchmind.tools.registry import LiveStateRegistry, MatchTools
 
 log = logging.getLogger("matchmind.api")
 
-SNAPSHOT_EVERY = 25  # also attach a state snapshot every N events
 DEFAULT_MATCH = ("THU", "NBF", 42)
-AGENT_DRAIN_TIMEOUT_S = 45.0  # how long the end of a stream waits for the last agent outputs
-HAZARD_TOP_N = 5
 
 
 def default_data_dir() -> Path:
@@ -98,10 +87,10 @@ class MatchCatalog:
     def ids(self) -> list[str]:
         return sorted(p.name[: -len("_meta.json")] for p in self.data_dir.glob("*_meta.json"))
 
-    def meta(self, match_id: str) -> dict | None:
+    def meta(self, match_id: str) -> dict:
         path = self.data_dir / f"{match_id}_meta.json"
         if not path.is_file():
-            return None
+            raise KeyError(match_id)
         return json.loads(path.read_text(encoding="utf-8"))
 
     def events(self, match_id: str) -> list[dict]:
@@ -118,7 +107,7 @@ class MatchCatalog:
         """Positional frames, built once per match from its events (pure, deterministic) and kept in memory."""
         if match_id not in self._frames:
             meta = self.meta(match_id)
-            self._frames[match_id] = build_tracking(self.events(match_id), meta) if meta else []
+            self._frames[match_id] = build_tracking(self.events(match_id), meta)
         return self._frames[match_id]
 
     def final_state(self, match_id: str) -> dict:
@@ -199,11 +188,6 @@ def create_app(
     def root() -> RedirectResponse:
         return RedirectResponse(url="/docs", status_code=307)
 
-    @app.get("/live", include_in_schema=False)
-    def live_page() -> HTMLResponse:
-        """Minimal dev viewer: events + agent insights, no build step (the React UI comes later)."""
-        return HTMLResponse((Path(__file__).with_name("live.html")).read_text(encoding="utf-8"))
-
     @app.get("/health")
     def health(response: Response) -> dict:
         """Startup, readiness and liveness probe. 503 while not ready or while draining, so the platform stops
@@ -231,7 +215,7 @@ def create_app(
         out = []
         keys = ("team_id", "name", "short_name", "primary_color", "secondary_color", "pattern", "city")
         for mid in catalog.ids():
-            m = catalog.meta(mid) or {}
+            m = catalog.meta(mid)
             home, away = m.get("teams", {}).get(m.get("home_id"), {}), m.get("teams", {}).get(m.get("away_id"), {})
             out.append({
                 "match_id": mid,
@@ -247,10 +231,10 @@ def create_app(
         return out
 
     def _meta_or_404(match_id: str) -> dict:
-        meta = catalog.meta(match_id)
-        if meta is None:
-            raise HTTPException(status_code=404, detail=f"unknown match {match_id!r}")
-        return meta
+        try:
+            return catalog.meta(match_id)
+        except KeyError:
+            raise HTTPException(status_code=404, detail=f"unknown match {match_id!r}") from None
 
     @app.get("/matches/{match_id}/meta")
     def match_meta(match_id: str) -> dict:
@@ -300,8 +284,9 @@ def create_app(
         resume_from: int | None = Query(None, alias="from", ge=0, description="resume after this event id: the state is rebuilt silently up to it (a viewer reconnecting to another replica)"),
     ) -> None:
         await websocket.accept()
-        meta = catalog.meta(match_id)
-        if meta is None:
+        try:
+            meta = catalog.meta(match_id)
+        except KeyError:
             await websocket.close(code=4404, reason=f"unknown match {match_id!r}")
             return
         try:
@@ -330,350 +315,6 @@ def create_app(
     # MCP server (streamable HTTP) lives at /mcp; mounted last so API routes win.
     app.mount("/", mcp.streamable_http_app())
     return app
-
-
-def parse_profile_spec(spec: str) -> ViewerProfile:
-    """'analyst:en' | 'commentator:es' | 'player_focus:en:THU-15' | 'commentator:es::THU' (mode:lang:player:team)."""
-    parts = [p.strip() for p in str(spec).split(":")]
-    if not parts or not parts[0]:
-        raise ValueError(f"empty profile spec {spec!r}")
-    return ViewerProfile(mode=parts[0], language=parts[1] if len(parts) > 1 and parts[1] else "en",
-                         favorite_player_id=parts[2] if len(parts) > 2 and parts[2] else None,
-                         team_id=parts[3] if len(parts) > 3 and parts[3] else None)
-
-
-class _Lane:
-    """One background agent lane: a 1-slot queue where the more important item survives."""
-
-    def __init__(self, runner, kind: str, out: asyncio.Queue, importance, capacity: int = 1):
-        self.runner, self.kind, self.out, self.importance = runner, kind, out, importance
-        self.queue: asyncio.Queue = asyncio.Queue(maxsize=capacity)
-        self.task = asyncio.create_task(self._worker())
-
-    async def _worker(self) -> None:
-        while True:
-            item = await self.queue.get()
-            try:
-                if item is None:
-                    return
-                try:
-                    result = await self.runner(item)
-                    await self.out.put({"kind": self.kind, **result})
-                except Exception as exc:  # noqa: BLE001
-                    log.warning("%s lane failed: %r", self.kind, exc)
-                    await self.out.put({"kind": f"{self.kind}_error", "detail": repr(exc)})
-            finally:
-                self.queue.task_done()
-
-    def offer(self, item: dict) -> None:
-        if self.queue.full():
-            waiting = self.queue.get_nowait()
-            self.queue.task_done()
-            if waiting is not None and self.importance(waiting) > self.importance(item):
-                item = waiting
-        self.queue.put_nowait(item)
-
-    async def close(self, timeout: float) -> None:
-        await self.queue.put(None)
-        try:
-            await asyncio.wait_for(self.task, timeout)
-        except TimeoutError:
-            log.warning("%s lane did not finish within %ss", self.kind, timeout)
-            self.task.cancel()
-
-
-def _time_key(item: dict) -> tuple[int, int]:
-    return (int(item.get("period", 1)), int(item.get("minute", 0)) * 60 + int(item.get("second", 0)))
-
-
-class StreamSession:
-    """One WebSocket connection: replay loop + control reader + agent lanes + single sender."""
-
-    def __init__(self, websocket, meta, events, registry, *, pipeline, coach, profile, speed, min_importance, judge=None, cache=None, compare=None,
-                 frames=None, frames_mode="auto", resume_from=None):
-        self.ws, self.meta, self.events, self.registry = websocket, meta, events, registry
-        self.resume_from: int | None = resume_from  # events up to this id are replayed into the state without being sent
-        self.events_out = publisher_from_env()  # Event Grid, or None locally
-        self.frames: list[dict] = list(frames or [])  # positional frames, a side channel: never events
-        self.frames_mode = frames_mode
-        self.pipeline, self.coach, self.judge, self.profile, self.speed = pipeline, coach, judge, profile, speed
-        self.compare: list[ViewerProfile] = list(compare or [])  # extra viewers explained side by side (Control room)
-        self.min_importance = min_importance
-        self.match_id = meta["match_id"]
-        self.session_id = f"{self.match_id}:{id(websocket):x}:{int(time.time() * 1000) % 1_000_000}"
-        self.cache: AgentCache | None = cache
-        self.closed = False
-        self.out: asyncio.Queue = asyncio.Queue()
-        self.ledger = ForecastLedger()  # the Analyst's forecasts, graded 10 match minutes later
-
-    def _cut_time(self) -> tuple[int, int] | None:
-        """(period, seconds) of the resume event, so frames up to that second are replayed silently too."""
-        for e in self.events:
-            if e["event_id"] == self.resume_from:
-                return _time_key(e)
-        return None
-
-    def _cached(self, kind: str, key: str) -> dict | None:
-        return self.cache.get(self.match_id, kind, key) if self.cache is not None else None
-
-    def _remember(self, kind: str, key: str, result: dict) -> None:
-        if self.cache is not None:
-            self.cache.put(self.match_id, kind, key, result)
-
-    async def _run_moment(self, context: dict) -> dict:
-        """Moments lane runner: the insight goes to the viewer, its forecast into the ledger.
-        The same moment for the same profile is explained once: later viewers get it from the cache."""
-        profiles = [self.profile, *self.compare]
-        key = insight_key(context["moment"]["event_id"], "+".join(p.key for p in profiles))
-        t0 = time.perf_counter()
-        result = self._cached("insight", key)
-        hit = result is not None
-        with moment_span(self.match_id, context["moment"]["kind"], self.profile.mode, cache_hit=hit):
-            if result is None:
-                result = await self.pipeline.run(context, profiles)
-                await check_moment(result, facts_text(context))  # Content Safety groundedness, when enabled; never blocks
-                self._remember("insight", key, result)
-        record_moment((time.perf_counter() - t0) * 1000, hit, context["moment"]["kind"])
-        self.ledger.add(result, context)
-        return result
-
-    async def _run_coach(self, context: dict) -> dict:
-        key = coach_key(context.get("trigger", ""), (context.get("player") or {}).get("player_id"), context.get("minute"))
-        result = self._cached("coach", key)
-        if result is None:
-            result = await self.coach.run(context)
-            self._remember("coach", key, result)
-        return result
-
-    async def _run_verdict(self, context: dict) -> dict:
-        """Verdict lane runner: the Judge's words also go back into the ledger, for the Analyst's next call."""
-        key = verdict_key(context["event_id"], self.profile.language)
-        result = self._cached("verdict", key)
-        if result is None:
-            result = await self.judge.run(context)
-            self._remember("verdict", key, result)
-        else:  # the scores and the credibility are this session's, only the words are shared
-            result = {**result, "scores": context["scores"], "naive_scores": context["naive_scores"],
-                      "facts": context["facts"], "credibility": context.get("credibility")}
-        self.ledger.remember(result)
-        return result
-
-    def _grade_due(self, snapshot: dict, lane, *, flush: bool = False) -> list[dict]:
-        """Settle every forecast whose window has closed: scores now (code), words later (Judge lane)."""
-        settled = []
-        for pending in self.ledger.due(snapshot, flush=flush):
-            close = self.ledger.window_close(pending, snapshot)
-            facts, scores, naive_scores = grade_forecast(pending, close, self.ledger.window_events(pending, close.get("event_id")))
-            self.ledger.record({"event_id": pending.event_id, "scores": scores, "naive_scores": naive_scores})
-            summary = self.ledger.summary()
-            ctx = build_judge_context(pending, facts, scores, naive_scores, self.meta, self.profile.language)
-            ctx["credibility"] = summary
-            self.registry.update_credibility(self.match_id, summary, {"event_id": pending.event_id, "scores": scores, "facts": facts})
-            settled.append(ctx)
-            if lane is not None:
-                lane.offer(ctx)
-        return settled
-
-    # ------------------------------------------------------------ tasks
-
-    async def _sender(self) -> None:
-        while True:
-            msg = await self.out.get()
-            if msg is None:
-                return
-            await self.ws.send_json(msg)
-
-    async def _read_controls(self) -> None:
-        while True:
-            try:
-                msg = await self.ws.receive_json()
-            except (WebSocketDisconnect, RuntimeError):
-                self.closed = True
-                return
-            except ValueError:
-                continue
-            if not isinstance(msg, dict):
-                continue
-            if "speed" in msg:
-                try:
-                    self.speed = max(0.0, float(msg["speed"]))
-                except (TypeError, ValueError):
-                    continue
-                await self.out.put({"kind": "ack", "speed": self.speed})
-            if "profile" in msg:
-                try:
-                    self.profile = ViewerProfile.model_validate(msg["profile"])
-                except ValidationError as exc:
-                    await self.out.put({"kind": "error", "detail": f"bad profile: {exc.errors()[0]['msg']}"})
-                    continue
-                await self.out.put({"kind": "ack", "profile": self.profile.model_dump()})
-            if "compare" in msg:
-                try:
-                    specs = msg["compare"] if isinstance(msg["compare"], list) else ([msg["compare"]] if msg["compare"] else [])
-                    self.compare = [parse_profile_spec(s) if isinstance(s, str) else ViewerProfile.model_validate(s) for s in specs]
-                except (ValidationError, ValueError) as exc:
-                    await self.out.put({"kind": "error", "detail": f"bad compare profile: {exc}"})
-                    continue
-                await self.out.put({"kind": "ack", "compare": [p.model_dump() for p in self.compare]})
-
-    # ------------------------------------------------------------ helpers
-
-    def _risk_message(self, monitor: RiskMonitor, snapshot: dict) -> dict:
-        summary = monitor.summary()
-        players = snapshot.get("players", {})
-        top = sorted(summary["hazards"].items(), key=lambda kv: -kv[1])[:HAZARD_TOP_N]
-        self.registry.update_risk(self.match_id, summary)
-        return {
-            "kind": "risk",
-            "minute": summary["minute"],
-            "clock": snapshot["clock"],
-            "active_windows": summary["active_windows"],
-            "hazards_top": [{"player_id": pid, "name": players.get(pid, {}).get("name", pid),
-                             "team_id": players.get(pid, {}).get("team_id"), "hazard": h} for pid, h in top],
-            "recent_alerts": summary["recent_alerts"],
-            "concerns": summary["concerns"],
-            "scorecard": summary["scorecard"],
-            "hazard_series": monitor.hazard_series(),
-            "note": summary["note"],
-        }
-
-    # ------------------------------------------------------------ main
-
-    async def run(self) -> None:
-        current_session.set(self.session_id)  # the lanes below inherit it: agent tools read this stream's state
-        sender = asyncio.create_task(self._sender())
-        reader = asyncio.create_task(self._read_controls())
-        moments = _Lane(self._run_moment, "insight", self.out,
-                        lambda c: c["moment"]["importance"]) if self.pipeline is not None else None
-        coach = _Lane(self._run_coach, "coach", self.out,
-                      lambda c: 5 if c["trigger"] == "injury_concern" else 3) if self.coach is not None else None
-        judge = _Lane(self._run_verdict, "verdict", self.out, lambda c: c["scores"].get("overall") or 0,
-                      capacity=8) if self.judge is not None and moments is not None else None  # verdicts are few; keep them all
-        state, monitor = MatchState(self.meta), RiskMonitor(self.meta)
-        try:
-            await self.out.put({
-                "kind": "meta", "meta": self.meta, "speed": self.speed,
-                "agents": self.pipeline is not None, "coach": self.coach is not None,
-                "profile": self.profile.model_dump(),
-                "compare": [p.model_dump() for p in self.compare],
-            })
-            prev: dict | None = None
-            n = len(self.events)
-            pending_risk = False
-            i = 0
-            frame_no = 0
-            # wall-clock schedule: each item is due at the previous due time plus its delay, and we only sleep
-            # until then. The OS timer floor (~15 ms on Windows) overshoots every sleep; measuring against the
-            # clock absorbs that instead of letting it pile up over thousands of frames.
-            due = time.monotonic()
-            timeline = merge_timeline(self.events, self.frames) if self.frames_mode != "0" and self.frames else self.events
-            # resume: everything up to the cut is applied silently (state, frames, risk monitor), nothing is sent and no
-            # agent lane is offered; forecasts that were pending before the cut are not re-created (documented)
-            cut = self._cut_time() if self.resume_from is not None else None
-            resumed = False
-            for item in timeline:
-                if self.closed:
-                    return
-                if cut is not None and not resumed:
-                    is_frame = item.get("kind") == "frame"
-                    if (not is_frame and item["event_id"] <= self.resume_from) or (is_frame and _time_key(item) <= cut):
-                        if is_frame:
-                            state.apply_frame(item)
-                        else:
-                            i += 1
-                            state.apply(item)
-                            monitor.observe(item, state.snapshot())
-                            prev = item
-                        continue
-                    resumed = True
-                    snapshot = state.snapshot()
-                    self.registry.update(self.match_id, self.meta, snapshot)
-                    await self.out.put({"kind": "resume", "from": self.resume_from, "state": snapshot})
-                    if monitor.minute:
-                        await self.out.put(self._risk_message(monitor, snapshot))
-                    prev = None  # the next item is due now
-                    due = time.monotonic()
-                due = max(due + delay_between(prev, item, self.speed), time.monotonic() - 1.0)  # a stall never bursts > 1 s
-                wait = due - time.monotonic()
-                if item.get("kind") != "frame":
-                    await asyncio.sleep(max(wait, 0.0))  # events always yield so the lanes can send
-                elif wait >= 0.005:
-                    await asyncio.sleep(wait)
-                prev = item
-                if item.get("kind") == "frame":
-                    # a side channel: the Interpreter learns shape/heat/pressure; nothing else sees frames
-                    state.apply_frame(item)
-                    frame_no += 1
-                    stride = 1 if self.frames_mode == "all" else frame_stride(self.speed)
-                    if stride and frame_no % stride == 0:
-                        await self.out.put(item)
-                    continue
-                event = item
-                i += 1
-                state.apply(event)
-                snapshot = state.snapshot()
-                message: dict = {"kind": "event", "event": event}
-                if moments is not None:
-                    self.ledger.observe(event, snapshot)
-                    if self.ledger.pending and event["type"] != "physical_sample":
-                        self._grade_due(snapshot, judge)
-                key_event = event["type"] in MatchState.SNAPSHOT_TYPES
-                if key_event or i % SNAPSHOT_EVERY == 0 or i == n:
-                    message["state"] = snapshot
-                    self.registry.update(self.match_id, self.meta, snapshot)
-                    if moments is not None and key_event:
-                        moment = detect_key_moment(event, snapshot)
-                        if moment is not None and moment.importance >= self.min_importance:
-                            watched = [self.profile.favorite_player_id] if self.profile.favorite_player_id else None
-                            moments.offer(build_moment_context(moment, snapshot, self.meta, watched_players=watched,
-                                                               track_record=self.ledger.track_record()))
-
-                # Risk Monitor: alerts immediately, a summary after every 5-minute sample batch
-                for alert in monitor.observe(event, snapshot):
-                    await self.out.put({"kind": "risk_alert", **alert})
-                    if self.events_out is not None and alert["level"] == "high":
-                        self.events_out.publish(window_opened(self.match_id, event["event_id"], alert))
-                    if coach is not None and alert["level"] == "high":
-                        coach.offer(build_coach_context({**alert, "other_windows": monitor.active_windows()},
-                                                        snapshot, self.meta, trigger="risk_alert"))
-                if event["type"] == "physical_sample":
-                    pending_risk = True
-                elif pending_risk:
-                    pending_risk = False
-                    await self.out.put(self._risk_message(monitor, snapshot))
-                if event["type"] == "injury_concern" and coach is not None:
-                    coach.offer(build_coach_context(
-                        {"player_id": event["player_id"], "name": event.get("player_name"), "clock": event.get("clock"),
-                         "detail": event.get("detail"), "other_windows": monitor.active_windows()},
-                        snapshot, self.meta, trigger="injury_concern"))
-
-                await self.out.put(message)
-
-            if moments is not None:
-                await moments.close(AGENT_DRAIN_TIMEOUT_S)  # the last insight may still add a forecast
-                self._grade_due(state.snapshot(), judge, flush=True)  # full time settles what is left
-            for lane in (coach, judge):
-                if lane is not None:
-                    await lane.close(AGENT_DRAIN_TIMEOUT_S)
-            final_state, risk_summary = state.snapshot(), monitor.summary()
-            credibility = self.ledger.summary() if moments is not None else None
-            await self.out.put({"kind": "end", "state": final_state, "risk": risk_summary,
-                                "hazard_series": monitor.hazard_series(), "credibility": credibility})
-            if self.events_out is not None:
-                try:  # a domain event must never cost the viewer the end message
-                    self.events_out.publish(match_ended(self.match_id, self.profile.key, self.meta, final_state, risk_summary, credibility))
-                except Exception as exc:  # noqa: BLE001
-                    log.warning("match.ended event not published: %r", exc)
-            await self.out.put(None)
-            await sender
-        except (WebSocketDisconnect, RuntimeError):
-            log.info("client disconnected from %s", self.match_id)
-        finally:
-            self.registry.drop_session(self.session_id)
-            for task in (sender, reader, *(lane.task for lane in (moments, coach, judge) if lane is not None)):
-                task.cancel()
-            with suppress(RuntimeError):
-                await self.ws.close()
 
 
 app = create_app()

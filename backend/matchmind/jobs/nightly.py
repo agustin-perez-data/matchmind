@@ -60,7 +60,7 @@ def upload(account: str | None, folder: str, files: list[Path]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").split("\n", 1)[0])
     parser.add_argument("--base", default="http://127.0.0.1:8000")
     parser.add_argument("--data", default=os.environ.get("MATCHMIND_DATA_DIR", "/data"))
     parser.add_argument("--forecast-matches", type=int, default=4)

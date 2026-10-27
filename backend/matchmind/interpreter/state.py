@@ -186,8 +186,8 @@ class MatchState:
                 col = min(self.HEAT_COLS - 1, max(0, int(xt / 100 * self.HEAT_COLS)))
                 row = min(self.HEAT_ROWS - 1, max(0, int(y / 100 * self.HEAT_ROWS)))
                 self._heat.setdefault(pid, [0] * (self.HEAT_COLS * self.HEAT_ROWS))[row * self.HEAT_COLS + col] += 1
-        if carrier in self._players and poss_team in by_team:
-            ball = players.get(carrier)
+        if carrier in self._players and poss_team in by_team and carrier in players:
+            ball = players[carrier]
             other = self.away_id if poss_team == self.home_id else self.home_id
             near = sum(
                 1 for _, x, y in by_team[other]
@@ -226,7 +226,7 @@ class MatchState:
         keys = sorted({k for marks in self._block_by_minute.values() for k in marks})
         out = []
         for period, minute in keys:
-            point = {"period": period, "minute": minute}
+            point: dict[str, float] = {"period": period, "minute": minute}
             for tid, marks in self._block_by_minute.items():
                 acc = marks.get((period, minute))
                 if acc and acc[1]:
@@ -405,7 +405,7 @@ class MatchState:
             p["injury_concerns"] += 1
 
     def _on_substitution(self, e: dict) -> None:
-        off, on = self._players.get(e.get("player_off_id")), self._players.get(e.get("player_on_id"))
+        off, on = self._players.get(e.get("player_off_id") or ""), self._players.get(e.get("player_on_id") or "")
         if off is not None:
             off["on_pitch"] = False
         if on is not None:

@@ -48,6 +48,7 @@ class LiveStateRegistry:
 
     def update(self, match_id: str, meta: dict, snapshot: dict) -> None:
         view = self._view(match_id, create=True)
+        assert view is not None  # create=True always returns the (possibly new) view
         view.update({"meta": meta, "snapshot": snapshot, "updated_at": time.time()})
         if current_session.get() is not None:  # the latest view is also what outsiders see
             self._matches[match_id] = view
@@ -163,6 +164,8 @@ class MatchTools:
         rows = []
         for mid in self._registry.ids():
             e = self._registry.get(mid)
+            if e is None:
+                continue
             meta, snap = e["meta"], e["snapshot"]
             rows.append({
                 "match_id": mid,
@@ -362,7 +365,7 @@ class MatchTools:
             },
             "branch_event_count": len(br_events),
         }
-        if action == "substitution":
+        if action == "substitution" and player_off_id is not None:
             name = next((p["name"] for t in meta["teams"].values() for p in t["players"] if p["player_id"] == player_off_id), player_off_id)
             a, b = _player_after(base_events, player_off_id, int(minute)), _player_after(br_events, player_off_id, int(minute))
             summary["player_off"] = {

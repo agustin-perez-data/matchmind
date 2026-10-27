@@ -117,10 +117,9 @@ def test_root_redirects_to_interactive_docs(client):
     assert r.headers["location"] == "/docs"
 
 
-def test_live_page_is_served(client):
-    r = client.get("/live")
-    assert r.status_code == 200 and "text/html" in r.headers["content-type"]
-    assert "WebSocket" in r.text and "/ws/matches/" in r.text
+def test_the_old_dev_viewer_is_gone(client):
+    """The React app replaced /live on Oct 21; the route and its HTML were removed on Oct 26."""
+    assert client.get("/live").status_code == 404
 
 
 def test_cors_allows_the_frontend_origin(client):

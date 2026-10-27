@@ -82,6 +82,7 @@ MATCHMIND_LIVE=1 .venv/Scripts/python -m pytest tests/test_live.py
 
 # Lint (the same commands CI runs; config in backend/pyproject.toml and the frontend's oxlint defaults)
 .venv/Scripts/python -m ruff check matchmind tests ../infra        # --fix applies the safe ones
+.venv/Scripts/python -m pyright                                     # basic mode, config in pyproject.toml
 cd ../frontend && npm run lint
 # Foundry project evaluations (keyless through the project; needs `az login` + Foundry User on the project)
 FOUNDRY_PROJECT_ENDPOINT=https://matchmind-foundry.services.ai.azure.com/api/projects/matchmind   .venv/Scripts/python -m matchmind.agents.evaluate_groundedness --foundry --limit 8      # also on the project's grader

@@ -34,3 +34,13 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["matchmind"]
+
+[tool.pyright]
+# Basic mode on the package only: catches wrong attribute access and None handling without demanding stubs
+# from the Azure SDKs, which ship without them.
+include = ["matchmind"]
+exclude = ["**/__pycache__", ".venv"]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+reportMissingModuleSource = false
+reportMissingImports = false

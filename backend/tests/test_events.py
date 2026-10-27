@@ -118,10 +118,10 @@ def test_match_of_the_day_is_deterministic_and_never_a_club_against_itself():
 
 def test_stream_publishes_the_ended_event_and_still_sends_end(client, meta, monkeypatch):
     """The deployed app lost `end` when the match.ended event raised (profile.key is a property): never again."""
-    from matchmind.api import app as app_module
+    from matchmind.api import stream as stream_module
 
     pub = events.EventPublisher(FakeClient())
-    monkeypatch.setattr(app_module, "publisher_from_env", lambda: pub)
+    monkeypatch.setattr(stream_module, "publisher_from_env", lambda: pub)
     with client.websocket_connect(f"/ws/matches/{meta['match_id']}?speed=0&frames=0") as ws:
         ws.receive_json()
         msgs = _drain(ws)

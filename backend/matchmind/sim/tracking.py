@@ -201,7 +201,7 @@ class _Model:
         # pressers meet the ball where it is at that second, two metres goal-side
         for t, pid in self.pressures:
             bx, by = self.ball_at(t)
-            right = self._attacks_right(self.team_of.get(pid, self.home), t)
+            right = self._attacks_right(self.team_of.get(pid) or self.home, t)
             self._appoint(pid, t, bx + (-2.0 if right else 2.0) / PITCH_LENGTH_M * 100, by)
         for apps in self.players_appointments.values():
             apps.sort()

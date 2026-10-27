@@ -195,7 +195,7 @@ class RiskMonitor:
         t = self._minute(event)
         self.minute = max(self.minute, t)
         pid = event.get("player_id")
-        if event["type"] == "physical_sample" and pid in snapshot.get("players", {}):
+        if event["type"] == "physical_sample" and isinstance(pid, str) and pid in snapshot.get("players", {}):
             p = snapshot["players"][pid]
             self.baseline_track.update(pid, t, p)
             alert = self.model_track.update(pid, t, p, name=p["name"], team_id=p["team_id"],
