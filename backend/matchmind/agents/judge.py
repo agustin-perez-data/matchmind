@@ -255,10 +255,19 @@ def judge_prompt(context: dict) -> str:
 
 
 class JudgeAgent:
-    def __init__(self, agent):
-        self.agent = agent
+    def __init__(self, agent, hosted: bool = False):
+        # hosted: the Foundry prompt agent carries its own model settings and JSON schema in the registered version,
+        # and the service rejects a request that sets them again, so the call sends none and the reply is parsed here
+        self.agent, self.hosted = agent, hosted
 
     async def judge(self, context: dict) -> JudgeVerdict:
+        if self.hosted:
+            response = await self.agent.run(judge_prompt(context))
+            text = (getattr(response, "text", "") or "").strip()
+            start, end = text.find("{"), text.rfind("}")
+            if start < 0 or end <= start:
+                raise ValueError(f"hosted Judge returned no JSON: {text[:200]!r}")
+            return JudgeVerdict.model_validate_json(text[start:end + 1])
         response = await self.agent.run(judge_prompt(context), options={"response_format": JudgeVerdict})
         if response.value is None:
             raise ValueError(f"Judge returned no structured output: {getattr(response, 'text', '')[:200]!r}")

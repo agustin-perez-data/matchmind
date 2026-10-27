@@ -159,7 +159,7 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
           <TeamLoadBlock meta={meta} snapshot={state.snapshot} keyEvents={state.keyEvents} />
         </div>
         <div className="enter flex flex-col gap-3" style={{ ['--i' as string]: 4 }}>
-          <BenchReport meta={meta} snapshot={state.snapshot} risk={state.risk} feed={state.feed} verdicts={state.verdicts} credibility={state.credibility} entries={entries} ended={ended} />
+          <BenchReport meta={meta} snapshot={state.snapshot} risk={state.risk} verdicts={state.verdicts} credibility={state.credibility} entries={entries} ended={ended} />
           <details className="blk px-4 py-2 text-sm">
             <summary className="display cursor-pointer text-base font-extrabold uppercase tracking-wider text-fg-2">How the monitor was calibrated <span className="blk-meta ml-2 normal-case">40 synthetic matches</span></summary>
             <div className="mt-2"><ReliabilityBlock risk={state.risk} alerts={state.alerts} /></div>

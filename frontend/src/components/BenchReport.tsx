@@ -1,13 +1,12 @@
-import type { FeedItem, VerdictItem } from '../lib/useMatchStream'
+import type { VerdictItem } from '../lib/useMatchStream'
 import type { DecisionEntry } from '../lib/bench'
 import { staffReportHtml } from '../lib/staffReport'
-import type { CoachMsg, Credibility, Meta, RiskMsg, Snapshot } from '../lib/types'
+import type { Credibility, Meta, RiskMsg, Snapshot } from '../lib/types'
 
 type Props = {
   meta: Meta
   snapshot: Snapshot | null
   risk: RiskMsg | null
-  feed: FeedItem[]
   verdicts: VerdictItem[]
   credibility: Credibility | null
   entries: DecisionEntry[]
@@ -15,24 +14,11 @@ type Props = {
 }
 
 /** What the bench takes home at full time: knocks and warnings, every decision taken or tried (the Coach's and the
- *  bench's own) with its counterfactual, the Analyst's credibility. Downloadable as JSON for the performance staff. */
-export function BenchReport({ meta, snapshot, risk, feed, verdicts, credibility, entries, ended }: Props) {
+ *  bench's own) with its counterfactual, the Analyst's credibility. Opens as a printable staff report. */
+export function BenchReport({ meta, snapshot, risk, verdicts, credibility, entries, ended }: Props) {
   const h = meta.home_id, a = meta.away_id
-  const coaches = feed.filter((f): f is FeedItem & { msg: CoachMsg } => f.msg.kind === 'coach').map((f) => f.msg).reverse()
   const sc = risk?.scorecard.model, base = risk?.scorecard.baseline
   const bySource = { coach: entries.filter((e) => e.source === 'coach').length, bench: entries.filter((e) => e.source === 'bench').length }
-  const report = () => ({
-    match_id: meta.match_id, generated_at: new Date().toISOString(),
-    score: snapshot?.score ?? meta.score, teams: { [h]: meta.teams[h].name, [a]: meta.teams[a].name },
-    risk: risk ? { scorecard: risk.scorecard, concerns: risk.concerns, windows_open_at_full_time: risk.active_windows, note: risk.note } : null,
-    decisions: entries.map((e) => ({
-      minute: e.minute, clock: e.clock, source: e.source, trigger: e.trigger ?? null, player: e.player ?? null, decision: e.decision,
-      branch: e.branch ? { status: e.branch.status, intervention: e.branch.intervention, actual: e.branch.actual, branch: e.branch.branch, diff: e.branch.diff } : null,
-    })),
-    coach: coaches.map((c) => ({ clock: c.clock, trigger: c.trigger, player: c.player, proposal: c.proposal, branch: c.branch ? { status: c.branch.status, intervention: c.branch.intervention, actual: c.branch.actual, branch: c.branch.branch, diff: c.branch.diff } : null })),
-    analyst: { credibility, verdicts: verdicts.map((v) => ({ issued: v.msg.issued_clock, claim: v.msg.forecast.claim, scores: v.msg.scores, naive: v.msg.naive_scores, verdict: v.msg.verdict })) },
-    disclaimer: 'Synthetic league, fictional clubs and players. Risk windows are inferred from observable workload only: decision support, not medical advice.',
-  })
   const save = (body: string, type: string, name: string) => {
     const url = URL.createObjectURL(new Blob([body], { type }))
     const el = document.createElement('a')
@@ -41,7 +27,6 @@ export function BenchReport({ meta, snapshot, risk, feed, verdicts, credibility,
     el.click()
     URL.revokeObjectURL(url)
   }
-  const download = () => save(JSON.stringify(report(), null, 2), 'application/json', `matchmind-bench-report-${meta.match_id}.json`)
   // the Monday report: one printable page for the staff (open it, print to PDF, forward it)
   const downloadStaff = () => save(staffReportHtml({ meta, score: snapshot?.score ?? meta.score, risk, entries, credibility, generatedAt: new Date() }),
     'text/html', `matchmind-staff-report-${meta.match_id}.html`)
@@ -59,8 +44,7 @@ export function BenchReport({ meta, snapshot, risk, feed, verdicts, credibility,
         <h2 className="blk-title">Bench report</h2>
         <span className="flex flex-wrap gap-2">
           <button className="btn btn-teal text-sm" onClick={downloadStaff}>Staff report</button>
-          <a className="btn-quiet text-sm" href="/club" title="Every match's report, behind sign-in">Club area</a>
-          <button className="btn-quiet text-sm" onClick={download}>JSON</button>
+          <a className="btn-quiet text-sm" href="/club" target="_blank" rel="noreferrer" title="Every match's report, behind sign-in (opens in a new tab, this match stays here)">Club area</a>
         </span>
       </div>
       <div className="display mt-2 text-2xl font-extrabold">{meta.teams[h].short_name} {snapshot?.score[h] ?? meta.score[h]} - {snapshot?.score[a] ?? meta.score[a]} {meta.teams[a].short_name}</div>

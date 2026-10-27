@@ -133,7 +133,7 @@ def build_judge() -> JudgePipeline:
 
     if os.environ.get("MATCHMIND_JUDGE", "").lower() == "foundry" and auth_mode() == "project":
         try:
-            return JudgePipeline(JudgeAgent(hosted_judge()))
+            return JudgePipeline(JudgeAgent(hosted_judge(), hosted=True))
         except Exception as exc:  # noqa: BLE001  (not registered yet: the first deploy registers it after the API starts)
             log.warning("hosted Judge unavailable (%r); using the in-process Judge", exc)
     agent = chat_client("fast").as_agent(
@@ -149,7 +149,6 @@ def hosted_judge():
     from agent_framework_foundry import FoundryAgent
     from azure.ai.projects import AIProjectClient
 
-    from matchmind.agents.schemas import JudgeVerdict
     from matchmind.agents.tracing import TRACE_MIDDLEWARE
 
     endpoint, credential = os.environ["FOUNDRY_PROJECT_ENDPOINT"], _credential()
@@ -160,8 +159,9 @@ def hosted_judge():
             raise RuntimeError("matchmind-judge is not registered in the project (run infra/register_judge.py)")
         version = str(max(int(getattr(v, "version", 0) or 0) for v in versions))
     log.info("Judge: hosted agent matchmind-judge v%s", version)
+    # temperature and the JSON schema live in the registered version; Foundry rejects a request that sets them again
     return FoundryAgent(project_endpoint=endpoint, agent_name="matchmind-judge", agent_version=version, credential=credential,
-                        middleware=TRACE_MIDDLEWARE, default_options={"temperature": 0.2, "response_format": JudgeVerdict})
+                        middleware=TRACE_MIDDLEWARE)
 
 
 def build_analyst(tools: list | None = None, instructions: str | None = None) -> AnalystAgent:

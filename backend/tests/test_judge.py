@@ -212,3 +212,23 @@ def test_pipeline_keeps_the_scores_and_falls_back_to_a_code_verdict_when_the_jud
     silent = asyncio.run(JudgePipeline(None).run(ctx))
     assert silent["verdict"]["verdict"] == "called_it" and silent["errors"] == []
     json.dumps(ok), json.dumps(broken)
+
+
+def test_hosted_judge_sends_no_overrides_and_parses_the_json_reply():
+    """Foundry rejects temperature or a schema on a call to a named prompt agent: the hosted path sends neither."""
+    import asyncio
+    from types import SimpleNamespace
+
+    from matchmind.agents.judge import JudgeAgent
+
+    class Hosted:
+        def __init__(self):
+            self.kwargs = None
+
+        async def run(self, prompt, **kwargs):
+            self.kwargs = kwargs
+            return SimpleNamespace(text='Here you go: {"verdict": "partly", "summary": "close call", "lesson": "watch the xG"}')
+
+    agent = Hosted()
+    verdict = asyncio.run(JudgeAgent(agent, hosted=True).judge({"forecast": {}, "facts": {}, "scores": {}, "naive_scores": {}}))
+    assert agent.kwargs == {} and verdict.verdict == "partly" and verdict.lesson == "watch the xG"
