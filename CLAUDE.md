@@ -1,12 +1,9 @@
 # MatchMind — project instructions
 
 Hackathon project: "Inside the Game: Developer Hackathon" (Microsoft × Premier
-League). Solo entry by Agustín Pérez. **Submission deadline: Oct 27, 2026,
-11:59 PM Pacific — the end of that day, not its start.** The event page states
-the hacking period as Oct 6 to Oct 27, 2026, 11:59 PM Pacific; registration
-closed Oct 20. In Buenos Aires that cutoff is **04:59 on Oct 28** (Pacific is
-UTC-7 in October, Argentina UTC-3). Judging runs to Nov 10, and the deployed
-project has to stay reachable until then.
+League). Solo entry by Agustín Pérez. Submission closes Oct 27, 2026, 11:59 PM
+Pacific (04:59 Oct 28 in Buenos Aires); judging runs to Nov 10, and the deployed
+project must stay reachable until then.
 
 ## Context — read first
 
@@ -28,19 +25,15 @@ current status. Read it at the start of every session and keep its
    "positional model" in UI, docs and tool descriptions; never "tracking data"
    without that caveat. Frames are a side channel (`kind: "frame"`), never
    events: event ids, caches and the risk evaluation must not depend on them.
-3. **Synthetic data only.** Never introduce real Premier League club names,
+4. **Synthetic data only.** Never introduce real Premier League club names,
    player names, logos or data — not in code, docs, UI or the demo video
    (hackathon rules prohibit third-party trademarks).
-4. **Language**: code, comments, docs, commit messages and UI in **English**
+5. **Language**: code, comments, docs, commit messages and UI in **English**
    (global judges). Chat with Agustín in Spanish (rioplatense).
-5. **Simulator invariant**: player `fatigue` and `injury_susceptibility` are
+6. **Simulator invariant**: player `fatigue` and `injury_susceptibility` are
    latent — never serialize them or expose them to agents. The Load & Risk
    Monitor must infer risk from observables only (load history, physical
    samples, injury_concern events).
-6. **Scope discipline**: with the deadline this close, prefer finishing and
-   polishing the pipeline end-to-end over adding features. Demo video < 2 min
-   and the five brief stages (Ingest → Interpret → Explain → Render →
-   Personalize) visibly working are the bar.
 7. Azure work uses Agustín's **personal** account (free trial credits).
    Destructive or cost-incurring Azure operations: confirm before running.
 
