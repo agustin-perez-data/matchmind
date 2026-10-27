@@ -98,6 +98,21 @@ parallel, the Director on their outputs. A deterministic key-moment gate decides
 the call and everyone after gets it instantly. The stream also says what it skipped: at high replay speeds a
 lane drops some moments, and a `stats` message reports how many.
 
+## Who would use it
+
+- **Performance and medical staff:** warnings with a lead time from the workload they already track (GPS
+  distance, sprints, 28-day load, ACWR), with an honest record of how often they were right.
+- **The coaching bench:** a readiness board, the Coach's proposals with their re-simulated outcome, the
+  five-changes-in-three-windows budget, and a decision log that ends up in the full-time report.
+- **Broadcasters and fans:** the same match personalised by seat and language, every agent decision traceable.
+
+A Monday with it, concretely: a performance analyst opens the bench seat on Saturday's match. The readiness
+board says the left back was in a high-risk window from the 61st minute and the knock came in the 78th:
+seventeen minutes of notice the staff did not act on. The Coach's proposal from that window, a like-for-like
+change, is still in the decision log with the re-simulated outcome next to it, and the calibration says windows
+like that one see a knock 27 % of the time. The conversation with the head coach is now about a number and a
+timestamp, not an opinion.
+
 ## Deployed on Azure
 
 Everything is code in `infra/` and deploys on every push to `main` through GitHub Actions with OpenID Connect,
