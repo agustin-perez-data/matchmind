@@ -25,3 +25,12 @@ export function menuFixtures(rows: MatchRow[], headlinePrefix = 'THU'): MenuFixt
 export function headlineFixture(rows: MatchRow[], headlinePrefix = 'THU'): MatchRow | null {
   return rows.find((r) => r.match_id.startsWith(headlinePrefix)) ?? menuFixtures(rows, headlinePrefix)[0]?.row ?? null
 }
+
+export type QuickStart = { matchId: string; url: Record<string, string | null> }
+
+/** What the entry screen's primary action does: the derby, fan seat, neutral side (no turnstile), current language and speed. */
+export function quickStartPlan(rows: MatchRow[], selected: string | null, language: string, speed: number, agents: boolean, coach: boolean): QuickStart | null {
+  const id = headlineFixture(rows)?.match_id ?? selected
+  if (!id) return null
+  return { matchId: id, url: { seat: 'fan', match: id, lang: language, speed: String(speed), team: 'neutral', agents: agents ? null : '0', coach: coach ? null : '0' } }
+}

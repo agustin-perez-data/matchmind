@@ -1,10 +1,11 @@
-import { Fragment, useCallback, useState, type ReactNode, type RefObject } from 'react'
+import { useEffect, Fragment, useCallback, useState, type ReactNode, type RefObject } from 'react'
 import type { Seat } from '../lib/seats'
 import type { BallPoint, FeedItem } from '../lib/useMatchStream'
 import { touchPoints, type Touch } from '../lib/follow'
 import { attacksRight, heatCellRect, heatCells } from '../lib/tracking'
 import type { Frame, InsightMsg, MatchEvent, Meta, Snapshot } from '../lib/types'
 import { IconChart, IconMic } from './icons'
+import { isInterrupt } from '../lib/control'
 import { PitchLines, Turf } from './PitchLines'
 import { TrackingLayer } from './TrackingLayer'
 
@@ -20,17 +21,20 @@ type Props = {
   speed?: number
   rings?: Record<string, string>
   meta: Meta; ball: BallPoint[]; shots: MatchEvent[]; lastEvent: MatchEvent | null; snapshot: Snapshot | null
+  /** Called when the side on the ball (from the frames) changes, so other blocks can follow the same source. */
+  onPossessionTeam?: (teamId: string | null) => void
   latest: FeedItem | null; keyEvent: MatchEvent | null; seat: Seat; size?: 'lg' | 'sm'; agentsOn?: boolean
 }
 
 /** Pitch in studio perspective: shot map, ball with a short trail, possession chip, and the lower third. */
-export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false, followId = null, touches = [], ended = false, frameRef, speed = 1, rings }: Props) {
+export function PitchStage({ meta, ball, shots, lastEvent, snapshot, latest, keyEvent, seat, size = 'lg', agentsOn = false, followId = null, touches = [], ended = false, frameRef, speed = 1, rings, onPossessionTeam }: Props) {
   const who = seat === 'fan' ? 'your player' : 'the focused player'
   // the positional model: while frames flow the 22 dots and the ball come from them; the event ball stands in otherwise
   const [tracking, setTracking] = useState(false)
   const onActive = useCallback((a: boolean) => setTracking(a), [])
   const [livePoss, setLivePoss] = useState<BallPoint | null>(null) // from the frames: who carries the ball and where
   const onPossession = useCallback((p: BallPoint) => setLivePoss(p), [])
+  useEffect(() => { onPossessionTeam?.(tracking ? livePoss?.team_id ?? null : null) }, [tracking, livePoss?.team_id, onPossessionTeam])
   const [heat, setHeat] = useState(false)
   const [shape, setShape] = useState(seat === 'analyst') // the analyst wants the blocks by default; fans see players first
   const heatGrid = followId ? snapshot?.players[followId]?.heat : undefined
@@ -184,10 +188,12 @@ function LowerThird({ meta, latest, keyEvent, seat, agentsOn }: { meta: Meta; la
     ? [{ key: 'narration', node: narration }, { key: 'analysis', node: analysis }]
     : seat === 'analyst' ? [{ key: 'analysis', node: analysis }, { key: 'narration', node: narration }]
       : [{ key: 'bench', node: bench }, { key: 'analysis', node: analysis }, { key: 'narration', node: narration }]
-  const shown = rows.filter((r) => r.node).slice(0, 2)
+  // the Director's priority decides how loud the moment is: an interrupt gets the full lower third, the rest one line
+  const loud = !insight || isInterrupt(insight)
+  const shown = rows.filter((r) => r.node).slice(0, loud ? 2 : 1)
   return (
-    <div key={key} className="relative -mt-6 px-2 sm:-mt-10 sm:px-6">
-      <div className="lt-bar wipe-in-left inline-block px-5 py-1 text-2xl sm:text-[36px]">{title}</div>
+    <div key={key} className="relative -mt-6 px-2 sm:-mt-10 sm:px-6" data-loud={loud ? '1' : '0'}>
+      <div className={`lt-bar wipe-in-left inline-block px-5 py-1 ${loud ? 'text-2xl sm:text-[36px]' : 'text-lg sm:text-2xl'}`}>{title}</div>
       {shown.length ? (
         <div className="lt-sub enter grid grid-cols-[auto_1fr] gap-x-3.5 gap-y-2 px-5 py-3 text-base leading-snug sm:text-lg">
           {shown.map((r) => <Fragment key={r.key}>{r.node}</Fragment>)}

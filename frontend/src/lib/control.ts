@@ -1,6 +1,6 @@
 // Control room arithmetic: what the agent system cost and how it ran, read from the traces every message carries.
 import type { FeedItem, VerdictItem } from './useMatchStream'
-import type { TraceEvent } from './types'
+import type { InsightMsg, Lanes, TraceEvent } from './types'
 
 export type Health = {
   status: string
@@ -54,7 +54,7 @@ export function fmtTokens(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n)
 }
 
-/** One compact line for the guardrail verdicts of a moment: "guardrail: fan/es 99 %, analyst/en 12 % ungrounded". */
+/** One plain line for the fact check of a moment: "fact check: commentator/es 34 % not backed by the facts, analyst/en all backed". */
 export function guardrailLine(trace: TraceEvent[] | undefined): { text: string; clean: boolean } | null {
   const gs = (trace ?? []).filter((e) => e.kind === 'guardrail')
   if (!gs.length) return null
@@ -62,12 +62,37 @@ export function guardrailLine(trace: TraceEvent[] | undefined): { text: string; 
     const [mode, lang, , team] = (g.profile ?? '').split(':')
     return [mode, lang, team].filter((x) => x && x !== '-').join('/') || 'viewer'
   }
-  const parts = gs.map((g) => (!g.checked ? `${who(g)} unchecked` : g.grounded ? `${who(g)} grounded` : `${who(g)} ${Math.round((g.ungrounded_percentage ?? 0) * 100)} % ungrounded`))
+  const parts = gs.map((g) => (!g.checked ? `${who(g)} not checked` : g.grounded ? `${who(g)} all backed` : `${who(g)} ${Math.round((g.ungrounded_percentage ?? 0) * 100)} % not backed by the facts`))
   const clean = gs.every((g) => !g.checked || g.grounded)
-  return { text: `guardrail: ${parts.join(', ')}`, clean }
+  return { text: `fact check: ${parts.join(', ')}`, clean }
 }
 
 /** The Judge ran as the hosted Foundry agent when a verdict trace names it. */
 export function hostedJudge(verdicts: VerdictItem[]): boolean {
   return verdicts.some((v) => (v.msg.trace ?? []).some((e) => e.agent === 'matchmind-judge'))
+}
+
+/** "3 of 8" when the moments lane dropped some under load; null when nothing was dropped (the plain count is honest). */
+export function explainedLine(explained: number, lanes: Lanes | null): { value: string; sub: string } | null {
+  const lane = lanes?.insight
+  if (!lane || lane.dropped <= 0) return null
+  const total = explained + lane.dropped
+  return { value: `${explained} of ${total}`, sub: `${lane.dropped} skipped at this speed` }
+}
+
+/** How many Director decisions in the feed the house rules corrected. */
+export function correctedCount(feed: FeedItem[]): number {
+  let n = 0
+  for (const f of feed) {
+    if (f.msg.kind !== 'insight') continue
+    for (const v of Object.values(f.msg.viewers)) if (v.decision?.enforced) n++
+  }
+  return n
+}
+
+/** Does this moment interrupt the broadcast for its first viewer? Results cached before the flag existed count as yes. */
+export function isInterrupt(insight: InsightMsg | null | undefined): boolean {
+  if (!insight) return false
+  const v = Object.values(insight.viewers)[0]
+  return v?.interrupt ?? true
 }

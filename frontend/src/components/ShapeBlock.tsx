@@ -1,7 +1,7 @@
 import type { Meta, Snapshot } from '../lib/types'
 
 /** Team shape from the positional model: how high, how wide and how tight each block is, and who presses. */
-export function ShapeBlock({ meta, snapshot, ended = false }: { meta: Meta; snapshot: Snapshot | null; ended?: boolean }) {
+export function ShapeBlock({ meta, snapshot, ended = false, possessionTeam = null }: { meta: Meta; snapshot: Snapshot | null; ended?: boolean; possessionTeam?: string | null }) {
   const sh = snapshot?.shape
   const h = sh?.[meta.home_id], a = sh?.[meta.away_id]
   if (!h || !a) {
@@ -13,6 +13,8 @@ export function ShapeBlock({ meta, snapshot, ended = false }: { meta: Meta; snap
     )
   }
   const home = meta.teams[meta.home_id], away = meta.teams[meta.away_id]
+  // with frames flowing, the side on the ball comes from the positional model, the same source as the pitch's possession chip
+  const phaseOf = (tid: string, fallback: string) => possessionTeam ? (possessionTeam === tid ? 'attacking' : 'defending') : fallback
   const press = snapshot?.press_index, last = snapshot?.shape_last_10, pressure = snapshot?.pressure
   const m = (v: number) => `${v.toFixed(0)} m`
   const delta = (tid: string) => {
@@ -36,9 +38,9 @@ export function ShapeBlock({ meta, snapshot, ended = false }: { meta: Meta; snap
         <div className="display mt-2 text-center text-sm font-extrabold uppercase tracking-wider text-fg-2">full time · final shape</div>
       ) : (
         <div className="display mt-2 grid grid-cols-[1fr_auto_1fr] items-center text-sm font-extrabold uppercase tracking-wider">
-          <span style={{ color: 'var(--home-ink)' }}>{home.short_name} {h.phase}</span>
+          <span style={{ color: 'var(--home-ink)' }}>{home.short_name} {phaseOf(meta.home_id, h.phase)}</span>
           <span className="blk-meta px-3 text-xs">now</span>
-          <span className="text-right" style={{ color: 'var(--away-ink)' }}>{away.short_name} {a.phase}</span>
+          <span className="text-right" style={{ color: 'var(--away-ink)' }}>{away.short_name} {phaseOf(meta.away_id, a.phase)}</span>
         </div>
       )}
       <dl className="mt-1">

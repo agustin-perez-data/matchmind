@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { wsUrl } from './api'
 import { keep, type Touch } from './follow'
-import type { CoachMsg, Credibility, Frame, InsightMsg, MatchEvent, Meta, RiskMsg, RiskWindow, Snapshot, StreamStatus, VerdictMsg, ViewerProfile } from './types'
+import type { Lanes, CoachMsg, Credibility, Frame, InsightMsg, MatchEvent, Meta, RiskMsg, RiskWindow, Snapshot, StreamStatus, VerdictMsg, ViewerProfile } from './types'
 
 export type StreamOptions = {
   matchId: string
@@ -34,11 +34,13 @@ export type StreamState = {
   agentsOn: boolean
   coachOn: boolean
   goalFlash: number
+  /** What each agent lane was offered, ran and dropped (only sent once something is dropped, and at full time). */
+  lanes: Lanes | null
 }
 
 const EMPTY: StreamState = {
   status: 'idle', meta: null, snapshot: null, lastEvent: null, ball: [], shots: [], keyEvents: [], touches: [], feed: [],
-  risk: null, alerts: [], verdicts: [], credibility: null, agentsOn: false, coachOn: false, goalFlash: 0,
+  risk: null, alerts: [], verdicts: [], credibility: null, agentsOn: false, coachOn: false, goalFlash: 0, lanes: null,
 }
 
 const KEY_TYPES = new Set(['goal', 'shot', 'card', 'injury_concern', 'substitution', 'tactical_change', 'half_time', 'full_time', 'kickoff', 'second_half_kickoff'])
@@ -124,8 +126,10 @@ export function useMatchStream() {
           case 'end': {
             // the last workload batch lands after full time and never gets its own risk message: merge the final summary here
             const risk = x.risk ? ({ ...(s.risk ?? { kind: 'risk', minute: x.state.minute, clock: x.state.clock, hazards_top: [], recent_alerts: [], concerns: [], note: '' }), ...x.risk, kind: 'risk', clock: x.state.clock, hazard_series: x.hazard_series ?? s.risk?.hazard_series } as RiskMsg) : s.risk
-            return { ...s, status: 'ended', snapshot: x.state, credibility: x.credibility ?? s.credibility, risk }
+            return { ...s, status: 'ended', snapshot: x.state, credibility: x.credibility ?? s.credibility, risk, lanes: x.lanes ?? s.lanes }
           }
+          case 'stats':
+            return { ...s, lanes: x.lanes }
           default:
             return s
         }

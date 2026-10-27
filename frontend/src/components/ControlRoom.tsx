@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import { getHealth } from '../lib/api'
-import { cacheRate, feedTokens, fmtTokens, guardrailLine, hostedJudge, percentile, type Health } from '../lib/control'
+import { cacheRate, correctedCount, explainedLine, feedTokens, fmtTokens, guardrailLine, hostedJudge, percentile, type Health } from '../lib/control'
 import type { FeedItem, VerdictItem } from '../lib/useMatchStream'
-import type { CoachMsg, Credibility, InsightMsg, Meta, RiskMsg, TraceEvent } from '../lib/types'
+import type { CoachMsg, Credibility, InsightMsg, Lanes, Meta, RiskMsg, TraceEvent } from '../lib/types'
 
-type Props = { meta: Meta; feed: FeedItem[]; risk: RiskMsg | null; agentsOn: boolean; coachOn: boolean; verdicts: VerdictItem[]; credibility: Credibility | null }
+type Props = { meta: Meta; feed: FeedItem[]; risk: RiskMsg | null; agentsOn: boolean; coachOn: boolean; verdicts: VerdictItem[]; credibility: Credibility | null; lanes?: Lanes | null }
 
 const LANES = ['Analyst', 'Narrator', 'Director', 'Coach', 'Engine'] as const
 const LANE_COLOR: Record<string, string> = { Analyst: '#ffd166', Narrator: '#ffffff', Director: '#c084fc', Coach: '#2dd4bf', Engine: '#8fb0ff', Judge: '#f6a6ff' }
 
 /** The studio's control room: the agent system at work, moment by moment. */
-export function ControlRoom({ meta, feed, risk, agentsOn, coachOn, verdicts, credibility }: Props) {
+export function ControlRoom({ meta, feed, risk, agentsOn, coachOn, verdicts, credibility, lanes = null }: Props) {
   const [now, setNow] = useState(() => Date.now())  // lazy: the clock is read when the component mounts, not on every render
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(id) }, [])
   const latest = feed[0]
@@ -61,8 +61,14 @@ export function ControlRoom({ meta, feed, risk, agentsOn, coachOn, verdicts, cre
 
       <div className="mt-2 grid gap-x-6 gap-y-2 text-sm md:grid-cols-3">
         <StatGroup title="Throughput">
-          <Stat label="Key moments explained" value={`${insights.length}${insights.some((f) => f.msg.cached) ? ` (${insights.filter((f) => f.msg.cached).length} cached)` : ''}`} />
+          {(() => {
+            const skipped = explainedLine(insights.length, lanes)
+            return skipped
+              ? <Stat label="Key moments explained" value={skipped.value} sub={skipped.sub} />
+              : <Stat label="Key moments explained" value={`${insights.length}${insights.some((f) => f.msg.cached) ? ` (${insights.filter((f) => f.msg.cached).length} cached)` : ''}`} />
+          })()}
           <Stat label="Coach consultations" value={coachOn ? String(coaches.length) : 'off'} />
+          <Stat label="Director corrected" value={String(correctedCount(feed))} sub="by the house rules" />
           <Stat label="Tool calls by agents" value={String(toolCalls)} />
           <Stat label="Risk windows open" value={risk ? String(risk.active_windows.length) : '–'} />
         </StatGroup>
@@ -202,7 +208,7 @@ function Swimlane({ item, meta }: { item: FeedItem; meta: Meta }) {
           )
         })}
         {fallback && <text x={L} y={H - 4} fontSize={9} fill="var(--color-risk)">fallback: {fallback.reason}</text>}
-        {guard && <text x={fallback ? W / 2 : L} y={H - 4} fontSize={9} fill={guard.clean ? 'var(--color-teal)' : 'var(--color-risk)'}>{guard.text}</text>}
+        {guard && <text x={fallback ? W / 2 : L} y={H - 4} fontSize={9} fill={guard.clean ? 'var(--color-teal)' : 'var(--color-risk)'}><title>Azure AI Content Safety checks each commentary line against the facts the agents were given for this moment. Commentary adds colour, so a share not backed is normal; it is a drift signal.</title>{guard.text}</text>}
       </svg>
       {item.msg.kind === 'insight' && <Decision msg={item.msg} />}
       {item.msg.kind === 'coach' && item.msg.proposal && (
@@ -219,7 +225,7 @@ function Decision({ msg }: { msg: InsightMsg }) {
   const hid = all.filter((c) => !v.decision!.show.includes(c as never))
   return (
     <p className="text-xs text-fg-2">
-      Director for <b>{v.profile.mode}/{v.profile.language}</b>: showed {v.decision.show.join(', ') || 'nothing'}{hid.length ? `, hid ${hid.join(', ')}` : ''}, priority {v.decision.priority}{v.decision.personalized_note ? ', personal note added' : ''}.
+      Director for <b>{v.profile.mode}/{v.profile.language}</b>: showed {v.decision.show.join(', ') || 'nothing'}{hid.length ? `, hid ${hid.join(', ')}` : ''}, priority {v.decision.priority}{v.decision.personalized_note ? ', personal note added' : ''}{v.decision.enforced ? ', corrected by the house rules' : ''}.
     </p>
   )
 }

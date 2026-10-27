@@ -8,7 +8,8 @@ import { voice } from './lib/voice'
 import type { BranchSummary, ViewerProfile } from './lib/types'
 import { ControlBar } from './components/ControlBar'
 import { SeatPicker } from './components/SeatPicker'
-import { headlineFixture } from './lib/fixtures'
+import { quickStartPlan } from './lib/fixtures'
+import { isInterrupt } from './lib/control'
 import { SideModal } from './components/SideModal'
 import { MatchStage } from './components/MatchStage'
 
@@ -116,8 +117,9 @@ export default function App() {
   useEffect(() => {
     if (seat !== 'fan' || (state.status !== 'live' && state.status !== 'reconnecting' && state.status !== 'ended')) return // never a stale line from the last match
     const latest = state.feed.find((f) => f.msg.kind === 'insight')
-    const text = latest && latest.msg.kind === 'insight' ? Object.values(latest.msg.viewers)[0]?.narration?.text : null
-    if (text) voice.say(text, language)
+    const insight = latest && latest.msg.kind === 'insight' ? latest.msg : null
+    const text = insight ? Object.values(insight.viewers)[0]?.narration?.text : null
+    if (text && isInterrupt(insight)) voice.say(text, language) // the commentator speaks up for the moments the Director rated loud
   }, [state.feed, state.status, seat, language])
   useEffect(() => { if (seat !== 'fan' || state.status === 'idle') voice.stop() }, [seat, state.status])
 
@@ -133,13 +135,13 @@ export default function App() {
 
   /** The entry screen's primary action: the headline fixture, fan seat, neutral side, no turnstile. */
   const startQuick = useCallback(() => {
-    const id = headlineFixture(matches)?.match_id ?? matchId
-    if (!id) return
+    const plan = quickStartPlan(matches, matchId, language, speed, agents, coach)
+    if (!plan) return
     stadium.unlock()
-    setSeat('fan'); setMatchId(id)
+    setSeat('fan'); setMatchId(plan.matchId)
     setTeam(null); setSideChosen(true); setAskSide(false)
-    writeUrl({ seat: 'fan', match: id, lang: language, speed, team: 'neutral', agents: agents ? null : '0', coach: coach ? null : '0' })
-    begin('fan', id, { profile: profileForSeat('fan', language, favorite, null) })
+    writeUrl(plan.url)
+    begin('fan', plan.matchId, { profile: profileForSeat('fan', language, favorite, null) })
   }, [matches, matchId, language, speed, agents, coach, favorite, begin])
 
   /** The fan picked an end (or neutral) at the turnstile. */

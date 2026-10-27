@@ -49,6 +49,7 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
   // bench: which side the board shows and which player is in focus (ringed amber on the pitch, preselected in the decision card)
   const [benchTeam, setBenchTeam] = useState(meta.home_id)
   const [benchFocus, setBenchFocus] = useState<string | null>(null)
+  const [possTeam, setPossTeam] = useState<string | null>(null) // from the positional frames, shared by the pitch chip and the shape block
   useEffect(() => { if (benchFocus && state.snapshot && state.snapshot.players[benchFocus]?.on_pitch === false) setBenchFocus(null) }, [benchFocus, state.snapshot])
   const rings = useMemo(() => Object.fromEntries((state.risk?.active_windows ?? []).map((w) => [w.player_id, w.level === 'high' ? '#e8405a' : '#f97316'])), [state.risk])
   const entries = useMemo(() => decisionLog(state.feed, benchBranches, meta), [state.feed, benchBranches, meta])
@@ -58,7 +59,7 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
     <PitchStage meta={meta} ball={state.ball} shots={state.shots} lastEvent={state.lastEvent} snapshot={state.snapshot}
       latest={latestForSeat} keyEvent={keyEvent} seat={seat} size={size} agentsOn={state.agentsOn}
       followId={seat === 'fan' ? favoritePlayerId : seat === 'bench' ? benchFocus : null} touches={state.touches} ended={ended} frameRef={frameRef} speed={speed}
-      rings={seat === 'bench' ? rings : undefined} />
+      rings={seat === 'bench' ? rings : undefined} onPossessionTeam={setPossTeam} />
   )
   const rail = <MomentsRail meta={meta} feed={state.feed} keyEvents={state.keyEvents} agentsOn={state.agentsOn} seat={seat} shownId={latestForSeat?.id} />
   const band = <TopBand meta={meta} snapshot={state.snapshot} status={state.status} lastGoal={lastGoal} flash={state.goalFlash} teamId={seat === 'fan' ? teamId : null} />
@@ -89,7 +90,7 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
         {band}
         <main key="control" className="grid gap-3 px-3 pb-6 pt-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="stagger flex min-w-0 flex-col gap-3">
-            <div className="enter" style={{ ['--i' as string]: 1 }}><ControlRoom meta={meta} feed={state.feed} risk={state.risk} agentsOn={state.agentsOn} coachOn={state.coachOn} verdicts={state.verdicts} credibility={state.credibility} /></div>
+            <div className="enter" style={{ ['--i' as string]: 1 }}><ControlRoom meta={meta} feed={state.feed} risk={state.risk} agentsOn={state.agentsOn} coachOn={state.coachOn} verdicts={state.verdicts} credibility={state.credibility} lanes={state.lanes} /></div>
             <div className="enter" style={{ ['--i' as string]: 2 }}><TwoViewers meta={meta} feed={state.feed} /></div>
           </div>
           <aside className="stagger flex min-w-0 flex-col gap-3">
@@ -128,7 +129,7 @@ export function MatchStage({ seat, meta, state, frameRef, speed, branches, lates
           <div className="enter grid gap-3 md:grid-cols-2 lg:grid-cols-3" style={{ ['--i' as string]: 3 }}>
             <XgRace meta={meta} snapshot={state.snapshot} size="lg" />
             <StatsBlock meta={meta} snapshot={state.snapshot} />
-            <ShapeBlock meta={meta} snapshot={state.snapshot} ended={ended} />
+            <ShapeBlock meta={meta} snapshot={state.snapshot} ended={ended} possessionTeam={possTeam} />
           </div>
         </main>
       </>

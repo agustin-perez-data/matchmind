@@ -215,7 +215,12 @@ export type DirectorDecision = {
   priority: number
   headline: string
   personalized_note: string | null
+  /** The house rules corrected the agent's decision (set in code on the server). */
+  enforced?: boolean
 }
+
+export type LaneStats = { offered: number; started: number; dropped: number }
+export type Lanes = Partial<Record<'insight' | 'coach' | 'verdict', LaneStats>>
 
 export type TraceEvent = {
   t: number
@@ -251,7 +256,7 @@ export type InsightMsg = {
   score: Record<string, number>
   moment: { kind: string; importance: number; summary: string; event_id: number }
   analyst: AnalystInsight | null
-  viewers: Record<string, { profile: ViewerProfile; narration: Narration | null; decision: DirectorDecision | null }>
+  viewers: Record<string, { profile: ViewerProfile; narration: Narration | null; decision: DirectorDecision | null; interrupt?: boolean }>
   errors: string[]
   latency_ms: number
 }
