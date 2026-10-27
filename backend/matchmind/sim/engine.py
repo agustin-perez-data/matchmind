@@ -28,6 +28,21 @@ FORMATION = {"GK": 1, "DF": 4, "MF": 4, "FW": 2}
 INTERVENTION_TYPES = ("substitution", "tactic")
 
 
+# Ground-truth injury models. "default" is the one every published number uses. The others exist to stress the
+# Risk Monitor against worlds it was not tuned for (python -m matchmind.risk.evaluate --truth-sweep): a different
+# ACWR threshold, linear instead of convex fatigue, no workload spike at all, workload as the only cause, and much
+# more individual variation. Each keeps one random draw per player-minute, so the match itself never changes; the
+# scale is set so each world produces roughly as many knocks as the default.
+INJURY_MODELS: dict[str, dict[str, float]] = {
+    "default": {"acwr_threshold": 1.3, "congestion_weight": 2.0, "fatigue_weight": 2.5, "fatigue_power": 2.0, "susceptibility_power": 1.0, "scale": 0.004},
+    "threshold_1_5": {"acwr_threshold": 1.5, "congestion_weight": 2.0, "fatigue_weight": 2.5, "fatigue_power": 2.0, "susceptibility_power": 1.0, "scale": 0.004},
+    "linear_fatigue": {"acwr_threshold": 1.3, "congestion_weight": 2.0, "fatigue_weight": 2.5, "fatigue_power": 1.0, "susceptibility_power": 1.0, "scale": 0.00187},
+    "fatigue_only": {"acwr_threshold": 1.3, "congestion_weight": 0.0, "fatigue_weight": 2.5, "fatigue_power": 2.0, "susceptibility_power": 1.0, "scale": 0.004},
+    "workload_only": {"acwr_threshold": 1.3, "congestion_weight": 2.0, "fatigue_weight": 0.0, "fatigue_power": 2.0, "susceptibility_power": 1.0, "scale": 0.049},
+    "noisy_individuals": {"acwr_threshold": 1.3, "congestion_weight": 2.0, "fatigue_weight": 2.5, "fatigue_power": 2.0, "susceptibility_power": 3.0, "scale": 0.00726},
+}
+
+
 class MatchSimulator:
     """Simulates one match. `interventions` is an optional plan of coach actions
     applied at the start of a given minute (before that minute's possessions):
@@ -42,9 +57,12 @@ class MatchSimulator:
     """
 
     def __init__(self, home: Team, away: Team, seed: int = 42, match_id: str = "M0001",
-                 interventions: list[dict] | None = None):
+                 interventions: list[dict] | None = None, injury_model: str = "default"):
         self.home = home
         self.away = away
+        if injury_model not in INJURY_MODELS:
+            raise ValueError(f"unknown injury model {injury_model!r}; choose from {sorted(INJURY_MODELS)}")
+        self.injury_model = INJURY_MODELS[injury_model]
         self.rng = random.Random(seed)
         # Cosmetic draws (knock descriptions) use their own stream so the injury
         # model can change without altering a single pass or shot of the match.
@@ -286,9 +304,10 @@ class MatchSimulator:
         Draws exactly one random number per player-minute, so changing the
         formula never alters the rest of the match.
         """
-        congestion = max(0.0, player.acwr_pre - 1.3) * 2.0
-        load = 2.5 * player.fatigue ** 2 + congestion
-        p = 0.004 * load * player.injury_susceptibility
+        m = self.injury_model
+        congestion = max(0.0, player.acwr_pre - m["acwr_threshold"]) * m["congestion_weight"]
+        load = m["fatigue_weight"] * player.fatigue ** m["fatigue_power"] + congestion
+        p = m["scale"] * load * player.injury_susceptibility ** m["susceptibility_power"]
         if self.rng.random() < p:
             self._emit(
                 "injury_concern",

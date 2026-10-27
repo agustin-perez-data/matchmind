@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import itertools
+import pathlib
 import random
 
 from matchmind.generate_match import generate
@@ -21,7 +22,7 @@ from matchmind.sim.league import CLUBS
 
 
 def evaluate_matches(n: int = 20, seed0: int = 1000, model: RiskModel | None = None,
-                     threshold: float = 0.5, horizon_min: int = 15) -> dict:
+                     threshold: float = 0.5, horizon_min: int = 15, injury_model: str = "default") -> dict:
     """Aggregate scorecard over n simulated matches (pooled counts, not averaged ratios)."""
     rng = random.Random(seed0)
     totals = {k: {"alerts": 0, "true_alerts": 0, "concerns": 0, "covered": 0, "lead_sum": 0.0,
@@ -29,7 +30,7 @@ def evaluate_matches(n: int = 20, seed0: int = 1000, model: RiskModel | None = N
     ids = [c[0] for c in CLUBS]
     for i in range(n):
         home, away = rng.sample(ids, 2)
-        events, meta = generate(home, away, seed=seed0 + i)
+        events, meta = generate(home, away, seed=seed0 + i, injury_model=injury_model)
         state = MatchState(meta)
         monitor = RiskMonitor(meta, model=model or RiskModel(), baseline=NaiveMinutesBaseline(),
                               horizon_min=horizon_min, threshold=threshold)
@@ -114,15 +115,53 @@ def _print(report: dict) -> None:
               f"{r['top3_rate']:8.3f}{r['top3_random_rate']:8.3f}{r['mean_rank_pct']:8.1f}")
 
 
+TRUTH_NOTES = {
+    "default": "the published world: convex fatigue, ACWR spike above 1.3",
+    "threshold_1_5": "the ACWR spike starts at 1.5, not where the monitor assumes",
+    "linear_fatigue": "fatigue hurts linearly, not convexly",
+    "fatigue_only": "workload history plays no part, only in-match fatigue",
+    "workload_only": "in-match fatigue plays no part, only the pre-match ACWR spike",
+    "noisy_individuals": "individual susceptibility dominates (cubed): identical load, very different players",
+}
+
+
+def truth_sweep(n: int, seed0: int) -> list[dict]:
+    """The unchanged monitor against every ground-truth variant; one row per world."""
+    from matchmind.sim.engine import INJURY_MODELS
+
+    rows = []
+    for name in INJURY_MODELS:
+        r = evaluate_matches(n=n, seed0=seed0, injury_model=name)
+        m, b = r["model"], r["baseline"]
+        rows.append({"world": name, "note": TRUTH_NOTES.get(name, ""), "knocks": m["concerns"], "top3": m["top3_rate"],
+                     "random": m["top3_random_rate"], "baseline_top3": b["top3_rate"], "lead": m["mean_lead_minutes"],
+                     "lift": round(m["top3_rate"] / m["top3_random_rate"], 2) if m["top3_random_rate"] else None})
+    return rows
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Evaluate the Risk Monitor offline")
     ap.add_argument("--matches", type=int, default=20)
     ap.add_argument("--seed0", type=int, default=1000)
     ap.add_argument("--threshold", type=float, default=0.5)
     ap.add_argument("--grid", action="store_true", help="sweep a few weight/threshold combinations")
+    ap.add_argument("--truth-sweep", action="store_true",
+                    help="same monitor, different ground-truth injury models: does it still beat chance in worlds it was not tuned for?")
     ap.add_argument("--calibration", action="store_true", help="reliability bins (hazard vs observed hit rate) instead of the scorecard")
     ap.add_argument("--out", default=None, help="with --calibration: write the JSON here (the frontend ships a copy)")
     args = ap.parse_args()
+    if args.truth_sweep:
+        import json as _json
+
+        rows = truth_sweep(args.matches, args.seed0)
+        print(f"Same Risk Monitor, {args.matches} matches per world (seeds from {args.seed0})")
+        print(f"{'world':<18} {'knocks':>6} {'top-3':>6} {'random':>7} {'minutes rule':>12} {'lift':>5} {'lead':>6}")
+        for r in rows:
+            print(f"{r['world']:<18} {r['knocks']:>6} {r['top3']:>6.0%} {r['random']:>7.0%} {r['baseline_top3']:>12.0%} {r['lift']!s:>5} {r['lead']!s:>6}")
+        if args.out:
+            pathlib.Path(args.out).write_text(_json.dumps({"matches": args.matches, "seed0": args.seed0, "worlds": rows}, indent=1), encoding="utf-8")
+            print("written", args.out)
+        return
 
     if args.calibration:
         import json

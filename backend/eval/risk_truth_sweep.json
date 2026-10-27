@@ -1,0 +1,66 @@
+{
+ "matches": 40,
+ "seed0": 1000,
+ "worlds": [
+  {
+   "world": "default",
+   "note": "the published world: convex fatigue, ACWR spike above 1.3",
+   "knocks": 99,
+   "top3": 0.273,
+   "random": 0.136,
+   "baseline_top3": 0.081,
+   "lead": 26.6,
+   "lift": 2.01
+  },
+  {
+   "world": "threshold_1_5",
+   "note": "the ACWR spike starts at 1.5, not where the monitor assumes",
+   "knocks": 92,
+   "top3": 0.25,
+   "random": 0.136,
+   "baseline_top3": 0.087,
+   "lead": 27.4,
+   "lift": 1.84
+  },
+  {
+   "world": "linear_fatigue",
+   "note": "fatigue hurts linearly, not convexly",
+   "knocks": 90,
+   "top3": 0.213,
+   "random": 0.136,
+   "baseline_top3": 0.101,
+   "lead": 27.1,
+   "lift": 1.57
+  },
+  {
+   "world": "fatigue_only",
+   "note": "workload history plays no part, only in-match fatigue",
+   "knocks": 92,
+   "top3": 0.25,
+   "random": 0.136,
+   "baseline_top3": 0.087,
+   "lead": 27.4,
+   "lift": 1.84
+  },
+  {
+   "world": "workload_only",
+   "note": "in-match fatigue plays no part, only the pre-match ACWR spike",
+   "knocks": 136,
+   "top3": 0.595,
+   "random": 0.136,
+   "baseline_top3": 0.143,
+   "lead": 26.1,
+   "lift": 4.37
+  },
+  {
+   "world": "noisy_individuals",
+   "note": "individual susceptibility dominates (cubed): identical load, very different players",
+   "knocks": 105,
+   "top3": 0.288,
+   "random": 0.136,
+   "baseline_top3": 0.096,
+   "lead": 28.0,
+   "lift": 2.12
+  }
+ ]
+}

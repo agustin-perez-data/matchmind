@@ -20,8 +20,9 @@ get hurt, what to do about it, and what would have happened; a control room watc
 **What is different.** Every AI output is graded against what actually happens. The Analyst's ten-minute
 forecasts are scored by a Judge and shown next to a naive baseline, so viewers see its credibility move
 during the match. The Load & Risk Monitor predicts injuries from workload alone, and across 40 simulated
-matches one in three players who got hurt was among the three it had flagged as most at risk (random would be
-one in seven), with 25 minutes of warning on average. The Coach proposes a substitution or a tactical change
+matches more than one in four players who got hurt was among the three it had flagged as most at risk (random
+would be one in seven), with 27 minutes of warning on average, and it still beats chance when the rule for who gets
+hurt is swapped for five others it was not built for. The Coach proposes a substitution or a tactical change
 and a deterministic engine re-simulates the match from that minute, so the counterfactual is shown, not
 described.
 

@@ -1,7 +1,7 @@
 // The three proofs the entry screen shows under the headline. Every number is a measurement reported in
 // README.md ("AI that gets graded, not just heard"), copied by hand so the landing never claims something
-// the write-up does not: the risk table (README L88-90, 40 simulated matches) and the groundedness run
-// (README L170-171, 28 items scored by Azure AI Evaluation's grader). Update both places together.
+// the write-up does not: the risk table and the ground-truth sweep (README, "AI that gets graded", 40 simulated matches)
+// and the groundedness run (28 items scored by Azure AI Evaluation's grader). Update both places together.
 export type Proof = {
   /** The number as shown, already formatted. */
   value: string
@@ -15,13 +15,13 @@ export type Proof = {
 
 export const PROOFS: readonly Proof[] = [
   {
-    value: '1 in 3',
-    compare: 'random would be 1 in 7',
-    caption: 'Of the players who got hurt, one in three was among the three the Risk Monitor had flagged as most at risk.',
-    source: '40 simulated matches: 32 % against 14 % for a random pick',
+    value: '2x',
+    compare: 'better than chance',
+    caption: 'Of the players who got hurt, more than one in four was among the three the Risk Monitor had flagged as most at risk; picking at random gets one in seven.',
+    source: '40 simulated matches: 27 % against 14 %, and it holds in five other injury worlds'
   },
   {
-    value: '25 min',
+    value: '27 min',
     compare: 'a minutes-played rule: 18',
     caption: 'Average warning between the monitor flagging a player and the knock. Time enough to take him off.',
     source: 'same 40 matches',

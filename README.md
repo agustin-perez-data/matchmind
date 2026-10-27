@@ -47,13 +47,29 @@ runs alongside with the same window policy. Over 40 simulated matches (`python -
 
 | | Risk Monitor | Minutes-only rule | Random pick |
 |---|---|---|---|
-| Knock happened to a top-3 hazard player | 32 % | 16 % | 14 % |
-| Knocks covered by an open window | 46 % | 26 % | |
-| Mean warning time | 25 min | 18 min | |
-| Windows that came true | 9 % | 8 % | |
+| Knock happened to a top-3 hazard player | 27 % | 8 % | 14 % |
+| Knocks covered by an open window | 53 % | 15 % | |
+| Mean warning time | 27 min | 18 min | |
+| Windows that came true | 8 % | 5 % | |
 
-It ranks risk far better than chance or a minutes rule, and most windows still pass without a knock; that is
-what the scorecard is for. The hazard is a ranking, not a probability: windows opened above 0.9 saw a knock
+It ranks risk twice as well as chance and far better than a minutes rule, and most windows still pass without a
+knock; that is what the scorecard is for.
+
+**Does it only learn our own formula?** The knock model is ours, so the fair question is whether the monitor
+just reverse-engineered it. To check, the same unchanged monitor was run against five other worlds, each with a
+different rule for who gets hurt (`python -m matchmind.risk.evaluate --truth-sweep --matches 40`):
+
+| World (who gets hurt) | Top-3 hit | Random | Minutes rule | Warning |
+|---|---|---|---|---|
+| Published: convex fatigue, workload spike above ACWR 1.3 | 27 % | 14 % | 8 % | 27 min |
+| The spike starts at ACWR 1.5, not where the monitor assumes | 25 % | 14 % | 9 % | 27 min |
+| Fatigue hurts linearly, not convexly | 21 % | 14 % | 10 % | 27 min |
+| Workload history plays no part, only in-match fatigue | 25 % | 14 % | 9 % | 27 min |
+| Only the pre-match workload spike, no fatigue | 60 % | 14 % | 14 % | 26 min |
+| Individual susceptibility dominates | 29 % | 14 % | 10 % | 28 min |
+
+It beats chance in every world, by 1.6x to 4.4x, including the ones built to break its assumptions. That does not
+make it a real-world model, but it is evidence that it finds signal in workload rather than in our formula. The hazard is a ranking, not a probability: windows opened above 0.9 saw a knock
 27 % of the time, those below 0.8 almost never (`--calibration`), and the bench seat shows that curve.
 
 **The Analyst is graded too.** Every read ends with a forecast for the next ten minutes (which side creates
@@ -112,6 +128,20 @@ seventeen minutes of notice the staff did not act on. The Coach's proposal from 
 change, is still in the decision log with the re-simulated outcome next to it, and the calibration says windows
 like that one see a knock 27 % of the time. The conversation with the head coach is now about a number and a
 timestamp, not an opinion.
+
+## What it costs
+
+Measured from the tokens recorded on 450 agent runs (gpt-4o at USD 2.50 / 10 per million input / output tokens,
+gpt-4.1-mini at 0.40 / 1.60):
+
+| | USD |
+|---|---|
+| One match, every seat explained once | 2.52 |
+| A 38-match season | about 96 |
+| Every viewer after the first | 0 (served from the cache) |
+
+Hosting at one warm replica adds roughly USD 1.5-3 a day. The cache is what makes the economics work: a club
+pays once per match for the explanations, not once per person who watches them.
 
 ## Deployed on Azure
 

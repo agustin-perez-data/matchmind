@@ -65,6 +65,7 @@ def generate(
     league_seed: int = 7,
     interventions: list[dict] | None = None,
     match_id: str | None = None,
+    injury_model: str = "default",
 ) -> tuple[list[dict], dict]:
     """Simulate one match. Returns (events, meta); meta carries no latent state.
 
@@ -74,7 +75,7 @@ def generate(
     league = build_league(league_seed)
     home_team, away_team = league[home], league[away]
     match_id = match_id or f"{home}-{away}-{seed}"
-    result = MatchSimulator(home_team, away_team, seed=seed, match_id=match_id, interventions=interventions).run()
+    result = MatchSimulator(home_team, away_team, seed=seed, match_id=match_id, interventions=interventions, injury_model=injury_model).run()
     events = result["events"]
     starters = set(result["starters"])
     meta = {

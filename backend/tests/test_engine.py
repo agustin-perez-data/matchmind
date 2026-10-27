@@ -73,3 +73,17 @@ def test_events_never_leak_latent_player_state(events, meta):
     blob = json.dumps(events) + json.dumps(meta)
     assert "fatigue" not in blob
     assert "susceptib" not in blob
+
+
+def test_injury_model_variants_change_only_the_knocks():
+    """Swapping the ground truth must never move a pass or a shot: only injury_concern events may differ."""
+    import pytest
+
+    from matchmind.generate_match import generate
+
+    base, _ = generate("THU", "NBF", seed=40)
+    other, _ = generate("THU", "NBF", seed=40, injury_model="linear_fatigue")
+    strip = lambda evs: [(e["type"], e.get("minute"), e.get("second"), e.get("player_id")) for e in evs if e["type"] != "injury_concern"]
+    assert strip(base) == strip(other)
+    with pytest.raises(ValueError):
+        generate("THU", "NBF", seed=40, injury_model="nope")

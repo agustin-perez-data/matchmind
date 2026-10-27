@@ -1,5 +1,6 @@
 import type { FeedItem, VerdictItem } from '../lib/useMatchStream'
 import type { DecisionEntry } from '../lib/bench'
+import { staffReportHtml } from '../lib/staffReport'
 import type { CoachMsg, Credibility, Meta, RiskMsg, Snapshot } from '../lib/types'
 
 type Props = {
@@ -32,15 +33,18 @@ export function BenchReport({ meta, snapshot, risk, feed, verdicts, credibility,
     analyst: { credibility, verdicts: verdicts.map((v) => ({ issued: v.msg.issued_clock, claim: v.msg.forecast.claim, scores: v.msg.scores, naive: v.msg.naive_scores, verdict: v.msg.verdict })) },
     disclaimer: 'Synthetic league, fictional clubs and players. Risk windows are inferred from observable workload only: decision support, not medical advice.',
   })
-  const download = () => {
-    const blob = new Blob([JSON.stringify(report(), null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
+  const save = (body: string, type: string, name: string) => {
+    const url = URL.createObjectURL(new Blob([body], { type }))
     const el = document.createElement('a')
     el.href = url
-    el.download = `matchmind-bench-report-${meta.match_id}.json`
+    el.download = name
     el.click()
     URL.revokeObjectURL(url)
   }
+  const download = () => save(JSON.stringify(report(), null, 2), 'application/json', `matchmind-bench-report-${meta.match_id}.json`)
+  // the Monday report: one printable page for the staff (open it, print to PDF, forward it)
+  const downloadStaff = () => save(staffReportHtml({ meta, score: snapshot?.score ?? meta.score, risk, entries, credibility, generatedAt: new Date() }),
+    'text/html', `matchmind-staff-report-${meta.match_id}.html`)
   if (!ended) {
     return (
       <details className="blk blk-coach px-4 py-2 text-sm">
@@ -53,7 +57,10 @@ export function BenchReport({ meta, snapshot, risk, feed, verdicts, credibility,
     <section className="blk blk-coach px-4 py-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="blk-title">Bench report</h2>
-        <button className="btn btn-teal text-sm" onClick={download}>Download JSON</button>
+        <span className="flex flex-wrap gap-2">
+          <button className="btn btn-teal text-sm" onClick={downloadStaff}>Staff report</button>
+          <button className="btn-quiet text-sm" onClick={download}>JSON</button>
+        </span>
       </div>
       <div className="display mt-2 text-2xl font-extrabold">{meta.teams[h].short_name} {snapshot?.score[h] ?? meta.score[h]} - {snapshot?.score[a] ?? meta.score[a]} {meta.teams[a].short_name}</div>
 
