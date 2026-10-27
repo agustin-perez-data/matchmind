@@ -25,11 +25,11 @@ from matchmind.tools.registry import LiveStateRegistry, MatchTools
 def parse_profile(spec: str) -> ViewerProfile:
     """'analyst' | 'commentator:es' | 'player_focus:en:THU-19'."""
     parts = spec.split(":")
-    return ViewerProfile(
-        mode=parts[0],
-        language=parts[1] if len(parts) > 1 else "en",
-        favorite_player_id=parts[2] if len(parts) > 2 else None,
-    )
+    return ViewerProfile.model_validate({
+        "mode": parts[0],
+        "language": parts[1] if len(parts) > 1 else "en",
+        "favorite_player_id": parts[2] if len(parts) > 2 else None,
+    })
 
 
 def collect_moments(

@@ -41,9 +41,9 @@ def parse_profile_spec(spec: str) -> ViewerProfile:
     parts = [p.strip() for p in str(spec).split(":")]
     if not parts or not parts[0]:
         raise ValueError(f"empty profile spec {spec!r}")
-    return ViewerProfile(mode=parts[0], language=parts[1] if len(parts) > 1 and parts[1] else "en",
-                         favorite_player_id=parts[2] if len(parts) > 2 and parts[2] else None,
-                         team_id=parts[3] if len(parts) > 3 and parts[3] else None)
+    return ViewerProfile.model_validate({"mode": parts[0], "language": parts[1] if len(parts) > 1 and parts[1] else "en",
+                                         "favorite_player_id": parts[2] if len(parts) > 2 and parts[2] else None,
+                                         "team_id": parts[3] if len(parts) > 3 and parts[3] else None})
 
 
 class _Lane:

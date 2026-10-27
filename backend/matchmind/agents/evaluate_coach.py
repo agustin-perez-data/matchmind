@@ -78,7 +78,7 @@ async def run(args: argparse.Namespace) -> dict:
     from agent_framework import evaluate_agent
     from agent_framework_foundry import FoundryEvals
 
-    from matchmind.agents.clients import build_coach, chat_client, project_endpoint
+    from matchmind.agents.clients import build_coach, foundry_client, project_endpoint
 
     if not project_endpoint():
         print("FOUNDRY_PROJECT_ENDPOINT is required: the evaluation runs in the project", file=sys.stderr)
@@ -94,7 +94,7 @@ async def run(args: argparse.Namespace) -> dict:
     coach = build_coach(tools).coach.agent
     queries = [coach_prompt(c) for c in situations]
     print(f"{args.match}: {len(queries)} bench situations; running the Coach and grading on the project")
-    evals = FoundryEvals(client=chat_client("fast"), evaluators=[FoundryEvals.TOOL_CALL_ACCURACY, FoundryEvals.TASK_ADHERENCE, FoundryEvals.INTENT_RESOLUTION],
+    evals = FoundryEvals(client=foundry_client("fast"), evaluators=[FoundryEvals.TOOL_CALL_ACCURACY, FoundryEvals.TASK_ADHERENCE, FoundryEvals.INTENT_RESOLUTION],
                          timeout=900)
     t0 = time.perf_counter()
     results = await evaluate_agent(agent=coach, queries=queries, evaluators=evals, eval_name=f"matchmind-coach-{args.match}")

@@ -131,13 +131,13 @@ async def foundry_evaluate(items: list[dict], match_id: str) -> dict:
     from agent_framework import EvalItem, Message
     from agent_framework_foundry import FoundryEvals
 
-    from matchmind.agents.clients import chat_client, project_endpoint
+    from matchmind.agents.clients import foundry_client, project_endpoint
 
     if not project_endpoint():
         return {"error": "FOUNDRY_PROJECT_ENDPOINT not set"}
     eval_items = [EvalItem(conversation=[Message("user", AGENT_QUERIES[it["agent"]]), Message("assistant", it["response"])], context=it["context"])
                   for it in items]
-    evals = FoundryEvals(client=chat_client("fast"), evaluators=[FoundryEvals.GROUNDEDNESS], timeout=900)
+    evals = FoundryEvals(client=foundry_client("fast"), evaluators=[FoundryEvals.GROUNDEDNESS], timeout=900)
     t0 = time.perf_counter()
     res = await evals.evaluate(eval_items, eval_name=f"matchmind-groundedness-{match_id}")
     per_item = []

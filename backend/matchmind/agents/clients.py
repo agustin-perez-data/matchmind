@@ -93,6 +93,17 @@ def chat_client(tier: str = "fast"):
     return OpenAIChatCompletionClient(model=deployment, azure_endpoint=endpoint, api_version=version, api_key=os.environ["AZURE_OPENAI_API_KEY"])
 
 
+def foundry_client(tier: str = "fast"):
+    """The project's chat client, for the Foundry evaluation APIs (they need the project, not the account endpoint)."""
+    from agent_framework.foundry import FoundryChatClient
+
+    load_env()
+    endpoint = project_endpoint()
+    if not endpoint:
+        raise RuntimeError("FOUNDRY_PROJECT_ENDPOINT is required for Foundry evaluations")
+    return FoundryChatClient(project_endpoint=endpoint, model=os.environ[f"AZURE_OPENAI_DEPLOYMENT_{tier.upper()}"], credential=_credential())
+
+
 def describe_auth() -> str:
     mode = auth_mode()
     return {"project": "Foundry project, managed identity", "identity": "account endpoint, managed identity",

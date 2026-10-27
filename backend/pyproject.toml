@@ -41,6 +41,9 @@ known-first-party = ["matchmind"]
 include = ["matchmind"]
 exclude = ["**/__pycache__", ".venv"]
 pythonVersion = "3.11"
+# resolve the real packages locally too (CI runs in a plain environment where they are on the path)
+venvPath = "."
+venv = ".venv"
 typeCheckingMode = "basic"
 reportMissingModuleSource = false
 reportMissingImports = false

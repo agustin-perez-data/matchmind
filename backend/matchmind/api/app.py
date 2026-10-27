@@ -291,7 +291,7 @@ def create_app(
             await websocket.close(code=4404, reason=f"unknown match {match_id!r}")
             return
         try:
-            profile = ViewerProfile(mode=mode, language=lang, favorite_player_id=player, team_id=team or None)
+            profile = ViewerProfile.model_validate({"mode": mode, "language": lang, "favorite_player_id": player, "team_id": team or None})
             compare_profiles = [parse_profile_spec(s) for s in compare.split(",") if s.strip()] if compare else []
         except ValidationError as exc:
             await websocket.close(code=4400, reason=f"bad viewer profile: {exc.errors()[0]['msg']}")
