@@ -10,7 +10,7 @@ match that would have followed.
 - **Live:** https://lively-mushroom-0cde96c0f.5.azurestaticapps.net (one click opens the derby; a match
   replays in about 90 seconds)
 - **API:** https://matchmind-api.mangopond-a8309942.eastus2.azurecontainerapps.io (`/health`, `/docs`, `/mcp`)
-- **Demo video:** link on the project page
+- **Demo video:** https://www.youtube.com/watch?v=MqtQjgP2ZOk (under 2 minutes)
 
 > **Synthetic data only.** Every club, player, event and number comes from our own simulator. The eight clubs
 > of the MatchMind Synthetic League echo the archetypes of English football, but their names, kits and crests
